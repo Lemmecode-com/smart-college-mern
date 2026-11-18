@@ -3,10 +3,12 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
+import { formatDate, formatDateTime, formatINR } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 
@@ -86,38 +88,6 @@ const fadeInVariants = {
   })
 };
 
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
-};
-
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: {
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
-
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: {
-      duration: 1,
-      repeat: Infinity,
-      ease: "linear"
-    }
-  }
-};
-
 export default function ChildDetail() {
   const { user } = useContext(AuthContext);
   const { childId } = useParams();
@@ -128,27 +98,30 @@ export default function ChildDetail() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("fees");
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "PARENT_GUARDIAN") {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   /* ================= DATA FETCHING ================= */
   useEffect(() => {
-    if (childId) {
+    if (user?.role === "PARENT_GUARDIAN" && childId) {
       fetchChildData();
     }
-  }, [childId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childId, user?.role]);
 
   useEffect(() => {
+    if (user?.role !== "PARENT_GUARDIAN") return undefined;
     const interval = setInterval(() => {
       if (activeTab === "attendance") {
         fetchAttendance();
       }
     }, 60000);
     return () => clearInterval(interval);
-  }, [activeTab, childId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, childId, user?.role]);
+
+  /* ================= SECURITY ================= */
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "PARENT_GUARDIAN") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const fetchChildData = async () => {
     try {
@@ -257,13 +230,26 @@ export default function ChildDetail() {
   };
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading child information..." />;
+    return (
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-detail">
+        <div
+          className="parent-portal-container parent-child-detail-page parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Child Information..."
+          />
+        </div>
+      </div>
+    );
   }
 
   if (!child) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-detail">
+        <div className="parent-portal-container parent-child-detail-page">
           <div className="parent-error-state">
             <div className="parent-error-icon">
               <FaUser size={48} />
@@ -293,9 +279,9 @@ export default function ChildDetail() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper erp-viewport-min-100"
+        className="parent-portal-wrapper parent-portal-wrapper--child-detail erp-viewport-min-100"
       >
-        <div className="parent-portal-container">
+        <div className="parent-portal-container parent-child-detail-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -308,37 +294,11 @@ export default function ChildDetail() {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaUserGraduate />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    {child.fullName}
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    {child.course_id?.name} • Semester {child.currentSemester} • {getStatusLabel(child.status)}
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-              </div>
-            </div>
-          </motion.div>
+<PageHeader
+  icon={FaUserGraduate}
+  title={child.fullName}
+  subtitle={`${child.course_id?.name} • Semester ${child.currentSemester} • ${getStatusLabel(child.status)}`}
+/>
 
           {/* ================= QUICK STATS ================= */}
           <motion.div
@@ -414,168 +374,159 @@ export default function ChildDetail() {
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="parent-two-col-grid">
-                        <ProfileCard
-                          title="Personal Information"
-                          icon={<FaUser />}
-                          color={BRAND_COLORS.primary.main}
-                        >
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
+                      <div className="child-detail-profile-container">
+                        <div className="child-detail-profile-grid">
+                          {/* Personal Details */}
+                          <section className="child-detail-profile-panel child-detail-profile-panel--personal">
+                            <header className="child-detail-profile-heading">
+                              <span className="child-detail-profile-icon-wrap">
                                 <FaUser />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Full Name</div>
-                                <div className="parent-profile-value">{child.fullName}</div>
-                              </div>
-                            </div>
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaEnvelope />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Email Address</div>
-                                <div className="parent-profile-value">
-                                  <a href={`mailto:${child.email}`} className="text-decoration-none">
-                                    {child.email}
-                                  </a>
+                              </span>
+                              <h3 className="child-detail-profile-heading-title">Personal Details</h3>
+                            </header>
+                            <div className="child-detail-profile-fields">
+                              {child.fullName ? (
+                                <div className="child-detail-profile-field">
+                                  <div className="child-detail-profile-label">Full Name</div>
+                                  <div className="child-detail-profile-value">{child.fullName}</div>
                                 </div>
-                              </div>
-                            </div>
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaPhone />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Mobile Number</div>
-                                <div className="parent-profile-value">
-                                  <a href={`tel:${child.mobileNumber}`} className="text-decoration-none">
-                                    {child.mobileNumber}
-                                  </a>
+                              ) : null}
+                              {child.dateOfBirth ? (
+                                <div className="child-detail-profile-field">
+                                  <div className="child-detail-profile-label">Date of Birth</div>
+                                  <div className="child-detail-profile-value">{formatDate(child.dateOfBirth)}</div>
                                 </div>
-                              </div>
-                            </div>
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaCalendarCheck />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Date of Birth</div>
-                                <div className="parent-profile-value">
-                                  {child.dateOfBirth ? formatDate(child.dateOfBirth) : "Not set"}
+                              ) : null}
+                              {child.email ? (
+                                <div className="child-detail-profile-field">
+                                  <div className="child-detail-profile-label">Email Address</div>
+                                  <div className="child-detail-profile-value">
+                                    <a href={`mailto:${child.email}`} className="child-detail-profile-link">
+                                      {child.email}
+                                    </a>
+                                  </div>
                                 </div>
-                              </div>
+                              ) : null}
+                              {child.mobileNumber ? (
+                                <div className="child-detail-profile-field">
+                                  <div className="child-detail-profile-label">Mobile Number</div>
+                                  <div className="child-detail-profile-value">
+                                    <a href={`tel:${child.mobileNumber}`} className="child-detail-profile-link">
+                                      {child.mobileNumber}
+                                    </a>
+                                  </div>
+                                </div>
+                              ) : null}
                             </div>
-                          </ProfileCard>
+                          </section>
 
-                          <ProfileCard
-                            title="Academic Details"
-                            icon={<FaGraduationCap />}
-                            color={BRAND_COLORS.success.main}
-                          >
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
+                          {/* Academic Details */}
+                          <section className="child-detail-profile-panel child-detail-profile-panel--academic">
+                            <header className="child-detail-profile-heading">
+                              <span className="child-detail-profile-icon-wrap">
                                 <FaGraduationCap />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Course</div>
-                                <div className="parent-profile-value">{child.course_id?.name}</div>
-                              </div>
-                            </div>
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaSchool />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Department</div>
-                                <div className="parent-profile-value">{child.department_id?.name}</div>
-                              </div>
-                            </div>
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaIdCard />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Current Semester</div>
-                                <div className="parent-profile-value">{child.currentSemester}</div>
-                              </div>
-                            </div>
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaCalendarCheck />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Admission Year</div>
-                                <div className="parent-profile-value">{child.admissionYear}</div>
-                              </div>
-                            </div>
-                          </ProfileCard>
-
-                          <ProfileCard
-                            title="Address Information"
-                            icon={<FaMapMarkerAlt />}
-                            color={BRAND_COLORS.info.main}
-                          >
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaMapMarkerAlt />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Address</div>
-                                <div className="parent-profile-value">
-                                  {child.addressLine}<br />
-                                  {child.city}, {child.state} - {child.pincode}
+                              </span>
+                              <h3 className="child-detail-profile-heading-title">Academic Details</h3>
+                            </header>
+                            <div className="child-detail-profile-fields">
+                              {child.course_id?.name ? (
+                                <div className="child-detail-profile-field">
+                                  <div className="child-detail-profile-label">Course</div>
+                                  <div className="child-detail-profile-value">{child.course_id.name}</div>
                                 </div>
-                              </div>
+                              ) : null}
+                              {child.department_id?.name ? (
+                                <div className="child-detail-profile-field">
+                                  <div className="child-detail-profile-label">Department</div>
+                                  <div className="child-detail-profile-value">{child.department_id.name}</div>
+                                </div>
+                              ) : null}
+                              {child.currentSemester !== undefined && child.currentSemester !== null && child.currentSemester !== "" ? (
+                                <div className="child-detail-profile-field">
+                                  <div className="child-detail-profile-label">Current Semester</div>
+                                  <div className="child-detail-profile-value">{child.currentSemester}</div>
+                                </div>
+                              ) : null}
+                              {child.admissionYear !== undefined && child.admissionYear !== null && child.admissionYear !== "" ? (
+                                <div className="child-detail-profile-field">
+                                  <div className="child-detail-profile-label">Admission Year</div>
+                                  <div className="child-detail-profile-value">{child.admissionYear}</div>
+                                </div>
+                              ) : null}
                             </div>
-                          </ProfileCard>
+                          </section>
 
-                          <ProfileCard
-                            title="Family Information"
-                            icon={<FaUsers />}
-                            color={BRAND_COLORS.warning.main}
-                          >
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaUser />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Father's Name</div>
-                                <div className="parent-profile-value">
-                                  {child.fatherName}
-                                  {child.fatherMobile && (
-                                    <span className="parent-ms-2">
-                                      <a href={`tel:${child.fatherMobile}`} className="text-decoration-none">
-                                        <FaPhone className="parent-me-1" />
+                          {/* Address Information */}
+                          <section className="child-detail-profile-panel child-detail-profile-panel--address">
+                            <header className="child-detail-profile-heading">
+                              <span className="child-detail-profile-icon-wrap">
+                                <FaMapMarkerAlt />
+                              </span>
+                              <h3 className="child-detail-profile-heading-title">Address Information</h3>
+                            </header>
+                            <div className="child-detail-profile-address">
+                              {child.addressLine || child.city || child.state || child.pincode ? (
+                                <div className="child-detail-profile-address-lines">
+                                  {child.addressLine ? (
+                                    <div className="child-detail-profile-address-line">{child.addressLine}</div>
+                                  ) : null}
+                                  {(child.city || child.state || child.pincode) ? (
+                                    <div className="child-detail-profile-address-line">
+                                      {[child.city, child.state].filter(Boolean).join(", ")}
+                                      {child.pincode ? `${child.city || child.state ? " - " : ""}${child.pincode}` : ""}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          </section>
+
+                          {/* Family Information */}
+                          <section className="child-detail-profile-panel child-detail-profile-panel--family">
+                            <header className="child-detail-profile-heading">
+                              <span className="child-detail-profile-icon-wrap">
+                                <FaUsers />
+                              </span>
+                              <h3 className="child-detail-profile-heading-title">Family Information</h3>
+                            </header>
+                            <div className="child-detail-profile-family-list">
+                              {(child.fatherName || child.fatherMobile) ? (
+                                <div className="child-detail-profile-family-entry">
+                                  <div className="child-detail-profile-label">Father&apos;s Name</div>
+                                  <div className="child-detail-profile-family-row">
+                                    {child.fatherName ? (
+                                      <span className="child-detail-profile-value">{child.fatherName}</span>
+                                    ) : null}
+                                    {child.fatherMobile ? (
+                                      <a href={`tel:${child.fatherMobile}`} className="child-detail-profile-link child-detail-profile-family-phone">
+                                        <FaPhone className="child-detail-profile-inline-icon" />
                                         {child.fatherMobile}
                                       </a>
-                                    </span>
-                                  )}
+                                    ) : null}
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                            <div className="parent-profile-item">
-                              <div className="parent-profile-icon">
-                                <FaUser />
-                              </div>
-                              <div className="parent-profile-content">
-                                <div className="parent-profile-label">Mother's Name</div>
-                                <div className="parent-profile-value">
-                                  {child.motherName}
-                                  {child.motherMobile && (
-                                    <span className="parent-ms-2">
-                                      <a href={`tel:${child.motherMobile}`} className="text-decoration-none">
-                                        <FaPhone className="parent-me-1" />
+                              ) : null}
+                              {(child.motherName || child.motherMobile) ? (
+                                <div className="child-detail-profile-family-entry">
+                                  <div className="child-detail-profile-label">Mother&apos;s Name</div>
+                                  <div className="child-detail-profile-family-row">
+                                    {child.motherName ? (
+                                      <span className="child-detail-profile-value">{child.motherName}</span>
+                                    ) : null}
+                                    {child.motherMobile ? (
+                                      <a href={`tel:${child.motherMobile}`} className="child-detail-profile-link child-detail-profile-family-phone">
+                                        <FaPhone className="child-detail-profile-inline-icon" />
                                         {child.motherMobile}
                                       </a>
-                                    </span>
-                                  )}
+                                    ) : null}
+                                  </div>
                                 </div>
-                              </div>
+                              ) : null}
                             </div>
-                          </ProfileCard>
+                          </section>
                         </div>
-                      </motion.div>
+                      </div>
+                    </motion.div>
                   )}
 
                   {/* Attendance Tab */}
@@ -719,12 +670,12 @@ export default function ChildDetail() {
                       ) : (
                         <div className="parent-two-col-grid">
                           <div className="parent-fee-card">
-                            <div className="parent-fee-header">
+                            <div className="parent-fee-header" style={{  background: '#0E3746' }}>
                               <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${BRAND_COLORS.primary.main}20, ${BRAND_COLORS.primary.main}10)` }}>
-                                <FaRupeeSign style={{ color: BRAND_COLORS.primary.main }} />
+                                <FaRupeeSign />
                               </div>
-                              <div>
-                                <h3 className="parent-fee-title">Fee Summary</h3>
+                              <div >
+                                <h3 className="parent-fee-title" style={{color: 'white' }}>Fee Summary</h3>
                               </div>
                             </div>
                             <div className="parent-fee-card-body">
@@ -766,7 +717,7 @@ export default function ChildDetail() {
                                 <FaCreditCard style={{ color: BRAND_COLORS.info.main }} />
                               </div>
                               <div>
-                                <h3 className="parent-fee-title">Payment Installments</h3>
+                                <h3 className="parent-fee-title" style={{color: 'white' }}>Payment Installments</h3>
                               </div>
                             </div>
                             <div className="parent-fee-card-body">
@@ -867,7 +818,9 @@ function TabButton({ icon, label, isActive, onClick }) {
 }
 
 /* ================= STAT CARD ================= */
-function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
+function StatCard({ icon: IconComp, label, value, gradient, subtitle }) {
+  // eslint-disable-next-line no-unused-vars
+  const Icon = IconComp;
   return (
     <motion.div
       whileHover={{ y: -3, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)' }}
@@ -899,7 +852,8 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
 }
 
 /* ================= PROFILE CARD ================= */
-function ProfileCard({ title, icon, color, children }) {
+// eslint-disable-next-line no-unused-vars
+function ProfileCard({ title, icon, children }) {
   return (
     <div className="parent-profile-card">
       <div className="parent-profile-header">
@@ -916,6 +870,7 @@ function ProfileCard({ title, icon, color, children }) {
 }
 
 /* ================= FEE CARD ================= */
+// eslint-disable-next-line no-unused-vars
 function FeeCard({ title, icon, color, children }) {
   return (
     <div className="parent-fee-card">

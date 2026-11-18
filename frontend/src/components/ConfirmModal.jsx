@@ -1,3 +1,4 @@
+import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaExclamationTriangle,
@@ -15,7 +16,88 @@ export default function ConfirmModal({
   confirmText = "Confirm",
   cancelText = "Cancel",
   isLoading = false,
+  inputValue,
+  onInputChange,
+  inputPlaceholder = "",
+  inputError,
+  maxChars,
+  inputRows = 3,
+  confirmDisabled = false,
 }) {
+  const modalRef = useRef(null);
+
+  // Close on Escape key (not while loading)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && !isLoading) {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isLoading, onClose]);
+
+  // Focus trap and auto-focus
+  useEffect(() => {
+    if (!isOpen || !modalRef.current) return;
+
+    const modalElement = modalRef.current;
+    const previouslyFocusedElement = document.activeElement;
+    const focusableSelectors =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const focusTimer = setTimeout(() => {
+      const focusables = modalElement.querySelectorAll(focusableSelectors);
+      const textInput = modalElement.querySelector("textarea, input");
+      if (textInput) {
+        textInput.focus();
+      } else if (focusables.length > 0) {
+        focusables[0].focus();
+      }
+    }, 50);
+
+    const handleTabKey = (e) => {
+      if (e.key !== "Tab") return;
+
+      const focusables = Array.from(
+        modalElement.querySelectorAll(focusableSelectors)
+      ).filter((el) => el.offsetParent !== null);
+
+      if (focusables.length === 0) {
+        e.preventDefault();
+        return;
+      }
+
+      const firstElement = focusables[0];
+      const lastElement = focusables[focusables.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    modalElement.addEventListener("keydown", handleTabKey);
+
+    return () => {
+      clearTimeout(focusTimer);
+      modalElement.removeEventListener("keydown", handleTabKey);
+      if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === "function") {
+        previouslyFocusedElement.focus();
+      }
+    };
+  }, [isOpen]);
+
   const typeConfig = {
     warning: {
       icon: FaExclamationTriangle,
@@ -54,10 +136,16 @@ export default function ConfirmModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
+          onClick={!isLoading ? onClose : undefined}
         >
           <motion.div
+            ref={modalRef}
             className="erp-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="erp-modal-title"
+            aria-describedby={message ? "erp-modal-desc" : undefined}
+            tabIndex={-1}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -90,6 +178,7 @@ export default function ConfirmModal({
                 />
               </motion.div>
               <h3
+                id="erp-modal-title"
                 style={{
                   margin: 0,
                   fontSize: "1.5rem",
@@ -102,18 +191,80 @@ export default function ConfirmModal({
             </div>
 
             <div className="erp-modal-body">
-              <div
-                style={{
-                  margin: 0,
-                  color: "#64748b",
-                  fontSize: "1.05rem",
-                  lineHeight: 1.6,
-                  textAlign: "center",
-                  whiteSpace: "pre-line",
-                }}
-              >
-                {message}
-              </div>
+              {message && (
+                <div
+                  id="erp-modal-desc"
+                  style={{
+                    margin: 0,
+                    color: "#64748b",
+                    fontSize: "1.05rem",
+                    lineHeight: 1.6,
+                    textAlign: "center",
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {message}
+                </div>
+              )}
+              {inputValue !== undefined && onInputChange && (
+                <div style={{ marginTop: message ? "1rem" : 0 }}>
+                  <textarea
+                    rows={inputRows}
+                    placeholder={inputPlaceholder}
+                    value={inputValue}
+                    onChange={(e) => onInputChange(e.target.value)}
+                    disabled={isLoading}
+                    style={{
+                      width: "100%",
+                      border: `1px solid ${inputError ? "#e5484d" : "#cbd5e1"}`,
+                      borderRadius: "10px",
+                      padding: "0.6rem 0.85rem",
+                      fontSize: "0.92rem",
+                      color: "#1e293b",
+                      background: "#fff",
+                      resize: "vertical",
+                      outline: "none",
+                      boxSizing: "border-box",
+                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = inputError ? "#e5484d" : "#17aecb";
+                      e.target.style.boxShadow = inputError ? "0 0 0 3px #fdecec" : "0 0 0 3px #e7f7fa";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = inputError ? "#e5484d" : "#dfe6ec";
+                      e.target.style.boxShadow = "none";
+                    }}
+                  />
+                  {inputError && (
+                    <div
+                      style={{
+                        color: "#e5484d",
+                        fontSize: "0.8rem",
+                        marginTop: "0.35rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                      }}
+                    >
+                      <FaExclamationTriangle />
+                      {inputError}
+                    </div>
+                  )}
+                  {maxChars && (
+                    <div
+                      style={{
+                        marginTop: "0.35rem",
+                        fontSize: "0.78rem",
+                        color: inputValue.length >= maxChars ? "#e5484d" : "#94a3b8",
+                        textAlign: "right",
+                      }}
+                    >
+                      {inputValue.length}/{maxChars}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="erp-modal-footer">
@@ -150,7 +301,7 @@ export default function ConfirmModal({
               </button>
               <button
                 onClick={onConfirm}
-                disabled={isLoading}
+                disabled={isLoading || confirmDisabled}
                 className={`btn ${config.confirmBtnClass}`}
                 style={{
                   flex: 1,
@@ -159,22 +310,22 @@ export default function ConfirmModal({
                   borderRadius: "12px",
                   fontWeight: 600,
                   fontSize: "1rem",
-                  cursor: isLoading ? "not-allowed" : "pointer",
+                  cursor: isLoading || confirmDisabled ? "not-allowed" : "pointer",
                   transition: "all 0.3s ease",
-                  boxShadow: isLoading
+                  boxShadow: isLoading || confirmDisabled
                     ? "none"
                     : "0 4px 15px rgba(0, 0, 0, 0.1)",
-                  opacity: isLoading ? 0.7 : 1,
+                  opacity: isLoading || confirmDisabled ? 0.6 : 1,
                 }}
                 onMouseEnter={(e) => {
-                  if (!isLoading) {
+                  if (!isLoading && !confirmDisabled) {
                     e.target.style.transform = "translateY(-2px)";
                     e.target.style.boxShadow =
                       "0 6px 20px rgba(0, 0, 0, 0.15)";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isLoading) {
+                  if (!isLoading && !confirmDisabled) {
                     e.target.style.transform = "translateY(0)";
                     e.target.style.boxShadow =
                       "0 4px 15px rgba(0, 0, 0, 0.1)";

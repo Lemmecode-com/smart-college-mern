@@ -2,6 +2,8 @@ import { useContext, useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -19,7 +21,6 @@ import {
   FaToggleOff,
   FaBookOpen,
   FaSync,
-  FaTimes,
   FaExclamationTriangle,
   FaSpinner,
   FaMagic,
@@ -213,7 +214,26 @@ export default function AddDepartment() {
   };
 
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in">
+    <div className="container-fluid department-form-page pt-2 pb-3 pb-md-4 animate-fade-in">
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "0 auto",
+          paddingTop: 0,
+          height: "auto",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Departments", path: "/departments" },
+              { label: "Add New Department" },
+            ]}
+          />
+        </div>
+      </div>
       {error && typeof error === 'object' && !loading && (
         <ApiError
           title="Department Creation Error"
@@ -223,40 +243,27 @@ export default function AddDepartment() {
           onGoBack={() => navigate(-1)}
         />
       )}
-      {/* ================= TOP NAVIGATION ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-          <div className="d-flex align-items-center gap-3">
-            <div className="form-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
-              <FaBuilding size={28} />
-            </div>
-            <div>
-              <h1 className="h4 h3-md fw-bold mb-1 text-dark">Add New Department</h1>
-              <p className="text-muted mb-0 small">
-                <FaGraduationCap className="me-1" />
-                Create and configure a new academic department
-              </p>
-            </div>
-          </div>
-        </div>
 
-        <div className="d-flex align-items-center gap-2 flex-wrap">
-          <button 
-            onClick={() => setShowHelp(!showHelp)}
-            className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Department Creation Help"
-          >
-            <FaInfoCircle size={16} /> Help
-          </button>
-          
-          <button 
-            onClick={() => navigate("/departments")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-          >
-            <FaTimes size={16} /> Cancel
-          </button>
-        </div>
-      </div>
+      {/* ================= PAGE HEADER ================= */}
+
+        <PageHeader
+          icon={FaBuilding}
+          title="Add New Department"
+          subtitle="Create and configure a new academic department"
+          onBack={() => navigate("/departments")}
+          backLabel="Back to Departments"
+          actions={
+            <button
+              type="button"
+              onClick={() => setShowHelp(!showHelp)}
+              title="Department Creation Help"
+              className="department-header-help"
+            >
+              <FaInfoCircle />
+              <span>Help</span>
+            </button>
+          }
+        />
 
       {/* ================= HELP SECTION ================= */}
       {showHelp && (
@@ -308,7 +315,7 @@ export default function AddDepartment() {
 
       {/* ================= FORM CARD ================= */}
       <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
-        <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
+        <div className="card-header bg-gradient-primary text-white py-3 py-md-4" style={{ background: '#0E3746' }}>
           <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
             <FaBuilding /> Department Details
           </h2>
@@ -864,7 +871,28 @@ export default function AddDepartment() {
         .cursor-help {
           cursor: help;
         }
+        .department-header-help {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
+.department-header-help:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.12);
+}
         @media (max-width: 768px) {
           .programs-grid {
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -899,6 +927,118 @@ export default function AddDepartment() {
             font-size: 0.9rem;
           }
         }
+
+
+/* =========================================================
+   ADD DEPARTMENT - RESPONSIVE FORM
+   ========================================================= */
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .department-form-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Form columns */
+  .department-form-page .row.g-3 > .col-md-4,
+  .department-form-page .row.g-3 > .col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    min-width: 0;
+  }
+
+  .department-form-page .form-control,
+  .department-form-page .form-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Programs Offered */
+  .department-form-page .programs-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .department-form-page .program-card {
+    min-width: 0;
+  }
+
+  /* Reduce section padding */
+  .department-form-page .section-group {
+    padding: 1rem;
+  }
+
+  /* Help button */
+  .department-form-page .department-header-help {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+  .department-form-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .department-form-page .row.g-3 > .col-md-4,
+  .department-form-page .row.g-3 > .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .department-form-page .form-control,
+  .department-form-page .form-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .department-form-page .programs-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .department-form-page .program-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .department-form-page .section-group {
+    padding: 1rem;
+  }
+
+  .department-form-page .section-title {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .department-form-page .department-header-help {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .department-form-page .section-group {
+    padding: 0.85rem;
+  }
+
+  .department-form-page .program-card {
+    padding: 12px;
+  }
+}
+
+
       `}</style>
     </div>
   );

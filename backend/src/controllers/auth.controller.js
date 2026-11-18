@@ -856,22 +856,27 @@ const sendTokens = async (res, id, role, college_id, tokenVersion, req) => {
 
 /**
  * Parse JWT expiry string to milliseconds
- * @param {string} expiry - Expiry string (e.g., "1d", "2h", "30m")
+ * Supports units: s, m, min, h, hr, hrs, d
+ * @param {string} expiry - Expiry string (e.g., "1d", "2h", "2hr", "2hrs", "30m", "30min")
  * @returns {number} Milliseconds
  */
 const parseExpiryToMilliseconds = (expiry) => {
-  const match = /^(\d+)([smhd])$/.exec(expiry);
+  if (typeof expiry !== "string") return 24 * 60 * 60 * 1000;
+  const match = /^(\d+)\s*(s|m|min|h|hr|hrs|d)$/i.exec(expiry.trim());
   if (!match) return 24 * 60 * 60 * 1000; // Default 1 day
 
-  const value = parseInt(match[1]);
-  const unit = match[2];
+  const value = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
 
   switch (unit) {
     case "s":
       return value * 1000;
     case "m":
+    case "min":
       return value * 60 * 1000;
     case "h":
+    case "hr":
+    case "hrs":
       return value * 60 * 60 * 1000;
     case "d":
       return value * 24 * 60 * 60 * 1000;
@@ -916,3 +921,5 @@ const getAccessTokenExpiry = () => process.env.JWT_ACCESS_EXPIRY || "15m";
  */
 const getAccessTokenExpiryMs = () =>
   parseExpiryToMilliseconds(getAccessTokenExpiry());
+
+exports.parseExpiryToMilliseconds = parseExpiryToMilliseconds;

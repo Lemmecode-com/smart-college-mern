@@ -1,6 +1,7 @@
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
 const AppError = require("../utils/AppError");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 
 exports.mockPaymentSuccess = async (req, res, next) => {
   try {
@@ -18,10 +19,8 @@ exports.mockPaymentSuccess = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // Find student fee record using student._id
-    const studentFee = await StudentFee.findOne({ 
-      student_id: student._id  // ✅ Use student._id
-    });
+    // Find student fee record using authoritative reader
+    const studentFee = await getActiveStudentFee(student._id, collegeId, { student });
     
     if (!studentFee) {
       throw new AppError("Student fee record not found", 404, "FEE_RECORD_NOT_FOUND");

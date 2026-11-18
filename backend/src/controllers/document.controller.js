@@ -16,6 +16,7 @@ exports.getDocument = async (req, res, next) => {
       return next(new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND"));
     }
 
+    // 🔒 1. Authorization check MUST run BEFORE any content or 304 response
     const isOwner = await DocumentService._isOwner(document, user);
     const hasAccess = await DocumentService._hasAccess(document, user);
 
@@ -23,7 +24,37 @@ exports.getDocument = async (req, res, next) => {
       return next(new AppError("Not authorized to access this document", 403, "UNAUTHORIZED"));
     }
 
-    const fileData = await DocumentService.downloadDocument(documentId);
+    // 🏷️ 2. Cache headers and conditional ETag handling
+    const isLogo =
+      document.documentType === "logo" ||
+      document.category === "college-logo" ||
+      (document.ownerType === "College" && document.documentType === "logo");
+
+    if (isLogo) {
+      const etag = document.checksum
+        ? `"${document.checksum}"`
+        : `"${(document.updatedAt || document.createdAt || new Date()).getTime().toString(16)}-${(document.size || 0).toString(16)}"`;
+
+      res.setHeader("Cache-Control", "private, max-age=86400, stale-while-revalidate=604800");
+      res.setHeader("ETag", etag);
+
+      const clientEtag = req.headers["if-none-match"];
+      if (
+        clientEtag &&
+        (clientEtag === etag ||
+          clientEtag === `W/${etag}` ||
+          (document.checksum && clientEtag.includes(document.checksum)))
+      ) {
+        return res.status(304).end();
+      }
+    } else {
+      // 🔒 Confidential documents (student/teacher/staff) must never be cached by browser or shared proxies
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("Pragma", "no-cache");
+    }
+
+    // ⚡ 3. Pass pre-fetched document to avoid redundant Document.findOne lookup
+    const fileData = await DocumentService.downloadDocument(documentId, document);
 
     const ext = require("path").extname(fileData.originalName).toLowerCase();
     const contentTypes = {
@@ -31,6 +62,7 @@ exports.getDocument = async (req, res, next) => {
       ".jpg": "image/jpeg",
       ".jpeg": "image/jpeg",
       ".png": "image/png",
+      ".webp": "image/webp",
     };
     const contentType = contentTypes[ext] || "application/octet-stream";
 
@@ -75,7 +107,7 @@ exports.getDocumentDownload = async (req, res, next) => {
       return next(new AppError("Not authorized to access this document", 403, "UNAUTHORIZED"));
     }
 
-    const fileData = await DocumentService.downloadDocument(documentId);
+    const fileData = await DocumentService.downloadDocument(documentId, document);
 
     const ext = require("path").extname(fileData.originalName).toLowerCase();
     const contentTypes = {

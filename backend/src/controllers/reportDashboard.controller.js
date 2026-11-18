@@ -3,6 +3,7 @@ const StudentFee = require("../models/studentFee.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
+const { selectAuthoritativeFee } = require("../services/studentFee.service");
 
 /**
  * REPORT DASHBOARD CONTROLLER
@@ -38,7 +39,8 @@ exports.getAllReports = async (req, res, next) => {
     });
     const total = await Student.countDocuments({ college_id });
 
-    const approvalPercentage = total > 0 ? Math.round((approvalCount / total) * 100) : 0;
+    const approvedPercentage = total > 0 ? Math.round((approvalCount / total) * 100) : 0;
+    const approvalPercentage = approvedPercentage;
     const pendingPercentage = total > 0 ? Math.round((pending / total) * 100) : 0;
     const rejectedPercentage = total > 0 ? Math.round((rejected / total) * 100) : 0;
 
@@ -58,35 +60,48 @@ exports.getAllReports = async (req, res, next) => {
     };
 
     // ==========================================
-    // 2. PAYMENT SUMMARY
+    // 2. PAYMENT SUMMARY & STUDENT FEES (AUTHORITATIVE)
     // ==========================================
-    const paymentResult = await StudentFee.aggregate([
-      { $match: { college_id } },
-      {
-        $group: {
-          _id: null,
-          totalExpected: { $sum: { $ifNull: ["$totalFee", 0] } },
-          totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
-          count: { $sum: 1 }
-        }
+    const allCollegeFees = await StudentFee.find({ college_id })
+      .populate("student_id", "fullName email")
+      .populate("course_id", "name")
+      .select("totalFee paidAmount student_id course_id installments")
+      .lean();
+
+    const feesByStudent = new Map();
+    for (const f of allCollegeFees) {
+      if (!f.student_id) continue;
+      const sId = f.student_id._id ? String(f.student_id._id) : String(f.student_id);
+      if (!feesByStudent.has(sId)) feesByStudent.set(sId, []);
+      feesByStudent.get(sId).push(f);
+    }
+
+    const authoritativeFees = [];
+    let totalExpected = 0;
+    let totalPaid = 0;
+
+    for (const sFees of feesByStudent.values()) {
+      const authFee = selectAuthoritativeFee(sFees);
+      if (authFee) {
+        authoritativeFees.push(authFee);
+        totalExpected += (Number(authFee.totalFee) || 0);
+        totalPaid += (Number(authFee.paidAmount) || 0);
       }
-    ]);
+    }
 
-    const paymentData = paymentResult[0] || { totalExpected: 0, totalPaid: 0, count: 0 };
-
-    const totalPending = paymentData.totalExpected - paymentData.totalPaid;
-    const collectionRate = paymentData.totalExpected > 0
-      ? Math.round((paymentData.totalPaid / paymentData.totalExpected) * 100)
+    const totalPending = Math.max(0, totalExpected - totalPaid);
+    const collectionRate = totalExpected > 0
+      ? Math.round((totalPaid / totalExpected) * 100)
       : 0;
 
     const paymentSummary = {
-      totalExpectedFee: paymentData.totalExpected,
-      totalCollected: paymentData.totalPaid,
+      totalExpectedFee: totalExpected,
+      totalCollected: totalPaid,
       totalPending,
       collectionRate,
-      totalStudents: paymentData.count || 0,
+      totalStudents: authoritativeFees.length,
       barChartData: [
-        { name: "Collected", amount: paymentData.totalPaid, color: "#28a745" },
+        { name: "Collected", amount: totalPaid, color: "#28a745" },
         { name: "Pending", amount: totalPending, color: "#dc3545" }
       ]
     };
@@ -94,48 +109,28 @@ exports.getAllReports = async (req, res, next) => {
     // ==========================================
     // 3. STUDENT PAYMENT STATUS
     // ==========================================
-    const paymentQuery = { college_id };
-    
+    let studentFees = authoritativeFees;
     if (status && status !== "ALL") {
       if (status === "PAID") {
-        // Students who have paid in full
-        paymentQuery.$expr = { $gte: ["$paidAmount", "$totalFee"] };
+        studentFees = studentFees.filter(
+          (f) =>
+            (Number(f.paidAmount) || 0) >= (Number(f.totalFee) || 0) &&
+            (Number(f.totalFee) || 0) > 0,
+        );
       } else if (status === "DUE") {
-        // Students who haven't paid anything
-        paymentQuery.paidAmount = 0;
+        studentFees = studentFees.filter(
+          (f) => (Number(f.paidAmount) || 0) === 0,
+        );
       } else if (status === "PARTIAL") {
-        // Students who have paid partially
-        paymentQuery.$expr = {
-          $and: [
-            { $gt: ["$paidAmount", 0] },
-            { $lt: ["$paidAmount", "$totalFee"] }
-          ]
-        };
+        studentFees = studentFees.filter(
+          (f) =>
+            (Number(f.paidAmount) || 0) > 0 &&
+            (Number(f.paidAmount) || 0) < (Number(f.totalFee) || 0),
+        );
       }
     }
 
-    let studentFees = await StudentFee.find(paymentQuery)
-      .populate("student_id", "fullName email")
-      .populate("course_id", "name")
-      .select("totalFee paidAmount student_id course_id installments")
-      .limit(100); // Limit to 100 for performance
-
-    // If no fee records, create from approved students
-    if (studentFees.length === 0) {
-      const approvedStudents = await Student.find({ college_id, status: "APPROVED" })
-        .populate("course_id", "name")
-        .select("fullName email course_id")
-        .limit(100);
-      
-      studentFees = approvedStudents.map(student => ({
-        _id: student._id,
-        student_id: student,
-        course_id: student.course_id,
-        totalFee: 50000, // Default fee
-        paidAmount: 0,
-        installments: []
-      }));
-    }
+    studentFees = studentFees.slice(0, 100);
 
     // Filter by course
     if (course && course !== "ALL") {

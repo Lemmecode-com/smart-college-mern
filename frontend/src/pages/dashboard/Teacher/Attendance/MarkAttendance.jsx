@@ -275,10 +275,22 @@ export default function MarkAttendance() {
     navigate(`/session/close/${selectedSession}`);
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading..." />;
-  }
-
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading..."
+        />
+      </div>
+    </div>
+  );
+}
 return (
   <div className="container-fluid px-3 px-md-4">
 
@@ -574,7 +586,7 @@ return (
                 <button
                   className="btn btn-warning w-100"
                   onClick={() =>
-                    navigate(`/attendance/sessions/${selectedSession}/edit`)
+                    navigate(`/attendance/session/${selectedSession}/edit`)
                   }
                   disabled={!selectedSession}
                   aria-label="Edit attendance for selected session"

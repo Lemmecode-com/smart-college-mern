@@ -11,13 +11,15 @@
  */
 
 const { connectTestDb, clearTestDb, closeTestDb } = require("./setup/testDb");
-const { createCollege } = require("./helpers/factories");
+const { createCollege, createUser, createTeacher } = require("./helpers/factories");
 const mongoose = require("mongoose");
 const Timetable = require("../src/models/timetable.model");
 const TimetableException = require("../src/models/timetableException.model");
 const Teacher = require("../src/models/teacher.model");
 const Department = require("../src/models/department.model");
 const Notification = require("../src/models/notification.model");
+const User = require("../src/models/user.model");
+const { getNotificationVisibilityQuery } = require("../src/services/notificationVisibility.service");
 
 beforeAll(async () => {
   await connectTestDb();
@@ -367,6 +369,261 @@ describe("Notification Visibility - Teacher -> HOD Exception Workflow", () => {
 
       expect(adminNotifications).toHaveLength(1);
       expect(hodNotifications).toHaveLength(2);
+    });
+  });
+
+  describe("7. Notification Visibility Service & Author Echo Rules", () => {
+    it("Teacher submits exception request: HOD sees it, requesting teacher does NOT see it in list or by ID", async () => {
+      const college = await createCollege({ code: "ECHO1" });
+      const deptId = new mongoose.Types.ObjectId();
+
+      const hodUser = await createUser({ college_id: college._id, role: "HOD" });
+      const hodTeacher = await createTeacher({
+        user_id: hodUser._id,
+        college_id: college._id,
+        department_id: deptId,
+        designation: "HOD",
+        createdBy: hodUser._id,
+      });
+
+      const teacherUser = await createUser({ college_id: college._id, role: "TEACHER" });
+      const teacherProfile = await createTeacher({
+        user_id: teacherUser._id,
+        college_id: college._id,
+        department_id: deptId,
+        designation: "Teacher",
+        createdBy: teacherUser._id,
+      });
+
+      // Teacher creates an INDIVIDUAL exception request notification targeting HOD
+      const notif = await Notification.create({
+        college_id: college._id,
+        createdBy: teacherUser._id,
+        createdByRole: "TEACHER",
+        target: "INDIVIDUAL",
+        target_users: [hodUser._id],
+        title: "New Timetable Exception Request",
+        message: "Mr. Shyam Patel has requested a HOLIDAY exception for 5 Nov 2026. Approval required.",
+        type: "ACADEMIC",
+        actionUrl: "/hod/exception-approvals",
+      });
+
+      // Visibility query for HOD
+      const hodQuery = await getNotificationVisibilityQuery({
+        collegeId: college._id,
+        role: "HOD",
+        userId: hodUser._id,
+        teacherProfile: hodTeacher,
+      });
+      const hodVisible = await Notification.find({ ...hodQuery, college_id: college._id });
+      expect(hodVisible.map(n => n._id.toString())).toContain(notif._id.toString());
+
+      // Visibility query for Requesting Teacher
+      const teacherQuery = await getNotificationVisibilityQuery({
+        collegeId: college._id,
+        role: "TEACHER",
+        userId: teacherUser._id,
+        teacherProfile,
+      });
+      const teacherVisible = await Notification.find({ ...teacherQuery, college_id: college._id });
+      // Requesting teacher must NOT see this INDIVIDUAL notification meant for HOD
+      expect(teacherVisible.map(n => n._id.toString())).not.toContain(notif._id.toString());
+
+      // Querying by ID as teacher must return null (which translates to 404 in controller)
+      const directById = await Notification.findOne({
+        ...teacherQuery,
+        _id: notif._id,
+      });
+      expect(directById).toBeNull();
+    });
+
+    it("Teacher-authored non-INDIVIDUAL broadcast is still visible to its author", async () => {
+      const college = await createCollege({ code: "ECHO2" });
+      const deptId = new mongoose.Types.ObjectId();
+
+      const teacherUser = await createUser({ college_id: college._id, role: "TEACHER" });
+      const teacherProfile = await createTeacher({
+        user_id: teacherUser._id,
+        college_id: college._id,
+        department_id: deptId,
+        createdBy: teacherUser._id,
+      });
+
+      const broadcastNotif = await Notification.create({
+        college_id: college._id,
+        createdBy: teacherUser._id,
+        createdByRole: "TEACHER",
+        target: "ALL",
+        title: "Class Announcement",
+        message: "All students please submit assignments.",
+        type: "ACADEMIC",
+      });
+
+      const teacherQuery = await getNotificationVisibilityQuery({
+        collegeId: college._id,
+        role: "TEACHER",
+        userId: teacherUser._id,
+        teacherProfile,
+      });
+
+      const teacherVisible = await Notification.find({ ...teacherQuery, college_id: college._id });
+      expect(teacherVisible.map(n => n._id.toString())).toContain(broadcastNotif._id.toString());
+    });
+
+    it("Teacher cannot open another user's INDIVIDUAL notification by id", async () => {
+      const college = await createCollege({ code: "ECHO3" });
+      const deptId = new mongoose.Types.ObjectId();
+
+      const teacher1 = await createUser({ college_id: college._id, role: "TEACHER" });
+      const teacher1Profile = await createTeacher({
+        user_id: teacher1._id,
+        college_id: college._id,
+        department_id: deptId,
+        createdBy: teacher1._id,
+      });
+
+      const teacher2 = await createUser({ college_id: college._id, role: "TEACHER" });
+
+      // Admin sends INDIVIDUAL notification to teacher2
+      const privateNotif = await Notification.create({
+        college_id: college._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        createdByRole: "COLLEGE_ADMIN",
+        target: "INDIVIDUAL",
+        target_users: [teacher2._id],
+        title: "Confidential Review",
+        message: "Personal notice for teacher 2 only.",
+        type: "GENERAL",
+      });
+
+      const teacher1Query = await getNotificationVisibilityQuery({
+        collegeId: college._id,
+        role: "TEACHER",
+        userId: teacher1._id,
+        teacherProfile: teacher1Profile,
+      });
+
+      const result = await Notification.findOne({
+        ...teacher1Query,
+        _id: privateNotif._id,
+      });
+      expect(result).toBeNull();
+    });
+
+    it("Withdraw/approve/reject notifications go to the correct recipients and do not echo to sender", async () => {
+      const college = await createCollege({ code: "ECHO4" });
+      const deptId = new mongoose.Types.ObjectId();
+
+      const hodUser = await createUser({ college_id: college._id, role: "HOD" });
+      const hodTeacher = await createTeacher({
+        user_id: hodUser._id,
+        college_id: college._id,
+        department_id: deptId,
+        createdBy: hodUser._id,
+      });
+
+      const teacherUser = await createUser({ college_id: college._id, role: "TEACHER" });
+      const teacherProfile = await createTeacher({
+        user_id: teacherUser._id,
+        college_id: college._id,
+        department_id: deptId,
+        createdBy: teacherUser._id,
+      });
+
+      // 1. Teacher withdraws exception -> sent to HOD
+      const withdrawNotif = await Notification.create({
+        college_id: college._id,
+        createdBy: teacherUser._id,
+        createdByRole: "TEACHER",
+        target: "INDIVIDUAL",
+        target_users: [hodUser._id],
+        title: "Timetable Exception Request Withdrawn",
+        message: "Teacher withdrew request.",
+        type: "ACADEMIC",
+      });
+
+      // 2. HOD approves exception -> sent to Teacher
+      const approveNotif = await Notification.create({
+        college_id: college._id,
+        createdBy: hodUser._id,
+        createdByRole: "HOD",
+        target: "INDIVIDUAL",
+        target_users: [teacherUser._id],
+        title: "Timetable Exception Approved",
+        message: "Your timetable exception request has been approved.",
+        type: "ACADEMIC",
+      });
+
+      // 3. HOD rejects exception -> sent to Teacher
+      const rejectNotif = await Notification.create({
+        college_id: college._id,
+        createdBy: hodUser._id,
+        createdByRole: "HOD",
+        target: "INDIVIDUAL",
+        target_users: [teacherUser._id],
+        title: "Timetable Exception Rejected",
+        message: "Your timetable exception request has been rejected.",
+        type: "ACADEMIC",
+      });
+
+      const hodQuery = await getNotificationVisibilityQuery({
+        collegeId: college._id,
+        role: "HOD",
+        userId: hodUser._id,
+        teacherProfile: hodTeacher,
+      });
+      const hodVisible = await Notification.find({ ...hodQuery, college_id: college._id });
+      const hodIds = hodVisible.map(n => n._id.toString());
+
+      // HOD receives withdraw notification
+      expect(hodIds).toContain(withdrawNotif._id.toString());
+      // HOD does NOT receive their own approve or reject notifications (no author echo)
+      expect(hodIds).not.toContain(approveNotif._id.toString());
+      expect(hodIds).not.toContain(rejectNotif._id.toString());
+
+      const teacherQuery = await getNotificationVisibilityQuery({
+        collegeId: college._id,
+        role: "TEACHER",
+        userId: teacherUser._id,
+        teacherProfile,
+      });
+      const teacherVisible = await Notification.find({ ...teacherQuery, college_id: college._id });
+      const teacherIds = teacherVisible.map(n => n._id.toString());
+
+      // Teacher receives approval and rejection
+      expect(teacherIds).toContain(approveNotif._id.toString());
+      expect(teacherIds).toContain(rejectNotif._id.toString());
+      // Teacher does NOT receive their own withdraw notification (no author echo)
+      expect(teacherIds).not.toContain(withdrawNotif._id.toString());
+    });
+
+    it("Populates createdBy with name, role and email on notification query", async () => {
+      const college = await createCollege({ code: "ECHO5" });
+      const creatorUser = await User.create({
+        college_id: college._id,
+        role: "TEACHER",
+        name: "Professor Xavier",
+        email: "xavier@xmen.edu",
+        password: "Password@123",
+      });
+
+      const notif = await Notification.create({
+        college_id: college._id,
+        createdBy: creatorUser._id,
+        createdByRole: "TEACHER",
+        target: "ALL",
+        title: "School Announcement",
+        message: "Welcome mutants.",
+        type: "ACADEMIC",
+      });
+
+      const populated = await Notification.findById(notif._id)
+        .populate({ path: "createdBy", model: "User", select: "name role email" });
+
+      expect(populated.createdBy).toBeDefined();
+      expect(populated.createdBy.name).toBe("Professor Xavier");
+      expect(populated.createdBy.role).toBe("TEACHER");
+      expect(populated.createdBy.email).toBe("xavier@xmen.edu");
     });
   });
 });

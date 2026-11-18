@@ -2,15 +2,10 @@ const QRCode = require("qrcode");
 const path = require("path");
 const { getStorageProvider } = require("../services/storage");
 const DocumentService = require("../services/document.service");
+const { buildFrontendUrl } = require("./urlBuilder");
 
 exports.generateCollegeQR = async (collegeCode, collegeId = null) => {
-  const baseUrl = process.env.FRONTEND_URL;
-  if (!baseUrl) {
-    throw new Error(
-      "FRONTEND_URL environment variable is required for QR code generation",
-    );
-  }
-  const registrationUrl = `${baseUrl}/register/${collegeCode}`;
+  const registrationUrl = buildFrontendUrl(`/register/${collegeCode}`);
 
   const qrBuffer = await QRCode.toBuffer(registrationUrl);
 

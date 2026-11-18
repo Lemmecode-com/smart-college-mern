@@ -13,6 +13,8 @@ const {
   sendPaymentReceiptEmail,
 } = require("../services/email.service");
 const logger = require("../utils/logger");
+const { buildFrontendUrl } = require("../utils/urlBuilder");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 
 function normalizeStatus(status) {
   return String(status || "").toUpperCase();
@@ -248,8 +250,10 @@ exports.getChildFees = async (req, res, next) => {
       return next(new AppError("Student not found", 404, "STUDENT_NOT_FOUND"));
     }
 
-    const feeRecord = await StudentFee.findOne({ student_id: studentId })
-      .populate("course_id", "name");
+    const feeRecord = await getActiveStudentFee(studentId, student.college_id, {
+      student,
+      populate: [{ path: "course_id", select: "name" }],
+    });
 
     if (!feeRecord) {
       return res.json({
@@ -299,8 +303,8 @@ exports.createParentPaymentOrder = async (req, res, next) => {
       return next(new AppError("Student not found", 404, "STUDENT_NOT_FOUND"));
     }
 
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id,
+    const studentFee = await getActiveStudentFee(student._id, student.college_id, {
+      student,
     });
 
     if (!studentFee) {
@@ -316,11 +320,10 @@ exports.createParentPaymentOrder = async (req, res, next) => {
     }
 
     const stripe = await getStripeInstance(collegeId);
-    const frontendUrl = process.env.FRONTEND_URL;
-
-    if (!frontendUrl) {
-      throw new Error("FRONTEND_URL is required for Stripe payment redirects.");
-    }
+    const successUrl = buildFrontendUrl(
+      "/parent/payment-success?session_id={CHECKOUT_SESSION_ID}",
+    );
+    const cancelUrl = buildFrontendUrl("/parent/payment-cancel");
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -337,8 +340,8 @@ exports.createParentPaymentOrder = async (req, res, next) => {
           quantity: 1,
         },
       ],
-      success_url: `${frontendUrl}/parent/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/parent/payment-cancel`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         studentId: student._id.toString(),
         collegeId: collegeId.toString(),
@@ -402,7 +405,10 @@ exports.confirmParentPayment = async (req, res, next) => {
       return next(new AppError("Access denied: Student not linked to your account", 403, "NOT_AUTHORIZED"));
     }
 
-    const studentFee = await StudentFee.findOne({ student_id: metadataStudentId });
+    const studentFee = await getActiveStudentFee(
+      metadataStudentId,
+      req.user?.college_id,
+    );
 
     if (!studentFee) {
       return next(new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND"));

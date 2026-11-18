@@ -1,0 +1,789 @@
+const StudentMarks = require("../models/studentMarks.model");
+const Exam = require("../models/exam.model");
+const Subject = require("../models/subject.model");
+const Student = require("../models/student.model");
+const Backlog = require("../models/backlog.model");
+const BacklogAttempt = require("../models/backlogAttempt.model");
+const Teacher = require("../models/teacher.model");
+const AppError = require("../utils/AppError");
+const auditLogService = require("../services/auditLog.service");
+const { ROLE } = require("../utils/constants");
+const {
+  calculateSubjectResult,
+} = require("../services/examCalculation.service");
+const {
+  EXAM_TYPE,
+  BACKLOG_STATUS,
+} = require("../services/backlogAttempt.service");
+const { assertMarksMutable } = require("../utils/resultLifecycle.util");
+
+/**
+ * Validate marks against the Exam Subject configuration.
+ *
+ * Rules:
+ * - marks >= 0
+ * - THEORY: internalMarks <= internalMaxMarks, externalMarks <= externalMaxMarks
+ * - PRACTICAL: internalMarks <= internalMaxMarks (external not applicable)
+ * - COMPOSITE: internalMarks <= internalMaxMarks, externalMarks <= externalMaxMarks
+ *
+ * Missing marks are allowed (null/undefined) and are NOT coerced to 0.
+ */
+const validateMarks = (marks, examSubject) => {
+  const { subjectType, internalMaxMarks, externalMaxMarks } = examSubject;
+
+  if (marks.internalMarks !== undefined && marks.internalMarks !== null) {
+    const internal = Number(marks.internalMarks);
+    if (internal < 0) {
+      throw new AppError(
+        "Internal marks cannot be negative",
+        400,
+        "NEGATIVE_INTERNAL_MARKS",
+      );
+    }
+    if (
+      internalMaxMarks !== undefined &&
+      internalMaxMarks !== null &&
+      internal > internalMaxMarks
+    ) {
+      throw new AppError(
+        `Internal marks cannot exceed ${internalMaxMarks}`,
+        400,
+        "INTERNAL_MARKS_EXCEED_MAX",
+      );
+    }
+  }
+
+  if (marks.externalMarks !== undefined && marks.externalMarks !== null) {
+    const external = Number(marks.externalMarks);
+    if (external < 0) {
+      throw new AppError(
+        "External marks cannot be negative",
+        400,
+        "NEGATIVE_EXTERNAL_MARKS",
+      );
+    }
+
+    if (subjectType === "PRACTICAL") {
+      throw new AppError(
+        "External marks are not applicable for PRACTICAL subjects",
+        400,
+        "EXTERNAL_MARKS_NOT_APPLICABLE",
+      );
+    }
+
+    if (
+      externalMaxMarks !== undefined &&
+      externalMaxMarks !== null &&
+      external > externalMaxMarks
+    ) {
+      throw new AppError(
+        `External marks cannot exceed ${externalMaxMarks}`,
+        400,
+        "EXTERNAL_MARKS_EXCEED_MAX",
+      );
+    }
+  }
+
+  if (
+    subjectType === "PRACTICAL" &&
+    marks.externalMarks !== undefined &&
+    marks.externalMarks !== null
+  ) {
+    throw new AppError(
+      "External marks are not applicable for PRACTICAL subjects",
+      400,
+      "EXTERNAL_MARKS_NOT_APPLICABLE",
+    );
+  }
+};
+
+/**
+ * Resolve the Exam Subject configuration from the Exam document.
+ */
+const getExamSubject = (exam, subjectId) => {
+  const subject = exam.subjects.find(
+    (s) => String(s.subject) === String(subjectId),
+  );
+  if (!subject) {
+    throw new AppError(
+      "Subject is not part of this exam",
+      404,
+      "SUBJECT_NOT_IN_EXAM",
+    );
+  }
+  return subject;
+};
+
+const getSupplementaryBacklogStudentIds = async (examId, collegeId) => {
+  const attempts = await BacklogAttempt.find({
+    exam_id: examId,
+    college_id: collegeId,
+  })
+    .select("backlog_id course_id subject_id")
+    .lean();
+
+  if (attempts.length === 0) {
+    return [];
+  }
+
+  const backlogIds = [
+    ...new Set(attempts.map((attempt) => attempt.backlog_id)),
+  ];
+  const backlogs = await Backlog.find({
+    _id: { $in: backlogIds },
+    college_id: collegeId,
+    status: { $in: [BACKLOG_STATUS.OPEN, BACKLOG_STATUS.ATTEMPTED] },
+  })
+    .select("student_id course_id subject_id")
+    .lean();
+
+  const attemptRelationships = new Set(
+    attempts.map(
+      (attempt) =>
+        `${attempt.backlog_id}:${attempt.course_id}:${attempt.subject_id}`,
+    ),
+  );
+
+  return backlogs
+    .filter(
+      (backlog) =>
+        attemptRelationships.has(
+          `${backlog._id}:${backlog.course_id}:${backlog.subject_id}`,
+        ),
+    )
+    .map((backlog) => String(backlog.student_id));
+};
+
+/**
+ * Authorize teacher ownership for a subject.
+ * Returns the Teacher document if found, null if not a teacher or coordinator.
+ *
+ * `exam` is optional and, when supplied, additionally enforces that the subject
+ * belongs to the exam's course and semester (Marks Entry ownership rule).
+ */
+const authorizeTeacher = async (req, subjectId, collegeId, exam = null) => {
+  const examSubject = exam
+    ? exam.subjects?.find((s) => String(s.subject) === String(subjectId))
+    : null;
+  const isBacklog = examSubject?.category === "BACKLOG";
+
+  if (req.user.role === ROLE.EXAM_COORDINATOR) {
+    if (isBacklog) {
+      throw new AppError(
+        "Only the assigned teacher can enter marks for a backlog paper",
+        403,
+        "SUBJECT_ACCESS_DENIED",
+      );
+    }
+    return null;
+  }
+
+  if (req.user.role === ROLE.HOD) {
+    const hodTeacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!hodTeacher) {
+      throw new AppError(
+        "HOD teacher profile not found",
+        403,
+        "HOD_TEACHER_NOT_FOUND",
+      );
+    }
+
+    const subject = await Subject.findById(subjectId).select(
+      "college_id teacher_id course_id semester",
+    );
+
+    if (!subject) {
+      throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
+    }
+
+    if (subject.college_id.toString() !== collegeId.toString()) {
+      throw new AppError(
+        "You are not authorized for this subject",
+        403,
+        "SUBJECT_ACCESS_DENIED",
+      );
+    }
+
+    if (
+      !subject.teacher_id ||
+      subject.teacher_id.toString() !== hodTeacher._id.toString()
+    ) {
+      throw new AppError(
+        "You are not authorized for this subject",
+        403,
+        "SUBJECT_ACCESS_DENIED",
+      );
+    }
+
+    if (exam) {
+      if (isBacklog) {
+        if (
+          String(subject.course_id) !== String(exam.course_id) ||
+          Number(subject.semester) !== Number(examSubject.originalSemester)
+        ) {
+          throw new AppError(
+            "You are not authorized for this subject",
+            403,
+            "SUBJECT_ACCESS_DENIED",
+          );
+        }
+      } else {
+        if (
+          String(subject.course_id) !== String(exam.course_id) ||
+          Number(subject.semester) !== Number(exam.semester)
+        ) {
+          throw new AppError(
+            "You are not authorized for this subject",
+            403,
+            "SUBJECT_ACCESS_DENIED",
+          );
+        }
+      }
+    }
+
+    return hodTeacher;
+  }
+
+  if (req.user.role !== ROLE.TEACHER) {
+    throw new AppError("Access denied", 403, "FORBIDDEN_ROLE");
+  }
+
+  const teacher = await Teacher.findOne({
+    user_id: req.user.id,
+    college_id: collegeId,
+  });
+
+  if (!teacher) {
+    throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
+  }
+
+  const subject = await Subject.findOne({
+    _id: subjectId,
+    college_id: collegeId,
+  });
+
+  if (!subject) {
+    throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
+  }
+
+  // The subject must belong to the same course and semester as the exam being
+  // entered. For BACKLOG subjects, validate against originalSemester instead of
+  // exam.semester.
+  if (exam) {
+    if (isBacklog) {
+      if (
+        String(subject.course_id) !== String(exam.course_id) ||
+        Number(subject.semester) !== Number(examSubject.originalSemester)
+      ) {
+        throw new AppError(
+          "You are not authorized for this subject",
+          403,
+          "SUBJECT_ACCESS_DENIED",
+        );
+      }
+    } else {
+      if (
+        String(subject.course_id) !== String(exam.course_id) ||
+        Number(subject.semester) !== Number(exam.semester)
+      ) {
+        throw new AppError(
+          "You are not authorized for this subject",
+          403,
+          "SUBJECT_ACCESS_DENIED",
+        );
+      }
+    }
+  }
+
+  // Strict ownership: Subject.teacher_id is the source of truth. Subjects with
+  // no assigned teacher are NOT accessible by any teacher.
+  if (
+    !subject.teacher_id ||
+    subject.teacher_id.toString() !== teacher._id.toString()
+  ) {
+    throw new AppError(
+      "You are not authorized for this subject",
+      403,
+      "SUBJECT_ACCESS_DENIED",
+    );
+  }
+
+  return teacher;
+};
+
+exports.authorizeTeacher = authorizeTeacher;
+
+/**
+ * GET STUDENT ROSTER
+ * Returns students eligible for the exam subject, with existing marks if any.
+ */
+exports.getStudentRoster = async (req, res, next) => {
+  try {
+    const { examId, subjectId } = req.query;
+
+    if (!examId || !subjectId) {
+      throw new AppError(
+        "examId and subjectId are required",
+        400,
+        "MISSING_PARAMS",
+      );
+    }
+
+    const exam = await Exam.findOne({
+      _id: examId,
+      college_id: req.college_id,
+    });
+
+    if (!exam) {
+      throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+    }
+
+    const examSubject = getExamSubject(exam, subjectId);
+
+    await authorizeTeacher(req, subjectId, req.college_id, exam);
+
+    let students;
+    if (examSubject.category === "BACKLOG") {
+      const activeBacklogs = await Backlog.find({
+        college_id: req.college_id,
+        subject_id: subjectId,
+        status: { $in: [BACKLOG_STATUS.OPEN, BACKLOG_STATUS.ATTEMPTED] },
+      })
+        .select("student_id")
+        .lean();
+
+      const studentIds = [
+        ...new Set(activeBacklogs.map((b) => String(b.student_id))),
+      ];
+
+      students = await Student.find({
+        college_id: req.college_id,
+        course_id: exam.course_id,
+        _id: { $in: studentIds },
+        status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE"] },
+      })
+        .select("_id fullName enrollmentNumber rollNumber")
+        .sort({ fullName: 1 });
+    } else if (exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
+      const studentIds = await getSupplementaryBacklogStudentIds(
+        examId,
+        req.college_id,
+      );
+      students = await Student.find({
+        college_id: req.college_id,
+        _id: { $in: studentIds },
+        status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE"] },
+      })
+        .select("_id fullName enrollmentNumber rollNumber")
+        .sort({ fullName: 1 });
+    } else {
+      students = await Student.find({
+        college_id: req.college_id,
+        course_id: exam.course_id,
+        currentSemester: exam.semester,
+        status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE"] },
+      })
+        .select("_id fullName enrollmentNumber rollNumber")
+        .sort({ fullName: 1 });
+    }
+
+    const marks = await StudentMarks.find({
+      college_id: req.college_id,
+      exam_id: examId,
+      subject_id: subjectId,
+    });
+
+    const marksMap = new Map();
+    for (const mark of marks) {
+      marksMap.set(String(mark.student_id), {
+        _id: mark._id,
+        internalMarks: mark.internalMarks,
+        externalMarks: mark.externalMarks,
+        createdAt: mark.createdAt,
+        updatedAt: mark.updatedAt,
+      });
+    }
+
+    const roster = students.map((student) => ({
+      studentId: student._id,
+      fullName: student.fullName,
+      enrollmentNumber: student.enrollmentNumber,
+      rollNumber: student.rollNumber,
+      marks: marksMap.get(String(student._id)) || null,
+    }));
+
+    // Attach calculated pass/fail status using the Exam Subject snapshot.
+    // Calculation is derived; not persisted to StudentMarks.
+    const rosterWithCalculation = roster.map((entry) => {
+      const raw = entry.marks || {};
+      const calculation = calculateSubjectResult(examSubject, {
+        internalMarks: raw.internalMarks,
+        externalMarks: raw.externalMarks,
+      });
+      return { ...entry, calculation };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        examId,
+        subjectId,
+        category: examSubject.category,
+        originalSemester: examSubject.originalSemester,
+        subjectType: examSubject.subjectType,
+        internalMaxMarks: examSubject.internalMaxMarks,
+        externalMaxMarks: examSubject.externalMaxMarks,
+        roster: rosterWithCalculation,
+        totalStudents: rosterWithCalculation.length,
+        markedCount: marks.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET MARKS
+ * Returns all marks for an exam subject.
+ */
+exports.getMarks = async (req, res, next) => {
+  try {
+    const { examId, subjectId } = req.query;
+
+    if (!examId || !subjectId) {
+      throw new AppError(
+        "examId and subjectId are required",
+        400,
+        "MISSING_PARAMS",
+      );
+    }
+
+    const exam = await Exam.findOne({
+      _id: examId,
+      college_id: req.college_id,
+    });
+
+    if (!exam) {
+      throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+    }
+
+    getExamSubject(exam, subjectId);
+    await authorizeTeacher(req, subjectId, req.college_id, exam);
+
+    const marks = await StudentMarks.find({
+      college_id: req.college_id,
+      exam_id: examId,
+      subject_id: subjectId,
+    }).populate("student_id", "fullName enrollmentNumber rollNumber");
+
+    const examSubject = exam.subjects.find(
+      (s) => String(s.subject) === String(subjectId),
+    );
+
+    // Attach derived calculation; not persisted to StudentMarks.
+    const data = marks.map((mark) => {
+      const calculation = calculateSubjectResult(examSubject, {
+        internalMarks: mark.internalMarks,
+        externalMarks: mark.externalMarks,
+      });
+      return { ...mark.toObject(), calculation };
+    });
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * SAVE MARKS (bulk)
+ * Creates or updates marks for multiple students.
+ */
+exports.saveMarks = async (req, res, next) => {
+  try {
+    const { examId, subjectId, marks } = req.body;
+
+    if (!examId || !subjectId) {
+      throw new AppError(
+        "examId and subjectId are required",
+        400,
+        "MISSING_PARAMS",
+      );
+    }
+
+    if (!Array.isArray(marks)) {
+      throw new AppError("marks must be an array", 400, "INVALID_MARKS_FORMAT");
+    }
+
+    const exam = await Exam.findOne({
+      _id: examId,
+      college_id: req.college_id,
+    });
+
+    if (!exam) {
+      throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+    }
+
+    const examSubject = getExamSubject(exam, subjectId);
+    await authorizeTeacher(req, subjectId, req.college_id, exam);
+
+    const isBacklog = examSubject.category === "BACKLOG";
+
+    const supplementaryBacklogStudentIds =
+      exam.exam_type === EXAM_TYPE.SUPPLEMENTARY
+        ? await getSupplementaryBacklogStudentIds(examId, req.college_id)
+        : null;
+
+    // Step 7 — mutability guard: if a SemesterResult for this exam + student is
+    // LOCKED or PUBLISHED, the underlying marks must not be modified.
+    const studentIds = marks
+      .map((entry) => entry && entry.studentId)
+      .filter((id) => id);
+    await assertMarksMutable({
+      collegeId: req.college_id,
+      examId,
+      studentIds,
+    });
+
+    const results = [];
+    const auditLogs = [];
+    const now = new Date();
+
+    for (const entry of marks) {
+      const { studentId, internalMarks, externalMarks } = entry;
+
+      if (!studentId) {
+        throw new AppError(
+          "studentId is required for each mark entry",
+          400,
+          "MISSING_STUDENT_ID",
+        );
+      }
+
+      let student;
+      if (isBacklog) {
+        const hasActiveBacklog = await Backlog.exists({
+          college_id: req.college_id,
+          student_id: studentId,
+          subject_id: subjectId,
+          status: { $in: [BACKLOG_STATUS.OPEN, BACKLOG_STATUS.ATTEMPTED] },
+        });
+
+        if (!hasActiveBacklog) {
+          throw new AppError(
+            `Student ${studentId} is not eligible for this backlog exam`,
+            400,
+            "STUDENT_NOT_ELIGIBLE",
+          );
+        }
+
+        student = await Student.findOne({
+          _id: studentId,
+          college_id: req.college_id,
+          course_id: exam.course_id,
+          status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE"] },
+        });
+      } else {
+        student = await Student.findOne({
+          _id: studentId,
+          college_id: req.college_id,
+          course_id: exam.course_id,
+          currentSemester: exam.semester,
+          status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE"] },
+        });
+
+        if (!student && exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
+          if (
+            !supplementaryBacklogStudentIds?.includes(String(studentId))
+          ) {
+            throw new AppError(
+              `Student ${studentId} is not eligible for this exam`,
+              400,
+              "STUDENT_NOT_ELIGIBLE",
+            );
+          }
+
+          student = await Student.findOne({
+            _id: studentId,
+            college_id: req.college_id,
+            course_id: exam.course_id,
+            status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE"] },
+          });
+        }
+      }
+
+      if (!student) {
+        throw new AppError(
+          `Student ${studentId} is not eligible for this exam`,
+          400,
+          "STUDENT_NOT_ELIGIBLE",
+        );
+      }
+
+      const marksToValidate = {
+        internalMarks: internalMarks !== undefined ? internalMarks : null,
+        externalMarks: externalMarks !== undefined ? externalMarks : null,
+      };
+
+      validateMarks(marksToValidate, examSubject);
+
+      const existing = await StudentMarks.findOne({
+        college_id: req.college_id,
+        exam_id: examId,
+        subject_id: subjectId,
+        student_id: studentId,
+      });
+
+      const isNew = !existing;
+
+      const updated = await StudentMarks.findOneAndUpdate(
+        {
+          college_id: req.college_id,
+          exam_id: examId,
+          subject_id: subjectId,
+          student_id: studentId,
+        },
+        {
+          college_id: req.college_id,
+          exam_id: examId,
+          subject_id: subjectId,
+          student_id: studentId,
+          internalMarks: marksToValidate.internalMarks,
+          externalMarks: marksToValidate.externalMarks,
+          createdBy: isNew ? req.user.id : existing.createdBy,
+          updatedBy: req.user.id,
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true },
+      );
+
+      results.push({
+        studentId: student._id,
+        fullName: student.fullName,
+        enrollmentNumber: student.enrollmentNumber,
+        internalMarks: updated.internalMarks,
+        externalMarks: updated.externalMarks,
+        isNew,
+      });
+
+      // Unified Regular + Backlog workflow:
+      // When marks are entered for a BACKLOG subject in the Unified Exam,
+      // automatically create or update the BacklogAttempt for that student.
+      if (isBacklog) {
+        const backlog = await Backlog.findOne({
+          college_id: req.college_id,
+          student_id: studentId,
+          subject_id: subjectId,
+          status: { $in: [BACKLOG_STATUS.OPEN, BACKLOG_STATUS.ATTEMPTED] },
+        });
+
+        if (backlog) {
+          let attempt = await BacklogAttempt.findOne({
+            college_id: req.college_id,
+            backlog_id: backlog._id,
+            exam_id: examId,
+          });
+
+          const hasInternal = marksToValidate.internalMarks !== null && marksToValidate.internalMarks !== undefined;
+          const hasExternal = marksToValidate.externalMarks !== null && marksToValidate.externalMarks !== undefined;
+          const totalMarksValue = (hasInternal || hasExternal)
+            ? (hasInternal ? Number(marksToValidate.internalMarks) : 0) + (hasExternal ? Number(marksToValidate.externalMarks) : 0)
+            : null;
+
+          if (!attempt) {
+            const currentAttemptNumber = (backlog.attempt_count || 0) + 1;
+            attempt = await BacklogAttempt.create({
+              backlog_id: backlog._id,
+              student_id: studentId,
+              college_id: req.college_id,
+              course_id: exam.course_id,
+              subject_id: subjectId,
+              subject_code: examSubject.subject?.code || backlog.subject_code,
+              subject_name: examSubject.subject?.name || backlog.subject_name,
+              subject_type: examSubject.subjectType || backlog.subject_type,
+              attempt_number: currentAttemptNumber,
+              exam_id: exam._id,
+              exam_name: exam.name,
+              exam_type: exam.exam_type || EXAM_TYPE.REGULAR,
+              attempted_by: req.user.id,
+              attempted_at: now,
+              internal_marks: marksToValidate.internalMarks,
+              external_marks: marksToValidate.externalMarks,
+              total_marks: totalMarksValue,
+              result_status: "INCOMPLETE",
+              passed: false,
+              cleared: false,
+            });
+
+            backlog.status = BACKLOG_STATUS.ATTEMPTED;
+            backlog.attempt_count = currentAttemptNumber;
+            backlog.latest_attempt_id = attempt._id;
+            backlog.latest_result_status = "INCOMPLETE";
+            await backlog.save();
+          } else {
+            attempt.internal_marks = marksToValidate.internalMarks;
+            attempt.external_marks = marksToValidate.externalMarks;
+            attempt.total_marks = totalMarksValue;
+            await attempt.save();
+          }
+        }
+      }
+
+      auditLogs.push({
+        action: isNew ? "MARKS_ENTERED" : "MARKS_UPDATED",
+        resourceType: "StudentMarks",
+        resourceId: updated._id,
+        oldValues: isNew
+          ? null
+          : {
+              internalMarks: existing.internalMarks,
+              externalMarks: existing.externalMarks,
+            },
+        newValues: {
+          internalMarks: updated.internalMarks,
+          externalMarks: updated.externalMarks,
+          studentId: student._id,
+          studentName: student.fullName,
+          examId,
+          subjectId,
+        },
+      });
+    }
+
+    await Promise.all(
+      auditLogs.map((log) =>
+        auditLogService.logAudit({
+          collegeId: req.college_id,
+          userId: req.user.id,
+          userEmail: req.user.email,
+          userRole: req.user.role,
+          action: log.action,
+          resourceType: log.resourceType,
+          resourceId: log.resourceId,
+          ipAddress: req.ip || req.connection.remoteAddress,
+          userAgent: req.get("user-agent"),
+          endpoint: req.originalUrl,
+          method: req.method,
+          statusCode: 200,
+          oldValues: log.oldValues,
+          newValues: log.newValues,
+        }),
+      ),
+    );
+
+    res.json({
+      success: true,
+      message: "Marks saved successfully",
+      data: results,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

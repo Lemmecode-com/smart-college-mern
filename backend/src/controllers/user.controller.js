@@ -53,20 +53,28 @@ exports.deactivateUser = async (req, res, next) => {
     user.isActive = false;
     await user.save();
 
-    // Revoke all refresh tokens so deactivated user cannot obtain new access tokens
+    // Revoke all tokens and active sessions so deactivated user cannot make further requests
     try {
       const RefreshToken = require("../models/refreshToken.model");
-      await RefreshToken.updateMany(
-        { user_id: user._id, isRevoked: false },
-        { $set: { isRevoked: true } }
-      );
+      const AuthSession = require("../models/authSession.model");
+      await Promise.all([
+        RefreshToken.updateMany(
+          { user_id: user._id, isRevoked: false },
+          { $set: { isRevoked: true } }
+        ),
+        AuthSession.updateMany(
+          { user_id: user._id, isActive: true },
+          { $set: { isActive: false, invalidationReason: "USER_DEACTIVATED" } }
+        ),
+        User.findByIdAndUpdate(user._id, { $inc: { tokenVersion: 1 } }),
+      ]);
     } catch (tokenErr) {
-      console.error("Failed to revoke refresh tokens during deactivation:", tokenErr.message);
+      console.error("Failed to revoke tokens during deactivation:", tokenErr.message);
     }
 
-    // If the user is a TEACHER, also update the Teacher model
+    // If the user is a TEACHER or HOD, also update the Teacher model
     let teacherData = null;
-    if (user.role === "TEACHER") {
+    if (user.role === "TEACHER" || user.role === "HOD") {
       teacherData = await Teacher.findOneAndUpdate(
         { user_id: user._id, college_id: req.college_id },
         { status: "INACTIVE" },
@@ -178,9 +186,9 @@ exports.reactivateUser = async (req, res, next) => {
     user.isActive = true;
     await user.save();
 
-    // If the user is a TEACHER, also update the Teacher model
+    // If the user is a TEACHER or HOD, also update the Teacher model
     let teacherData = null;
-    if (user.role === "TEACHER") {
+    if (user.role === "TEACHER" || user.role === "HOD") {
       teacherData = await Teacher.findOneAndUpdate(
         { user_id: user._id, college_id: req.college_id },
         { status: "ACTIVE" },

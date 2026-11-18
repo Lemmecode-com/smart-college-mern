@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
+import { clearStudentDashboardCache } from "../../../utils/studentDashboardCache";
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -420,7 +421,13 @@ DocumentRow.defaultProps = {
 
 /* ---- InfoCard Component ---- */
 // eslint-disable-next-line no-unused-vars
-function InfoCard({ title, icon: Icon, children, className = "" }) {
+function InfoCard({
+  title,
+  icon: Icon,
+  children,
+  className = "",
+  headerRight = null,
+}) {
   return (
     <div className={`erp-card ${className}`}>
       <div className="erp-card-header">
@@ -428,7 +435,14 @@ function InfoCard({ title, icon: Icon, children, className = "" }) {
           <Icon className="erp-card-icon" aria-hidden="true" />
           {title}
         </h3>
+
+        {headerRight && (
+          <div className="erp-card-header-right">
+            {headerRight}
+          </div>
+        )}
       </div>
+
       <div className="erp-card-body">{children}</div>
     </div>
   );
@@ -439,6 +453,7 @@ InfoCard.propTypes = {
   icon: PropTypes.elementType.isRequired,
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
+  headerRight: PropTypes.node,
 };
 
 InfoCard.defaultProps = {
@@ -1405,29 +1420,7 @@ MarkPaidModal.propTypes = {
 };
 
 /* ---- Loading Display Component ---- */
-function LoadingDisplay() {
-  return (
-    <motion.div
-      className="erp-loading-container"
-      role="status"
-      aria-label="Loading"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Loading
-        size="lg"
-        color="primary"
-        text="Loading student profile..."
-        variant="spinner"
-      />
-      <div className="loading-skeleton-wrapper">
-        <ProfileSkeleton />
-      </div>
-    </motion.div>
-  );
-}
+
 
 /* ================= MAIN COMPONENT ================= */
 export default function ViewApproveStudent() {
@@ -1563,6 +1556,7 @@ export default function ViewApproveStudent() {
         );
 
         if (response.data.success) {
+          clearStudentDashboardCache();
           toast.success(response.data.message, {
             position: "top-right",
             autoClose: 4000,
@@ -1736,8 +1730,21 @@ export default function ViewApproveStudent() {
 
   /* ================= LOADING STATE ================= */
   if (loading || !student) {
-    return <LoadingDisplay />;
-  }
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Student Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
    /* ================= RENDER ================= */
    const renderSection = (sectionId, content) => {
@@ -1746,7 +1753,7 @@ export default function ViewApproveStudent() {
    };
 
    return (
-     <div className="erp-container print-area">
+     <div className="erp-container print-area" style={{ paddingTop: "0.5rem" }}>
        {/* BREADCRUMBS */}
        <Breadcrumb
          items={[
@@ -1992,19 +1999,27 @@ export default function ViewApproveStudent() {
                   />
                 </div>
               </InfoCard>
-              <InfoCard title="Payment Installments" icon={FaCreditCard}>
-                <span className="installment-count" aria-label={`${feeData?.installments?.length || 0} installments`}>
-                  {feeData?.installments?.length || 0}{" "}
-                  {feeData?.installments?.length === 1 ? "Installment" : "Installments"}
-                </span>
-                <div className="erp-card-body">
-                  <InstallmentTable
-                    installments={feeData?.installments || []}
-                    studentId={student._id}
-                    onMarkPaid={handleMarkPaid}
-                    canMarkPaid={canEdit("fee-structure")}
-                  />
-                </div>
+              <InfoCard
+                title="Payment Installments"
+                icon={FaCreditCard}
+                headerRight={
+                  <span
+                    className="installment-count"
+                    aria-label={`${feeData?.installments?.length || 0} installments`}
+                  >
+                    {feeData?.installments?.length || 0}{" "}
+                    {feeData?.installments?.length === 1
+                      ? "Installment"
+                      : "Installments"}
+                  </span>
+                }
+              >
+                <InstallmentTable
+                  installments={feeData?.installments || []}
+                  studentId={student._id}
+                  onMarkPaid={handleMarkPaid}
+                  canMarkPaid={canEdit("fee-structure")}
+                />
               </InfoCard>
             </>
           ))}

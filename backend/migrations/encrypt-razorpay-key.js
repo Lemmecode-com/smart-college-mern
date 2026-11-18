@@ -1,3 +1,4 @@
+require("dotenv").config();
 const mongoose = require("mongoose");
 const CollegePaymentConfig = require("../src/models/collegePaymentConfig.model");
 const { encryptRazorpayKey } = require("../src/utils/encryption.util");
@@ -5,7 +6,12 @@ const { encryptRazorpayKey } = require("../src/utils/encryption.util");
 const TARGET_COLLEGE_ID = "6a3bc09e7184f97db872f6ca";
 
 async function migrate() {
-  await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/smartcollege");
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  if (!mongoUri) {
+    console.error("Error: MONGO_URI or MONGODB_URI is not set in environment.");
+    process.exit(1);
+  }
+  await mongoose.connect(mongoUri);
 
   const config = await CollegePaymentConfig.findOne({
     collegeId: TARGET_COLLEGE_ID,

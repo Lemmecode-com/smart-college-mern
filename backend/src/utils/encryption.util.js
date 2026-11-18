@@ -42,6 +42,9 @@ function validateMasterKey(masterKey) {
   }
 }
 
+// Module-scoped cache for PBKDF2 derived keys (keyed by masterKey to handle key rotation)
+const derivedKeyCache = new Map();
+
 /**
  * Derives a 32-byte key from the master encryption key
  * Uses PBKDF2 with a fixed salt for deterministic key derivation
@@ -50,17 +53,26 @@ function validateMasterKey(masterKey) {
  */
 function deriveKey(masterKey) {
   validateMasterKey(masterKey);
+
+  const cachedKey = derivedKeyCache.get(masterKey);
+  if (cachedKey) {
+    return Buffer.from(cachedKey);
+  }
+
   const fixedSalt = Buffer.from(
     "novaa-saas-payment-encryption-salt-2026",
     "utf8",
   ).slice(0, SALT_LENGTH);
-  return crypto.pbkdf2Sync(
+  const derived = crypto.pbkdf2Sync(
     masterKey,
     fixedSalt,
     ITERATIONS,
     KEY_LENGTH,
     DIGEST,
   );
+
+  derivedKeyCache.set(masterKey, derived);
+  return Buffer.from(derived);
 }
 
 /**

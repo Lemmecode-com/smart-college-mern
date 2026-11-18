@@ -5,10 +5,18 @@ const logger = require("../utils/logger");
 
 /**
  * Cache for Razorpay instances to avoid recreating them frequently
- * Key: collegeId, Value: { razorpay, config }
+ * Key: collegeId, Value: { razorpay, config, timestamp }
  */
 const razorpayInstanceCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Cache for decrypted college Razorpay credentials (keyId, keySecret)
+ * Short 60s TTL to eliminate repeated DB reads + AES decryption while remaining fresh
+ * Key: collegeId, Value: { config, keySecret, timestamp }
+ */
+const collegeCredentialsCache = new Map();
+const CREDENTIALS_CACHE_TTL = 60 * 1000; // 60 seconds
 
 /**
  * Clear expired cache entries
@@ -20,6 +28,11 @@ function clearExpiredCache() {
       razorpayInstanceCache.delete(key);
     }
   }
+  for (const [key, value] of collegeCredentialsCache.entries()) {
+    if (now - value.timestamp > CREDENTIALS_CACHE_TTL) {
+      collegeCredentialsCache.delete(key);
+    }
+  }
 }
 
 // Run cache cleanup every 10 minutes
@@ -27,6 +40,7 @@ setInterval(clearExpiredCache, 10 * 60 * 1000);
 
 /**
  * Get Razorpay configuration for a college
+ * Decrypted credentials are cached in-memory with a 60s TTL
  * @param {string} collegeId - The college ID
  * @returns {Promise<{config: Object, keySecret: string}>}
  * @throws {Error} If Razorpay is not configured for the college
@@ -39,7 +53,16 @@ async function getCollegeRazorpayConfig(collegeId) {
     throw error;
   }
 
-  logger.logInfo("🔵 Fetching Razorpay config", { collegeId });
+  const cacheKey = String(collegeId);
+  const cached = collegeCredentialsCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CREDENTIALS_CACHE_TTL) {
+    return {
+      config: cached.config,
+      keySecret: cached.keySecret,
+    };
+  }
+
+  logger.logInfo("🔵 Fetching Razorpay config from DB", { collegeId });
 
   const config = await CollegePaymentConfig.getActiveConfig(
     collegeId,
@@ -56,15 +79,10 @@ async function getCollegeRazorpayConfig(collegeId) {
     throw error;
   }
 
-  logger.logInfo("✅ Razorpay config found, decrypting keySecret", {
-    collegeId,
-  });
-
   // Decrypt the secret key
   let keySecret;
   try {
     keySecret = decryptRazorpayKey(config.credentials.keySecret);
-    logger.logInfo("✅ Razorpay key decrypted successfully", { collegeId });
   } catch (decryptError) {
     logger.logError("❌ Failed to decrypt Razorpay key", {
       collegeId,
@@ -78,6 +96,13 @@ async function getCollegeRazorpayConfig(collegeId) {
     error.cause = decryptError;
     throw error;
   }
+
+  // Cache decrypted credentials for short TTL (60s)
+  collegeCredentialsCache.set(cacheKey, {
+    config,
+    keySecret,
+    timestamp: Date.now(),
+  });
 
   return {
     config,
@@ -212,13 +237,16 @@ async function verifyCollegeRazorpayCredentials(collegeId) {
 }
 
 /**
- * Invalidate cached Razorpay instance for a college
- * Use this when credentials are updated
+ * Invalidate cached Razorpay instance and credentials for a college
+ * Use this when credentials are updated or status is toggled
  * @param {string} collegeId - The college ID
  */
 function invalidateRazorpayInstanceCache(collegeId) {
-  razorpayInstanceCache.delete(collegeId);
-  logger.logInfo("✅ Invalidated Razorpay cache", { collegeId });
+  if (!collegeId) return;
+  const key = String(collegeId);
+  razorpayInstanceCache.delete(key);
+  collegeCredentialsCache.delete(key);
+  logger.logInfo("✅ Invalidated Razorpay instance & credentials cache", { collegeId });
 }
 
 /**

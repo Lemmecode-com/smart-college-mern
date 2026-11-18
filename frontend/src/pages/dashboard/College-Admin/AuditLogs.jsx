@@ -4,7 +4,9 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Pagination from "../../../components/Pagination";
 import ApiError from "../../../components/ApiError";
+import PageHeader from "../../../components/PageHeader";
 import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -12,8 +14,6 @@ import {
   FaClipboardList,
   FaFilter,
   FaCalendarAlt,
-  FaSyncAlt,
-  FaUserShield,
   FaCheckCircle,
   FaTimesCircle,
   FaEdit,
@@ -324,89 +324,26 @@ export default function AuditLogs() {
     ];
 
     return (
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "0.75rem",
-          marginBottom: "1rem",
-        }}
-      >
+      <div className="audit-stats">
         {cards.map((card, index) => (
           <motion.div
+            className="audit-stat-card"
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1, duration: 0.3 }}
-            style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "1rem",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-              border: `1px solid ${card.border}20`,
-              position: "relative",
-              overflow: "hidden",
-            }}
+            style={{ "--audit-accent": card.color, "--audit-tint": card.bg }}
           >
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                width: "70px",
-                height: "70px",
-                background: card.bg,
-                borderRadius: "50%",
-                transform: "translate(30%, -30%)",
-              }}
-            />
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "0.75rem",
-                    fontWeight: "500",
-                    color: THEME.text.secondary,
-                  }}
-                >
+            <div className="audit-stat-content">
+              <div className="audit-stat-top">
+                <p className="audit-stat-title">
                   {card.title}
                 </p>
-                <div
-                  style={{
-                    width: "32px",
-                    height: "32px",
-                    borderRadius: "8px",
-                    background: card.bg,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: `1px solid ${card.border}30`,
-                  }}
-                >
-                  <card.icon
-                    style={{ fontSize: "0.875rem", color: card.color }}
-                  />
+                <div className="audit-stat-icon">
+                  <card.icon />
                 </div>
               </div>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: "1.5rem",
-                  fontWeight: "700",
-                  color: card.color,
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                {card.value.toLocaleString()}
-              </h3>
+              <h3 className="audit-stat-value">{card.value.toLocaleString()}</h3>
             </div>
           </motion.div>
         ))}
@@ -423,16 +360,10 @@ export default function AuditLogs() {
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
           transition={{ duration: 0.3 }}
-          style={{
-            background: "white",
-            borderRadius: "16px",
-            padding: "1.5rem",
-            marginBottom: "1.5rem",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-            border: "1px solid #e2e8f0",
-          }}
+          className="audit-filter-panel"
         >
           <div
+            className="audit-filter-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -590,6 +521,7 @@ export default function AuditLogs() {
           </div>
 
           <div
+            className="audit-filter-actions"
             style={{
               display: "flex",
               gap: "0.75rem",
@@ -626,74 +558,20 @@ export default function AuditLogs() {
     </AnimatePresence>
   );
 
-  // Render pagination
-  const renderPagination = () => {
-    if (!pagination || pagination.pages <= 1) return null;
+  // Render shared pagination
+const renderPagination = () => {
+  if (!pagination || pagination.pages <= 1) return null;
 
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "0.5rem",
-          marginTop: "2rem",
-        }}
-      >
-        <button
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-          style={{
-            padding: "0.625rem 1rem",
-            background: currentPage === 1 ? "#f1f5f9" : "white",
-            border: `2px solid ${currentPage === 1 ? "#e2e8f0" : "#e2e8f0"}`,
-            borderRadius: "10px",
-            cursor: currentPage === 1 ? "not-allowed" : "pointer",
-            opacity: currentPage === 1 ? 0.5 : 1,
-            fontWeight: "600",
-            fontSize: "0.875rem",
-            color: THEME.text.secondary,
-            transition: "all 0.2s",
-          }}
-        >
-          ← Previous
-        </button>
-
-        <span
-          style={{
-            padding: "0.625rem 1.25rem",
-            color: THEME.text.secondary,
-            fontSize: "0.875rem",
-            fontWeight: "500",
-          }}
-        >
-          Page {currentPage} of {pagination.pages}
-        </span>
-
-        <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(pagination.pages, prev + 1))
-          }
-          disabled={currentPage === pagination.pages}
-          style={{
-            padding: "0.625rem 1rem",
-            background: currentPage === pagination.pages ? "#f1f5f9" : "white",
-            border: `2px solid ${currentPage === pagination.pages ? "#e2e8f0" : "#e2e8f0"}`,
-            borderRadius: "10px",
-            cursor:
-              currentPage === pagination.pages ? "not-allowed" : "pointer",
-            opacity: currentPage === pagination.pages ? 0.5 : 1,
-            fontWeight: "600",
-            fontSize: "0.875rem",
-            color: THEME.text.secondary,
-            transition: "all 0.2s",
-          }}
-        >
-          Next →
-        </button>
-      </div>
-    );
-  };
+  return (
+    <div className="audit-pagination-wrapper" style={{ marginTop: "2rem", marginBottom: "24px" }}>
+      <Pagination
+        page={currentPage}
+        totalPages={pagination.pages}
+        setPage={setCurrentPage}
+      />
+    </div>
+  );
+};
 
   if (error) {
     return (
@@ -708,136 +586,51 @@ export default function AuditLogs() {
 
   return (
     <div
+    className="audit-responsive-container"
       style={{
         minHeight: "100vh",
         background: THEME.background.light,
-        padding: "1.5rem",
+        padding: "0.5rem 1.5rem 1.5rem",
       }}
     >
       {/* Breadcrumb */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Audit Logs", active: true },
-        ]}
-      />
-
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
+      className="audit-breadcrumb-wrapper"
         style={{
-          background: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
-          padding: "2rem",
-          borderRadius: "20px",
-          marginBottom: "1.5rem",
-          boxShadow: "0 10px 40px rgba(26, 75, 109, 0.2)",
-          position: "relative",
-          overflow: "hidden",
+          width: "100%",
+          margin: "0 auto",
+          paddingTop: 0,
+          height: "auto",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            top: "-50px",
-            right: "-50px",
-            width: "200px",
-            height: "200px",
-            background: "rgba(255,255,255,0.05)",
-            borderRadius: "50%",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: "-30px",
-            left: "100px",
-            width: "150px",
-            height: "150px",
-            background: "rgba(61, 181, 230, 0.1)",
-            borderRadius: "50%",
-          }}
-        />
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Reports & Analytics", },
+              { label: "Audit Logs", active: true },
+            ]}
+          />
+        </div>
+      </div>
 
-        <div
-          style={{
-            position: "relative",
-            zIndex: 1,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "1rem",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <div
-              style={{
-                width: "60px",
-                height: "60px",
-                borderRadius: "16px",
-                background: "rgba(255,255,255,0.15)",
-                backdropFilter: "blur(10px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "2px solid rgba(255,255,255,0.2)",
-              }}
-            >
-              <FaShieldAlt style={{ fontSize: "1.75rem", color: "white" }} />
-            </div>
-            <div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.75rem",
-                  fontWeight: "bold",
-                  color: "white",
-                }}
-              >
-                Audit Logs
-              </h2>
-              <p
-                style={{
-                  margin: "0.25rem 0 0",
-                  fontSize: "0.9375rem",
-                  color: "rgba(255,255,255,0.8)",
-                  fontWeight: "500",
-                }}
-              >
-                Track all admin actions on student data • DPDPA 2026 Compliant
-              </p>
-            </div>
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+      <PageHeader
+        icon={FaShieldAlt}
+        title="Audit Logs"
+        subtitle="Track all admin actions on student data • DPDPA 2026 Compliant"
+        actions={
+          <button
+            type="button"
+            className="audit-filter-btn"
+            aria-expanded={showFilters}
             onClick={() => setShowFilters(!showFilters)}
-            style={{
-              padding: "0.75rem 1.5rem",
-              background: showFilters
-                ? "rgba(255,255,255,0.2)"
-                : "rgba(255,255,255,0.1)",
-              color: "white",
-              border: "2px solid rgba(255,255,255,0.3)",
-              borderRadius: "12px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              fontSize: "0.9375rem",
-              fontWeight: "600",
-              backdropFilter: "blur(10px)",
-              transition: "all 0.2s",
-            }}
           >
             <FaFilter />
             Filters
             {showFilters ? <FaChevronUp /> : <FaChevronDown />}
-          </motion.button>
-        </div>
-      </motion.div>
+          </button>
+        }
+      />
 
       {/* Filters */}
       {renderFilters()}
@@ -864,14 +657,14 @@ export default function AuditLogs() {
 
       {/* Audit Logs Table */}
       <style>{`
-        .erp-table {
+        .audit-responsive-container .erp-table {
           width: 100%;
           border-collapse: collapse;
         }
-        .erp-table thead {
+        .audit-responsive-container .erp-table thead {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
         }
-        .erp-table th {
+        .audit-responsive-container .erp-table th {
           padding: 0.875rem 1rem;
           text-align: left;
           font-size: 0.75rem;
@@ -880,18 +673,19 @@ export default function AuditLogs() {
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
-        .erp-table tbody tr {
+        .audit-responsive-container .erp-table tbody tr {
           transition: all 0.2s;
         }
-        .erp-table tbody tr:hover {
+        .audit-responsive-container .erp-table tbody tr:hover {
           background: #f0f9ff;
         }
-        .erp-table td {
+        .audit-responsive-container .erp-table td {
           padding: 1rem;
           border-bottom: 1px solid #e2e8f0;
         }
       `}</style>
       <motion.div
+      className="audit-table-card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
@@ -958,7 +752,10 @@ export default function AuditLogs() {
           </motion.div>
         ) : (
           <>
-            <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            <div 
+            className="audit-table-wrapper"
+            style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }}
+            aria-label="Audit logs table; scroll horizontally to view all columns">
               <table
                 className="erp-table"
                 style={{
@@ -1051,7 +848,7 @@ export default function AuditLogs() {
                           transition={{ delay: index * 0.05 }}
                           style={{ transition: "all 0.2s" }}
                           onClick={() =>
-                            setExpandedLog(isExpanded ? null : log._id)
+                            setExpandedLog(expandedLog === log._id ? null : log._id)
                           }
                         >
                           <td
@@ -1084,6 +881,7 @@ export default function AuditLogs() {
                           </td>
                           <td style={{ padding: "1rem" }}>
                             <span
+                              className="audit-action-badge"
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",
@@ -1103,6 +901,7 @@ export default function AuditLogs() {
                           </td>
                           <td style={{ padding: "1rem" }}>
                             <span
+                              className="audit-resource-badge"
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",
@@ -1144,6 +943,9 @@ export default function AuditLogs() {
                 </tbody>
               </table>
             </div>
+            <p className="audit-table-scroll-hint">
+              Swipe horizontally to view all columns
+            </p>
 
             {/* Pagination */}
             {renderPagination()}
@@ -1167,6 +969,789 @@ export default function AuditLogs() {
           </>
         )}
       </motion.div>
+      <style>{`
+  /* =========================================================
+     AUDIT LOGS - MOBILE & TABLET RESPONSIVE
+     Desktop remains unchanged
+     ========================================================= */
+
+
+  /* =========================
+     TABLET
+     769px - 1024px
+     ========================= */
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+
+    /* Main page spacing */
+    .audit-responsive-container {
+      padding: 0.5rem 1.25rem 1.25rem !important;
+    }
+
+    /* Filter button */
+    .audit-responsive-container .audit-filter-btn {
+      padding: 0.65rem 1.15rem !important;
+      font-size: 0.85rem !important;
+    }
+
+    /* Stats - keep 4 cards but make them compact */
+    .audit-responsive-container .audit-stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 0.6rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-card {
+      padding: 0.8rem !important;
+      min-width: 0 !important;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      font-size: 0.7rem !important;
+      line-height: 1.4 !important;
+    }
+
+    .audit-responsive-container .audit-stat-icon {
+      width: 28px !important;
+      height: 28px !important;
+      font-size: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-value {
+      font-size: 1.35rem !important;
+    }
+
+    /* Table card */
+    .audit-responsive-container .audit-table-card {
+      padding: 1.1rem !important;
+      border-radius: 16px !important;
+    }
+
+    /* Table */
+    .audit-responsive-container .erp-table {
+      min-width: 760px !important;
+    }
+  }
+
+
+  /* =========================
+     MOBILE
+     <= 768px
+     ========================= */
+
+  @media (max-width: 768px) {
+
+    /* Main page */
+    .audit-responsive-container {
+      padding: 0.5rem 0.75rem 0.75rem !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+
+
+    /* =========================
+       BREADCRUMB
+       ========================= */
+
+    .audit-responsive-container .audit-breadcrumb-wrapper {
+      height: auto !important;
+      margin: 0 0 0.75rem !important;
+      padding: 0 !important;
+      overflow-x: auto !important;
+      scrollbar-width: none !important;
+    }
+
+    .audit-responsive-container .audit-breadcrumb-wrapper::-webkit-scrollbar {
+      display: none !important;
+    }
+
+
+    /* =========================
+       FILTER BUTTON
+       ========================= */
+
+    .audit-responsive-container .audit-filter-btn {
+      width: 100% !important;
+      justify-content: center !important;
+      padding: 0.7rem 1rem !important;
+      border-radius: 10px !important;
+      font-size: 0.85rem !important;
+    }
+
+
+    /* =========================
+       STATS
+       2 x 2 ON MOBILE
+       ========================= */
+
+    .audit-responsive-container .audit-stats {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 0.7rem !important;
+      width: 100% !important;
+      margin-bottom: 1rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-card {
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      padding: 0.85rem !important;
+      border-radius: 12px !important;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      font-size: 0.72rem !important;
+      line-height: 1.35 !important;
+      max-width: 85px !important;
+    }
+
+    .audit-responsive-container .audit-stat-icon {
+      width: 28px !important;
+      height: 28px !important;
+      min-width: 28px !important;
+      font-size: 0.72rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-value {
+      font-size: 1.5rem !important;
+      margin-top: 0.2rem !important;
+    }
+
+
+    /* =========================
+       FILTER PANEL
+       ========================= */
+
+    .audit-responsive-container .audit-filter-panel {
+      padding: 1rem !important;
+      border-radius: 14px !important;
+      margin-bottom: 1rem !important;
+    }
+
+    .audit-responsive-container .audit-filter-grid {
+      grid-template-columns: 1fr !important;
+      gap: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-filter-panel select,
+    .audit-responsive-container .audit-filter-panel input {
+      padding: 0.65rem 0.8rem !important;
+      font-size: 0.82rem !important;
+    }
+
+    .audit-responsive-container .audit-filter-actions {
+      justify-content: stretch !important;
+    }
+
+    .audit-responsive-container .audit-filter-actions button {
+      width: 100% !important;
+    }
+
+
+    /* =========================
+       TABLE CARD
+       ========================= */
+
+    .audit-responsive-container .audit-table-card {
+      padding: 0.75rem !important;
+      border-radius: 15px !important;
+      overflow: hidden !important;
+    }
+
+
+    /* =========================
+       TABLE
+       ========================= */
+
+    .audit-responsive-container .audit-table-wrapper {
+      width: 100% !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch !important;
+      border-radius: 10px !important;
+      scrollbar-width: thin !important;
+      scrollbar-color: #94a3b8 #e2e8f0 !important;
+    }
+
+    .audit-responsive-container .erp-table {
+      min-width: 600px !important;
+      width: 600px !important;
+      font-size: 0.8rem !important;
+    }
+
+    .audit-responsive-container .audit-table-wrapper::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .audit-responsive-container .audit-table-wrapper::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 6px;
+    }
+
+    .audit-responsive-container .audit-table-scroll-hint {
+      margin: 0.35rem 0 0;
+      color: #64748b;
+      font-size: 0.68rem;
+      text-align: center;
+    }
+
+    .audit-responsive-container .erp-table th {
+      padding: 0.7rem 0.75rem !important;
+      font-size: 0.68rem !important;
+    }
+
+    .audit-responsive-container .erp-table td {
+      padding: 0.75rem !important;
+    }
+
+
+    /* =========================
+       PAGINATION
+       ========================= */
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination {
+      margin-top: 1rem !important;
+      gap: 0.3rem !important;
+      flex-wrap: wrap !important;
+      width: 100% !important;
+      padding: 8px 4px !important;
+      box-sizing: border-box !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination button {
+      padding: 0.5rem 0.7rem !important;
+      font-size: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination span {
+      padding: 0.5rem 0.6rem !important;
+      font-size: 0.75rem !important;
+    }
+
+    /* Results text */
+    .audit-responsive-container .audit-table-card > p {
+      margin-top: 0.9rem !important;
+      font-size: 0.75rem !important;
+      line-height: 1.4 !important;
+    }
+  }
+
+
+  /* =========================
+     SMALL MOBILE
+     <= 480px
+     ========================= */
+
+  @media (max-width: 480px) {
+
+    .audit-responsive-container {
+      padding: 0.6rem !important;
+    }
+
+    /* Stats */
+    .audit-responsive-container .audit-stats {
+      gap: 0.55rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-card {
+      padding: 0.7rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      font-size: 0.68rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-icon {
+      width: 25px !important;
+      height: 25px !important;
+      min-width: 25px !important;
+      font-size: 0.65rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-value {
+      font-size: 1.3rem !important;
+    }
+
+    /* Table */
+    .audit-responsive-container .audit-table-card {
+      padding: 0.55rem !important;
+    }
+
+    .audit-responsive-container .erp-table {
+      min-width: 600px !important;
+      width: 600px !important;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .audit-responsive-container .audit-stats {
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 0.6rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      max-width: none !important;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    .audit-responsive-container .audit-table-card {
+      padding: 0.5rem !important;
+    }
+
+    .audit-responsive-container .audit-table-wrapper {
+      overscroll-behavior-x: contain;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination {
+      gap: 2px !important;
+      padding: 6px 2px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages > button {
+      flex: 0 0 26px !important;
+      width: 26px !important;
+      min-width: 26px !important;
+      height: 28px !important;
+      min-height: 28px !important;
+      font-size: 9px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button {
+      display: inline-flex !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages {
+      gap: 2px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages > span {
+      min-width: 18px !important;
+      min-height: 28px !important;
+      padding: 0 !important;
+      font-size: 11px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__info {
+      max-width: calc(100vw - 48px) !important;
+      white-space: normal !important;
+      text-align: center !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"] svg {
+      display: none !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"]::after,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"]::after {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"]::after,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"]::after {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"]::after { content: "«"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"]::after { content: "‹"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"]::after { content: "›"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"]::after { content: "»"; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table {
+      table-layout: fixed;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(1),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(1) { width: 145px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(1) {
+      white-space: normal !important;
+      overflow-wrap: anywhere;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(2),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(2) { width: 110px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(3),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(3) { width: 95px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(4),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(4) { width: 150px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(5),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(5) { width: 100px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(2) > span,
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(3) > span {
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 0.35rem 0.45rem !important;
+      gap: 0.3rem !important;
+      font-size: 0.7rem !important;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(4),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(5) {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+  }
+
+  .audit-responsive-container {
+    padding: 0.6rem 1.5rem 1.5rem !important;
+    background: #f4f7f9 !important;
+  }
+
+  .audit-responsive-container .audit-breadcrumb-wrapper {
+    margin-bottom: 0.85rem;
+  }
+
+  .audit-responsive-container .standard-page-header {
+    margin-bottom: 1rem;
+  }
+
+  .audit-responsive-container .standard-page-header-actions {
+    flex-shrink: 0;
+  }
+
+  .audit-responsive-container .audit-filter-btn {
+    min-height: 38px;
+    padding: 0 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .audit-responsive-container .audit-filter-btn:hover,
+  .audit-responsive-container .audit-filter-btn[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
+  }
+
+  .audit-responsive-container .audit-filter-btn:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.45);
+    outline-offset: 2px;
+  }
+
+  .audit-responsive-container .audit-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin: 0 0 1rem;
+  }
+
+  .audit-responsive-container .audit-stat-card {
+    min-width: 0;
+    min-height: 108px;
+    padding: 1rem 1.1rem;
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e3eaee;
+    border-left: 3px solid var(--audit-accent);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(15, 58, 74, 0.055);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .audit-responsive-container .audit-stat-card::after {
+    content: "";
+    position: absolute;
+    top: -25px;
+    right: -25px;
+    width: 78px;
+    height: 78px;
+    background: var(--audit-tint);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .audit-responsive-container .audit-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 18px rgba(15, 58, 74, 0.1);
+  }
+
+  .audit-responsive-container .audit-stat-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .audit-responsive-container .audit-stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .audit-responsive-container .audit-stat-title {
+    min-width: 0;
+    margin: 0;
+    color: #60737c;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .audit-responsive-container .audit-stat-icon {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--audit-accent);
+    background: var(--audit-tint);
+    border: 1px solid color-mix(in srgb, var(--audit-accent) 20%, white);
+    border-radius: 9px;
+    font-size: 0.9rem;
+  }
+
+  .audit-responsive-container .audit-stat-value {
+    margin: 0;
+    color: var(--audit-accent);
+    font-size: 1.55rem;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .audit-responsive-container .audit-filter-panel {
+    padding: 1.15rem !important;
+    margin-bottom: 1rem !important;
+    background: #fff;
+    border: 1px solid #e2e9ed;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(15, 58, 74, 0.06);
+    overflow: hidden;
+  }
+
+  .audit-responsive-container .audit-filter-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 0.85rem !important;
+    margin-bottom: 0.9rem !important;
+  }
+
+  .audit-responsive-container .audit-filter-grid label {
+    color: #425e69 !important;
+    font-size: 0.78rem !important;
+  }
+
+  .audit-responsive-container .audit-filter-panel select,
+  .audit-responsive-container .audit-filter-panel input {
+    box-sizing: border-box;
+    min-height: 40px;
+    padding: 0.55rem 0.75rem !important;
+    color: #294652;
+    background: #fbfcfd !important;
+    border: 1px solid #d8e2e6 !important;
+    border-radius: 8px !important;
+    font-size: 0.84rem !important;
+  }
+
+  .audit-responsive-container .audit-filter-panel select:focus,
+  .audit-responsive-container .audit-filter-panel input:focus {
+    border-color: #1a6875 !important;
+    box-shadow: 0 0 0 3px rgba(26, 104, 117, 0.12);
+    outline: none;
+  }
+
+  .audit-responsive-container .audit-filter-actions {
+    gap: 0.6rem !important;
+  }
+
+  .audit-responsive-container .audit-filter-actions button {
+    min-height: 38px;
+    padding: 0.5rem 0.9rem !important;
+    border-radius: 8px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .audit-responsive-container .alert {
+    margin: 0 0 1rem !important;
+    border-radius: 9px;
+  }
+
+  .audit-responsive-container .audit-table-card {
+    padding: 1.1rem !important;
+    border: 1px solid #e2e9ed !important;
+    border-radius: 13px !important;
+    box-shadow: 0 4px 16px rgba(15, 58, 74, 0.06) !important;
+  }
+
+  .audit-responsive-container .audit-table-wrapper {
+    border-color: #e2e9ed !important;
+    border-radius: 10px !important;
+    scrollbar-width: thin;
+    scrollbar-color: #aab9bf #f1f5f6;
+  }
+
+  .audit-responsive-container .erp-table {
+    min-width: 780px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .audit-responsive-container .erp-table thead {
+    background: #103f50;
+  }
+
+  .audit-responsive-container .erp-table th {
+    padding: 0.8rem 1rem !important;
+    color: #fff;
+    background: linear-gradient(135deg, #103f50 0%, #0d3442 100%);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  .audit-responsive-container .erp-table td {
+    padding: 0.85rem 1rem !important;
+    color: #40545d;
+    border-bottom: 1px solid #edf1f3;
+    vertical-align: middle;
+  }
+
+  .audit-responsive-container .erp-table tbody tr {
+    cursor: pointer;
+    transition: background-color 0.18s ease;
+  }
+
+  .audit-responsive-container .erp-table tbody tr:nth-child(even) {
+    background: #f9fbfc;
+  }
+
+  .audit-responsive-container .erp-table tbody tr:hover {
+    background: #eef7f8 !important;
+  }
+
+  .audit-responsive-container .audit-action-badge,
+  .audit-responsive-container .audit-resource-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem !important;
+    max-width: 100%;
+    padding: 0.38rem 0.65rem !important;
+    border: 1px solid currentColor;
+    border-radius: 7px !important;
+    font-size: 0.74rem !important;
+    font-weight: 650 !important;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+
+  .audit-responsive-container .audit-resource-badge {
+    background: #f2f7f9 !important;
+    border-color: #e1eaee !important;
+  }
+
+  .audit-responsive-container .audit-table-scroll-hint {
+    margin: 0.5rem 0 0 !important;
+    color: #71838b;
+    font-size: 0.72rem;
+    text-align: center;
+  }
+
+  .audit-responsive-container .audit-pagination-wrapper {
+    margin-top: 1rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .audit-responsive-container .audit-table-card > p {
+    margin: 0.75rem 0 0 !important;
+    color: #71838b !important;
+    font-size: 0.8rem !important;
+  }
+
+  @media (max-width: 1024px) {
+    .audit-responsive-container .audit-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .audit-responsive-container .audit-filter-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .audit-responsive-container .erp-table {
+      min-width: 760px !important;
+      width: 760px !important;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .audit-responsive-container {
+      padding: 0.5rem 0.75rem 0.9rem !important;
+    }
+
+    .audit-responsive-container .standard-page-header-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .audit-responsive-container .audit-filter-btn {
+      min-height: 40px;
+      width: 100%;
+    }
+
+    .audit-responsive-container .audit-stats,
+    .audit-responsive-container .audit-filter-grid {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .audit-responsive-container .audit-stat-card {
+      min-height: 92px;
+      padding: 0.85rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      max-width: none !important;
+      font-size: 0.78rem !important;
+    }
+
+    .audit-responsive-container .audit-filter-panel {
+      padding: 0.9rem !important;
+    }
+
+    .audit-responsive-container .audit-filter-actions {
+      justify-content: stretch !important;
+    }
+
+    .audit-responsive-container .audit-filter-actions button {
+      width: 100% !important;
+    }
+
+    .audit-responsive-container .audit-table-card {
+      padding: 0.65rem !important;
+    }
+
+    .audit-responsive-container .erp-table {
+      min-width: 760px !important;
+      width: 760px !important;
+    }
+  }
+`}</style>
     </div>
   );
 }

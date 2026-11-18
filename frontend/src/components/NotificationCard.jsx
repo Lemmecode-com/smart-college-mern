@@ -159,7 +159,7 @@ export default function NotificationCard({
       </div>
 
       {/* Title + message */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="notification-row-content" style={{ flex: 1, minWidth: 0 }}>
         <h6
           style={{
             margin: "0 0 0.2rem 0",
@@ -189,6 +189,7 @@ export default function NotificationCard({
 
       {/* Meta: time + badges + kebab menu */}
       <div
+        className="notification-row-meta"
         style={{
           display: "flex",
           alignItems: "center",
@@ -199,6 +200,7 @@ export default function NotificationCard({
       >
         {/* Time */}
         <div
+          className="notification-meta-time"
           style={{
             display: "flex",
             alignItems: "center",
@@ -214,6 +216,7 @@ export default function NotificationCard({
 
         {/* Type badge */}
         <span
+          className="notification-meta-type"
           style={{
             padding: "0.3rem 0.65rem",
             borderRadius: "20px",
@@ -229,6 +232,7 @@ export default function NotificationCard({
 
         {/* Priority + expiry badge */}
         <span
+          className="notification-meta-priority"
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -253,7 +257,7 @@ export default function NotificationCard({
         {/* Kebab menu */}
         {hasMenu && (
           <div
-            className="card-action-btn"
+            className="card-action-btn notification-row-actions"
             ref={menuRef}
             style={{ position: "relative" }}
           >

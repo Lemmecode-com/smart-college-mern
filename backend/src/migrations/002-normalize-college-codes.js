@@ -6,7 +6,12 @@ const DocumentConfig = require("../models/documentConfig.model");
 
 async function normalizeCollegeCodes() {
   try {
-    await mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/smart-college");
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error("Error: MONGO_URI or MONGODB_URI is not set in environment.");
+      process.exit(1);
+    }
+    await mongoose.connect(mongoUri);
 
     console.log("✅ Connected to MongoDB");
 

@@ -8,19 +8,9 @@
     "dev": "nodemon server.js",
     "test": "jest --config jest.config.js --runInBand",
     "test:watch": "jest --config jest.config.js --watch",
-    "test:timetable-exception-unique-index": "node scripts/test-timetable-exception-unique-index.js",
-    "cleanup:orphans": "node scripts/cleanup-orphaned-records.js",
-    "cleanup:orphans:live": "node scripts/cleanup-orphaned-records.js --live",
-    "test:soft-delete": "node scripts/test-soft-delete.js",
-    "add-indexes": "node scripts/add-indexes.js",
-    "add-timetable-indexes": "node scripts/add-timetable-indexes.js",
-    "migrate": "node scripts/migrate.js",
     "migrate:password-reset": "node scripts/migrate-password-reset.js",
-    "migrate:timetable-dates": "node scripts/migrate-timetable-dates.js",
-    "migrate:timetable-exception-unique-index": "node scripts/migrate-timetable-exception-unique-index.js",
-    "rollback": "node scripts/rollback.js",
-    "rollback:data": "node scripts/rollback.js --data",
-    "rollback:all": "node scripts/rollback.js --all",
+    "migrate:promotion-indexes": "node scripts/migrate-promotion-indexes.js",
+    "migrate:unique-studentfee-index": "node scripts/migrate-unique-studentfee-index.js",
     "seed": "node scripts/seed-data.js",
     "seed:minimal": "node scripts/seed-data.js --minimal",
     "seed:users": "node scripts/seed-data.js --users"
@@ -33,6 +23,7 @@
     "@babel/preset-env": "^7.29.7",
     "jest": "^29.7.0",
     "mongodb-memory-server": "^11.2.0",
+    "nodemon": "^3.1.14",
     "supertest": "^7.2.2"
   },
   "dependencies": {
@@ -54,6 +45,7 @@
     "pdfkit": "^0.18.0",
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.6",
+    "sharp": "^0.35.5",
     "stripe": "^20.3.0",
     "uuid": "^14.0.0",
     "winston": "^3.19.0"

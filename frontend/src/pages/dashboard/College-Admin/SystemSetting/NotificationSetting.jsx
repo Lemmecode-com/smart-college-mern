@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaBell,
   FaEnvelope,
@@ -146,7 +148,7 @@ const NotificationSetting = () => {
           align-items: center;
           margin-bottom: 1.5rem;
           padding: 1.25rem;
-          background: linear-gradient(135deg, var(--ns-teal-dark) 0%, var(--ns-teal-medium) 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
           border-radius: var(--ns-radius-xl);
           box-shadow: var(--ns-shadow-lg);
           position: relative;
@@ -173,9 +175,9 @@ const NotificationSetting = () => {
         }
 
         .header-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--ns-radius-lg);
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
           background: linear-gradient(135deg, var(--ns-cyan-primary), var(--ns-cyan-light));
           display: flex;
           align-items: center;
@@ -814,182 +816,917 @@ const NotificationSetting = () => {
           font-size: 0.875rem;
         }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-          .settings-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .channels-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .settings-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .header-actions {
-            width: 100%;
-            justify-content: flex-end;
-          }
-        }
+/* =========================================================
+   RESPONSIVE - TABLET
+   Desktop remains unchanged
+   ========================================================= */
 
-        @media (max-width: 768px) {
-          .notification-settings-page {
-            padding: 0.75rem;
-          }
-          
-          .settings-title {
-            font-size: 1.5rem;
-          }
-          
-          .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .header-actions {
-            flex-direction: column;
-          }
-          
-          .btn-reset,
-          .btn-save {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .rule-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-          }
-          
-          .rule-select {
-            width: 100%;
-          }
-          
-          .modified-indicator {
-            left: 0.75rem;
-            right: 0.75rem;
-            transform: none;
-            bottom: 0.75rem;
-            flex-direction: column;
-            text-align: center;
-          }
-        }
+@media (min-width: 769px) and (max-width: 1024px) {
 
-        @media (max-width: 480px) {
-          .notification-settings-page {
-            padding: 0.5rem;
-          }
+  .notification-settings-page {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
 
-          .settings-title {
-            font-size: 1.25rem;
-          }
+  /* ---------- Header ---------- */
 
-          .settings-subtitle {
-            font-size: 0.875rem;
-          }
+  .settings-header {
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+  }
 
-          .header-icon-wrapper {
-            width: 56px;
-            height: 56px;
-          }
+  .header-content {
+    min-width: 0;
+    flex: 1;
+  }
 
-          .header-icon {
-            font-size: 1.5rem;
-          }
+  .header-text {
+    min-width: 0;
+  }
 
-          .stat-value {
-            font-size: 1.5rem;
-          }
+  .settings-title {
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
 
-          .stat-label {
-            font-size: 0.75rem;
-          }
+  .settings-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
 
-          .channel-card {
-            padding: 1rem;
-          }
+  .header-actions {
+    flex-shrink: 0;
+    width: auto;
+  }
 
-          .channel-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 1.25rem;
-          }
+  .btn-reset,
+  .btn-save {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
 
-          .channel-name {
-            font-size: 1rem;
-          }
 
-          .test-preview-btn {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-          }
-        }
+  /* ---------- Main Grid ---------- */
 
-        @media (prefers-reduced-motion: reduce) {
-          *,
-          *::before,
-          *::after {
-            animation-duration: 0.01ms !important;
-            transition-duration: 0.01ms !important;
-          }
-        }
+  .settings-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 
-        .rule-select:focus,
-        .btn-test:focus,
-        .btn-save-small:focus {
-          outline: 2px solid var(--ns-cyan-primary);
-          outline-offset: 2px;
-        }
+
+  /* ---------- Notification Channels ---------- */
+
+  .channels-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .channel-card {
+    padding: 1rem;
+    min-width: 0;
+  }
+
+
+  /* ---------- Notification Rules ---------- */
+
+  .rule-item {
+    gap: 1rem;
+  }
+
+  .rule-content {
+    min-width: 0;
+  }
+
+  .rule-text {
+    min-width: 0;
+  }
+
+  .rule-select {
+    min-width: 130px;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   Desktop remains unchanged
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .notification-settings-page {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.65rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+
+  /* =====================================================
+     BREADCRUMB
+     ===================================================== */
+
+  .notification-settings-page > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 0 0.75rem !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .notification-settings-page .breadcrumb {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .notification-settings-page .breadcrumb::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* =====================================================
+     PAGE HEADER
+     ===================================================== */
+
+  .settings-header {
+    width: 100%;
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.75rem;
+
+    box-sizing: border-box;
+    border-radius: 14px;
+  }
+
+
+  /* Keep icon + title SIDE BY SIDE */
+
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    gap: 0.7rem;
+
+    min-width: 0;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 10px;
+  }
+
+  .header-icon {
+    font-size: 1.25rem;
+  }
+
+  .header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .settings-title {
+    font-size: 1.25rem;
+    line-height: 1.25;
+    letter-spacing: -0.2px;
+  }
+
+  .settings-subtitle {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin-top: 0.2rem;
+  }
+
+
+  /* Buttons stay SIDE BY SIDE */
+
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.5rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: 100% !important;
+
+    min-height: 40px;
+
+    justify-content: center;
+
+    padding: 0.6rem 0.5rem;
+
+    font-size: 0.78rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     INFO CARD
+     ===================================================== */
+
+  .info-card {
+    width: 100%;
+    padding: 0.85rem;
+    margin-bottom: 1rem;
+
+    gap: 0.65rem;
+
+    box-sizing: border-box;
+    border-radius: 12px;
+  }
+
+  .info-card-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+
+    font-size: 1rem;
+  }
+
+  .info-card-content {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.9rem;
+    line-height: 1.3;
+    margin-bottom: 0.35rem;
+  }
+
+  .info-card-content ul {
+    padding-left: 1rem;
+    font-size: 0.74rem;
+    line-height: 1.5;
+  }
+
+
+  /* =====================================================
+     MAIN GRID
+     ===================================================== */
+
+  .settings-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+
+  /* =====================================================
+     CARDS
+     ===================================================== */
+
+  .settings-card,
+  .sidebar-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border-radius: 12px;
+  }
+
+  .card-header-custom {
+    padding: 0.85rem 1rem;
+    gap: 0.6rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  .card-body-custom {
+    padding: 0.9rem;
+  }
+
+
+  /* =====================================================
+     NOTIFICATION CHANNELS
+     ===================================================== */
+
+  .channels-grid {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.55rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .channel-card {
+    min-width: 0;
+
+    padding: 0.75rem;
+
+    border-width: 1.5px;
+
+    box-sizing: border-box;
+  }
+
+  .channel-header {
+    margin-bottom: 0.55rem;
+  }
+
+  .channel-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+
+    font-size: 1.15rem;
+  }
+
+  .channel-status {
+    font-size: 0.58rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .channel-name {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  .channel-description {
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+
+  /* =====================================================
+     SIDEBAR
+     ===================================================== */
+
+  .sidebar-card {
+    margin-bottom: 0.85rem;
+  }
+
+  .sidebar-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .sidebar-header h6 {
+    font-size: 0.88rem;
+  }
+
+  .sidebar-body {
+    padding: 0.8rem;
+  }
+
+
+  /* =====================================================
+     TEST NOTIFICATIONS
+     ===================================================== */
+
+  .test-tabs {
+    gap: 0.4rem;
+  }
+
+  .test-tab {
+    padding: 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  .test-preview {
+    padding: 1rem;
+  }
+
+  .test-preview-icon {
+    font-size: 2.4rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .test-preview-title {
+    font-size: 0.9rem;
+  }
+
+  .test-preview-text {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .btn-test {
+    margin-top: 0.75rem;
+    padding: 0.65rem;
+    font-size: 0.78rem;
+  }
+
+
+  /* =====================================================
+     QUICK STATS
+     ===================================================== */
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .stat-item {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+  }
+
+
+  /* =====================================================
+     NOTIFICATION RULES
+     ===================================================== */
+
+  .rules-list {
+    gap: 0.65rem;
+  }
+
+  .rule-item {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.65rem;
+
+    padding: 0.75rem;
+
+    box-sizing: border-box;
+  }
+
+  .rule-content {
+    width: 100%;
+    min-width: 0;
+    gap: 0.65rem;
+  }
+
+  .rule-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+
+    font-size: 1rem;
+  }
+
+  .rule-text {
+    min-width: 0;
+  }
+
+  .rule-name {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .rule-description {
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+  .rule-select {
+    width: 100%;
+    min-width: 0;
+
+    padding: 0.55rem 0.65rem;
+
+    font-size: 0.75rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     UNSAVED CHANGES INDICATOR
+     ===================================================== */
+
+  .modified-indicator {
+    left: 0.6rem;
+    right: 0.6rem;
+
+    bottom: 0.6rem;
+
+    width: auto;
+
+    padding: 0.65rem 0.8rem;
+
+    gap: 0.6rem;
+
+    box-sizing: border-box;
+
+    justify-content: space-between;
+  }
+
+  .indicator-content {
+    min-width: 0;
+    font-size: 0.72rem;
+  }
+
+  .btn-save-small {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.7rem;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .notification-settings-page {
+    padding: 0.5rem;
+  }
+
+  .settings-header {
+    padding: 0.8rem;
+  }
+
+  .header-icon-wrapper {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+
+  .header-icon {
+    font-size: 1.1rem;
+  }
+
+  .settings-title {
+    font-size: 1.05rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 38px;
+    font-size: 0.7rem;
+  }
+
+  .channels-grid {
+    gap: 0.4rem;
+  }
+
+  .channel-card {
+    padding: 0.65rem;
+  }
+
+  .channel-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 1rem;
+  }
+
+  .channel-status {
+    font-size: 0.5rem;
+    padding: 0.15rem 0.3rem;
+  }
+
+  .channel-name {
+    font-size: 0.72rem;
+  }
+
+  .channel-description {
+    font-size: 0.62rem;
+  }
+
+  .info-card-content ul {
+    font-size: 0.68rem;
+  }
+
+  .card-body-custom {
+    padding: 0.75rem;
+  }
+
+  .rule-name {
+    font-size: 0.75rem;
+  }
+
+  .rule-description {
+    font-size: 0.64rem;
+  }
+
+  .modified-indicator {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 300px) {
+  .channels-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .channel-card {
+    padding: 0.75rem;
+  }
+
+  .channel-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .channel-status {
+    margin-left: auto;
+  }
+
+  .channel-name,
+  .channel-description {
+    overflow-wrap: anywhere;
+  }
+
+  .settings-card,
+  .card-body-custom {
+    min-width: 0;
+  }
+}
+
+.notification-settings-page {
+  padding: 0.5rem 1.25rem 1.5rem;
+  background: #f5f7fb;
+}
+.notification-settings-page .notification-page-header { margin-bottom: 1rem; }
+.notification-settings-page .notification-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.notification-settings-page .notification-header-actions button {
+  min-height: 42px;
+  padding: 0 0.9rem;
+  border-radius: 9px;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+.notification-settings-page .btn-save { background: #16809a; box-shadow: none; }
+.notification-settings-page .btn-save:hover:not(:disabled) { background: #116b82; box-shadow: 0 4px 12px rgba(22,128,154,.25); }
+.notification-settings-page .btn-save-modified { animation: none; }
+.notification-settings-page .info-card {
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #d7e7ee;
+  border-radius: 10px;
+  background: #f3f9fb;
+}
+.notification-settings-page .info-card-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  background: #e2f1f5;
+  color: #0f6177;
+  box-shadow: none;
+  font-size: 1rem;
+}
+.notification-settings-page .info-card-content h6 { margin-bottom: 0.2rem; font-size: 0.9rem; }
+.notification-settings-page .info-card-content ul { font-size: 0.78rem; line-height: 1.4; }
+.notification-settings-page .settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+.notification-settings-page .notification-sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  min-width: 0;
+}
+.notification-settings-page .settings-grid > .settings-card:not(.notification-rules) {
+  grid-column: 1;
+  grid-row: 1;
+}
+.notification-settings-page .notification-sidebar > .sidebar-card {
+  width: 100%;
+  margin: 0;
+}
+.notification-settings-page .notification-quick-stats {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+.notification-settings-page .notification-rules {
+  margin-top: 0 !important;
+}
+.notification-settings-page .settings-card,
+.notification-settings-page .sidebar-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(15,58,74,.06);
+}
+.notification-settings-page .card-header-custom,
+.notification-settings-page .sidebar-header {
+  padding: 0.85rem 1.1rem;
+  background: #f8fafc;
+  color: #123f4e;
+  border-bottom: 1px solid #e6edf2;
+}
+.notification-settings-page .card-header-custom h5,
+.notification-settings-page .sidebar-header h6 { color: #123f4e; font-size: 0.98rem; }
+.notification-settings-page .card-icon,
+.notification-settings-page .sidebar-header h6 svg { color: #16809a; }
+.notification-settings-page .card-body-custom,
+.notification-settings-page .sidebar-body { padding: 1rem; }
+.notification-settings-page .channels-grid { gap: 0.7rem; margin-bottom: 0; }
+.notification-settings-page .channel-card {
+  padding: 0.9rem;
+  border: 1px solid #dce5eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.notification-settings-page .channel-card.enabled {
+  border-color: #9bd4b0;
+  background: #f5fbf7;
+}
+.notification-settings-page .channel-card:hover { transform: translateY(-1px); }
+.notification-settings-page .channel-icon-wrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  font-size: 1.1rem;
+}
+.notification-settings-page .channel-name { font-size: 0.9rem; }
+.notification-settings-page .channel-description { font-size: 0.75rem; line-height: 1.4; }
+.notification-settings-page .channel-status { font-size: 0.65rem; }
+.notification-settings-page .sidebar-card { margin-bottom: 0.85rem; }
+.notification-settings-page .sidebar-header { padding: 0.8rem 1rem; }
+.notification-settings-page .sidebar-body { padding: 0.9rem; }
+.notification-settings-page .test-tabs { gap: 0.45rem; margin-bottom: 0.75rem; }
+.notification-settings-page .test-tab {
+  min-height: 38px;
+  padding: 0.5rem;
+  border: 1px solid #d5e0e8;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-family: inherit;
+}
+.notification-settings-page .test-tab.active { border-color: #16809a; background: #eaf5f8; color: #0f6177; }
+.notification-settings-page .test-preview { padding: 0.9rem; border: 1px solid #e8edf2; }
+.notification-settings-page .test-preview-icon { font-size: 2rem; margin-bottom: 0.45rem; }
+.notification-settings-page .test-preview-title { font-size: 0.9rem; margin-bottom: 0.3rem; }
+.notification-settings-page .test-preview-text { font-size: 0.76rem; line-height: 1.4; }
+.notification-settings-page .btn-test {
+  min-height: 40px;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: #16809a;
+}
+.notification-settings-page .stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+.notification-settings-page .stat-item {
+  padding: 0.7rem 0.5rem;
+  border: 1px solid #e7edf2;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.notification-settings-page .stat-value { font-size: 1.25rem; color: #0f6177; }
+.notification-settings-page .stat-label { font-size: 0.7rem; }
+.notification-settings-page > .settings-card[style] { margin-top: 1rem !important; }
+.notification-settings-page > .settings-card[style] .card-header-custom { background: #f8fafc; }
+.notification-settings-page .rules-list { gap: 0.55rem; }
+.notification-settings-page .rule-item {
+  gap: 0.9rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 9px;
+}
+.notification-settings-page .rule-content { min-width: 0; gap: 0.7rem; }
+.notification-settings-page .rule-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.notification-settings-page .rule-name { font-size: 0.86rem; }
+.notification-settings-page .rule-description { font-size: 0.73rem; line-height: 1.35; }
+.notification-settings-page .rule-select {
+  min-height: 38px;
+  min-width: 130px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+.notification-settings-page .rule-select:focus { border-color: #16809a; box-shadow: 0 0 0 3px rgba(22,128,154,.12); }
+
+@media (max-width: 900px) {
+  .notification-settings-page .settings-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .notification-settings-page .notification-sidebar,
+  .notification-settings-page .settings-grid > .settings-card:not(.notification-rules),
+  .notification-settings-page .notification-quick-stats { grid-column: 1; grid-row: auto; }
+  .notification-settings-page .stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .notification-settings-page { padding: 0.5rem 0.7rem 1rem; }
+  .notification-settings-page .notification-header-actions { width: 100%; }
+  .notification-settings-page .notification-header-actions button { flex: 1; justify-content: center; }
+  .notification-settings-page .rule-item { flex-direction: row; align-items: center; }
+  .notification-settings-page .rule-select { width: 38%; min-width: 110px; }
+  .notification-settings-page .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 430px) {
+  .notification-settings-page .rule-item { align-items: stretch; flex-direction: column; }
+  .notification-settings-page .rule-select { width: 100%; }
+  .notification-settings-page .channel-card { padding: 0.7rem; }
+  .notification-settings-page .channel-status { font-size: 0.58rem; }
+}
       `}</style>
 
-      <div className="notification-settings-page">
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaBell className="header-icon" />
-            </div>
-            <div className="header-text">
-              <h2 className="settings-title">Notification Settings</h2>
-              <p className="settings-subtitle">
-                Control how system notifications are sent to students, teachers,
-                and staff
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
-            <button
-              className="btn-reset"
-              onClick={handleReset}
-              disabled={isSaving || !isModified}
-            >
-              <FaUndo className="btn-icon" />
-              <span>Reset</span>
-            </button>
-            <button
-              className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
-              onClick={handleSave}
-              disabled={isSaving || !isModified}
-            >
-              {isSaving ? (
-                <>
-                  <span className="spinner-icon" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <FaSave className="btn-icon" />
-                  <span>Save Settings</span>
-                </>
-              )}
-            </button>
+      <div className="notification-settings-page" style={{ paddingTop: "0.5rem" }}>
+
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "0 auto",
+            paddingTop: 0,
+            height: "auto",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Notification Settings" },
+              ]}
+            />
           </div>
         </div>
+
+        <PageHeader
+          className="notification-page-header"
+          icon={FaBell}
+          title="Notification Settings"
+          subtitle="Control how system notifications are sent to students, teachers, and staff"
+          actions={(
+            <div className="notification-header-actions">
+              <button
+                type="button"
+                className="btn-reset"
+                onClick={handleReset}
+                disabled={isSaving || !isModified}
+              >
+                <FaUndo className="btn-icon" />
+                <span>Reset</span>
+              </button>
+              <button
+                type="button"
+                className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
+                onClick={handleSave}
+                disabled={isSaving || !isModified}
+              >
+                {isSaving ? (
+                  <>
+                    <span className="spinner-icon" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaSave className="btn-icon" />
+                    <span>Save Settings</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        />
 
         {/* ================= INFO CARD ================= */}
         <div className="info-card">
@@ -1134,7 +1871,7 @@ const NotificationSetting = () => {
           </div>
 
           {/* RIGHT - Sidebar */}
-          <div>
+          <div className="notification-sidebar">
             {/* Test Notification */}
             <div className="sidebar-card">
               <div className="sidebar-header">
@@ -1145,20 +1882,22 @@ const NotificationSetting = () => {
               </div>
               <div className="sidebar-body">
                 <div className="test-tabs">
-                  <div
+                  <button
+                    type="button"
                     className={`test-tab ${activeTestTab === "email" ? "active" : ""}`}
                     onClick={() => setActiveTestTab("email")}
                   >
                     <FaEnvelope />
                     Email
-                  </div>
-                  <div
+                  </button>
+                  <button
+                    type="button"
                     className={`test-tab ${activeTestTab === "sms" ? "active" : ""}`}
                     onClick={() => setActiveTestTab("sms")}
                   >
                     <FaSms />
                     SMS
-                  </div>
+                  </button>
                 </div>
 
                 <div className="test-preview">
@@ -1191,8 +1930,10 @@ const NotificationSetting = () => {
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="sidebar-card">
+          </div>
+
+          {/* Quick Stats */}
+          <div className="sidebar-card notification-quick-stats">
               <div className="sidebar-header">
                 <h6>
                   <FaChartBar />
@@ -1223,13 +1964,11 @@ const NotificationSetting = () => {
                     <div className="stat-label">Active</div>
                   </div>
                 </div>
-              </div>
             </div>
           </div>
         </div>
-
         {/* ================= NOTIFICATION RULES ================= */}
-        <div className="settings-card" style={{ marginTop: "1.5rem" }}>
+        <div className="settings-card notification-rules" style={{ marginTop: "1.5rem" }}>
           <div className="card-header-custom">
             <FaBell className="card-icon" />
             <h5>Notification Rules</h5>

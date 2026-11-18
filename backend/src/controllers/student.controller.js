@@ -19,6 +19,12 @@ const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
+const { createPromotionDecision } = require("../services/promotionDecision.service");
+const { checkAlumniEligibility } = require("../services/alumniEligibility.service");
+const {
+  getActiveStudentFee,
+  mapAuthoritativeFeesByStudent,
+} = require("../services/studentFee.service");
 
 const {
   processUploadsWithStorage,
@@ -51,7 +57,7 @@ const resolveDocumentRef = async (student, fieldPath) => {
 
   return null;
 };
-
+ 
 // Resolve student's active documents from Document collection
 const resolveActiveStudentDocuments = async (student) => {
   if (!student || !student.documentRefs || student.documentRefs.length === 0) {
@@ -304,6 +310,9 @@ exports.registerStudent = async (req, res, next) => {
     if (!department) {
       throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
     }
+    if (department.status === "INACTIVE" || department.isActive === false) {
+      throw new AppError("Department is inactive and not accepting registrations", 400, "DEPARTMENT_INACTIVE");
+    }
 
     // Validate course
     const course = await Course.findOne({
@@ -313,6 +322,9 @@ exports.registerStudent = async (req, res, next) => {
     });
     if (!course) {
       throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
+    }
+    if (course.status === "INACTIVE" || course.isActive === false) {
+      throw new AppError("Course is inactive and not accepting registrations", 400, "COURSE_INACTIVE");
     }
 
     // 3️⃣ Prevent duplicate
@@ -550,7 +562,9 @@ exports.getMyFullProfile = async (req, res, next) => {
     const department = await Department.findById(student.department_id).select(
       "name code",
     );
-    const course = await Course.findById(student.course_id).select("name code");
+    const course = await Course.findById(student.course_id).select(
+      "name code durationSemesters durationYears yearLabels programLevel",
+    );
 
     // 3️⃣ Document Config (to determine which fields to show)
     const docConfig = await DocumentConfig.findOne({
@@ -613,7 +627,7 @@ exports.getMyFullProfile = async (req, res, next) => {
             foreignField: "_id",
             as: "subject",
           },
-        },
+        }, 
         {
           $unwind: {
             path: "$subject",
@@ -706,8 +720,9 @@ exports.getMyFullProfile = async (req, res, next) => {
 
       const timetableFilters = {
         college_id: student.college_id,
-        status: { $in: ["PUBLISHED", "DRAFT"] },
+        status: "PUBLISHED",
         semester,
+        academicYear: student.currentAcademicYear,
       };
 
       if (student.course_id) {
@@ -808,6 +823,7 @@ hscPassingYear: student.hscPassingYear,
         department,
         course,
         attendance: attendanceSummary,
+        todaysTimetable,
         documentConfig: (docConfig?.documents || []).map((doc) => {
           const docObj = doc.toObject ? doc.toObject() : doc;
           return {
@@ -895,7 +911,7 @@ exports.updateMyProfile = async (req, res, next) => {
 };
 
 /**
- * COLLEGE ADMIN: Update student profile (SAFE)
+ * COLLEGE ADMIN / ADMISSION_OFFICER: Update student profile (SAFE)
  */
 exports.updateStudentByAdmin = async (req, res, next) => {
   try {
@@ -1047,7 +1063,7 @@ exports.updateStudentByAdmin = async (req, res, next) => {
 };
 
 /**
- * COLLEGE ADMIN: Get valid divisions for a student's academic context
+ * COLLEGE ADMIN / ADMISSION_OFFICER: Get valid divisions for a student's academic context
  * GET /api/students/:id/valid-divisions
  */
 exports.getValidDivisionsForStudent = async (req, res, next) => {
@@ -1180,7 +1196,7 @@ exports.getApprovedStudents = async (req, res) => {
       college_id: req.college_id,
     });
 
-    const feeMap = new Map(fees.map((f) => [f.student_id.toString(), f]));
+    const feeMap = mapAuthoritativeFeesByStudent(fees);
 
     const studentsWithFee = students.map((student) => ({
       ...student.toObject(),
@@ -1219,10 +1235,11 @@ exports.getStudentById = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // 🔧 OPTIMIZATION: Use Promise.race to prevent hanging on fee query
-    const feePromise = StudentFee.findOne({
-      student_id: student._id,
-    }).select("totalFee paidAmount installments");
+    // Use authoritative reader for student fee details
+    const feePromise = getActiveStudentFee(student._id, student.college_id, {
+      student,
+      select: "totalFee paidAmount installments",
+    });
 
     // Timeout after 5 seconds to prevent hanging
     const timeoutPromise = new Promise((resolve) => {
@@ -1467,7 +1484,7 @@ exports.moveToAlumni = async (req, res, next) => {
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).populate("course_id", "name code durationSemesters");
 
     if (!student) {
@@ -1488,6 +1505,20 @@ exports.moveToAlumni = async (req, res, next) => {
       );
     }
 
+    // Revalidate authoritative Alumni Eligibility using dedicated service
+    const eligibility = await checkAlumniEligibility(student._id, req.college_id);
+    if (!eligibility.eligible) {
+      const reasonMsg =
+        eligibility.blockers?.map((b) => b.message).join("; ") ||
+        eligibility.message ||
+        "Student is not eligible for Alumni status.";
+      throw new AppError(
+        `Student not eligible for Alumni: ${reasonMsg}`,
+        409,
+        "ALUMNI_ELIGIBILITY_FAILED",
+      );
+    }
+
     // Move to Alumni status
     student.status = "ALUMNI";
     student.alumniStatus = true;
@@ -1495,6 +1526,33 @@ exports.moveToAlumni = async (req, res, next) => {
     student.graduationYear = graduationYear || new Date().getFullYear();
 
     await student.save();
+
+    const attendanceMode = eligibility.checks?.attendance?.isFallback
+      ? "cumulative (fallback)"
+      : "final-semester";
+
+    auditLogService
+      .logAudit({
+        collegeId: req.college_id,
+        userId: req.user?.id || req.user?._id,
+        userEmail: req.user?.email || "admin@college.com",
+        userRole: req.user?.role || "COLLEGE_ADMIN",
+        ipAddress: req.ip || "127.0.0.1",
+        action: "UPDATE",
+        resourceType: "Student",
+        resourceId: student._id,
+        details: {
+          studentId: student._id,
+          graduationYear: student.graduationYear,
+          status: "ALUMNI",
+          attendanceMode,
+          attendancePercentage: eligibility.checks?.attendance?.actualPercentage,
+          attendanceStatus: eligibility.checks?.attendance?.status,
+        },
+      })
+      .catch((auditErr) => {
+        logger.warn(`Failed to create audit log for moveToAlumni: ${auditErr.message}`);
+      });
 
     ApiResponse.success(
       res,
@@ -1507,6 +1565,7 @@ exports.moveToAlumni = async (req, res, next) => {
           alumniDate: student.alumniDate,
           graduationYear: student.graduationYear,
           course_id: student.course_id,
+          attendanceMode,
         },
       },
       `${student.fullName} has been moved to Alumni successfully`,

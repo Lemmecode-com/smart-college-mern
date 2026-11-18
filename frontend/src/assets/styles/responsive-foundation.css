@@ -405,57 +405,17 @@
 }
 
 /* =====================================================
-   14. RESPONSIVE BREADCRUMB FOUNDATION (opt-in)
+   14. RESPONSIVE BREADCRUMB FOUNDATION
    -----------------------------------------------------
-   Prevents breadcrumb overflow by allowing safe wrapping
-   and truncation. Does NOT change routing, labels,
-   colors, or accessibility behavior.
+   NOTE: Per-component breadcrumb styling lives in
+   `frontend/src/components/Breadcrumb.css`. The duplicate
+   rules previously declared here were removed because they
+   overrode the component's card visuals (padding, gap,
+   border, etc.) depending on CSS import order, producing
+   inconsistent breadcrumb rendering across the app.
+   The component's own stylesheet is now the single source
+   of truth for breadcrumb look-and-feel.
    ===================================================== */
-.erp-breadcrumb {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.erp-breadcrumb-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-
-.erp-breadcrumb-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.erp-breadcrumb-link {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.erp-breadcrumb-current {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.erp-breadcrumb-separator {
-  flex-shrink: 0;
-  user-select: none;
-}
 
 /* =====================================================
    15. RESPONSIVE PAGE HEADER FOUNDATION (opt-in)

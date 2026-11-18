@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
+import Loading from "../../../../components/Loading";
 import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
@@ -25,6 +28,7 @@ import {
   FaHourglassEnd,
   FaLightbulb,
   FaTimesCircle,
+  FaLock,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -70,21 +74,6 @@ const fadeInVariants = {
     y: 0,
     transition: { delay: i * 0.05, duration: 0.6, ease: "easeOut" },
   }),
-};
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-  },
 };
 const floatVariants = {
   initial: { y: 0 },
@@ -134,7 +123,7 @@ const componentStyles = `
 .schedule-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
-  padding: 1.5rem;
+  padding: 0.5rem 1.5rem 1.5rem;
 }
 .schedule-content {
   width: 100%;
@@ -197,92 +186,6 @@ const componentStyles = `
   font-weight: 600;
   font-size: 1rem;
 }
-.schedule-header {
-  margin-bottom: 1.5rem;
-  background: white;
-  border-radius: 1.5rem;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(26, 75, 109, 0.15);
-}
-.header-top {
-  padding: 1.75rem 2rem;
-  background: linear-gradient(180deg, #0f3a4a, #134952);
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-.header-icon-wrapper {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
-}
-.header-title {
-  margin: 0;
-  font-weight: 700;
-  line-height: 1.2;
-}
-.header-subtitle {
-  margin: 0.5rem 0 0 0;
-  opacity: 0.9;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.header-right {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.current-time-badge {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 0.6rem 1rem;
-  border-radius: 12px;
-  text-align: center;
-  min-width: 100px;
-}
-.time-label {
-  font-size: 0.75rem;
-  opacity: 0.85;
-  margin-bottom: 0.25rem;
-}
-.time-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-.btn-refresh {
-  background: white;
-  color: #1a4b6d;
-  border: 2px solid white;
-  padding: 0.6rem 1rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  white-space: nowrap;
-}
-.btn-refresh:hover {
-  transform: translateY(-2px);
-}
 .btn-text {
   display: none;
 }
@@ -292,31 +195,35 @@ const componentStyles = `
   }
 }
 .stats-bar {
-  padding: 1rem 2rem;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 .stats-items {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
 }
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.875rem;
+  min-width: 0;
+  min-height: 96px;
+  padding: 1rem 1.125rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid var(--stat-accent, #1a4b6d);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(15, 58, 74, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(15, 58, 74, 0.08);
 }
 .stat-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -325,28 +232,70 @@ const componentStyles = `
 .stat-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.35;
 }
 .stat-value {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1e293b;
+  margin-top: 0.2rem;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  font-weight: 750;
+  color: #0f3a4a;
+  overflow-wrap: anywhere;
 }
-.day-badge {
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  background: rgba(40, 167, 69, 0.1);
-  color: #28a745;
-  font-weight: 600;
-  font-size: 0.85rem;
+.schedule-header-actions {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+}
+.schedule-current-time {
+  min-width: 116px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+.schedule-current-time-label {
+  margin-bottom: 0.15rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.7rem;
+}
+.schedule-current-time-value {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.schedule-refresh {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0e3746;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 650;
   white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.schedule-refresh:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 13px rgba(0, 0, 0, 0.16);
+}
+.schedule-refresh:focus-visible,
+.btn-action:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
 }
 .error-banner {
   margin-bottom: 1.5rem;
@@ -369,24 +318,25 @@ const componentStyles = `
 }
 .schedule-card {
   background: white;
-  border-radius: 1.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 8px 26px rgba(15, 58, 74, 0.07);
   overflow: hidden;
   margin-bottom: 1.5rem;
 }
 .card-header {
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  background: linear-gradient(135deg, #f8fbfc 0%, #eef6f8 100%);
 }
 .card-header h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #1e293b;
   display: flex;
@@ -400,19 +350,23 @@ const componentStyles = `
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #dbeafe;
-  color: #1a4b6d;
-  padding: 0.4rem 0.875rem;
+  background: #e8f2f5;
+  color: #164e63;
+  border: 1px solid #d5e6eb;
+  padding: 0.5rem 0.8rem;
   border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 .info-text {
   display: inline;
 }
 @media (max-width: 480px) {
-  .info-text {
-    display: none;
+  .info-badge {
+    justify-content: center;
+    flex-wrap: wrap;
+    white-space: normal;
+    text-align: center;
   }
 }
 .slots-list {
@@ -423,7 +377,7 @@ const componentStyles = `
 .schedule-row {
   background: white;
   border: 1px solid;
-  border-radius: 16px;
+  border-radius: 15px;
   padding: 1.25rem;
   display: flex;
   transition: all 0.3s ease;
@@ -448,12 +402,14 @@ const componentStyles = `
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem;
-  border-radius: 8px;
+  padding: 0.875rem;
+  border-radius: 12px;
   margin-bottom: 0;
 }
 .time-start {
-  font-weight: 700;
+  font-size: 1.05rem;
+  color: #123f50;
+  font-weight: 750;
   margin-bottom: 0.25rem;
 }
 .time-end {
@@ -463,49 +419,52 @@ const componentStyles = `
 }
 .status-badge {
   margin-top: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
   font-weight: 600;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   justify-content: center;
 }
 .status-active {
-  background: rgba(26, 75, 109, 0.1);
-  color: #1a4b6d;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
 }
 .status-completed {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 .status-session-active {
   background: #dcfce7;
   color: #166534;
+  border: 1px solid #bbf7d0;
 }
 .content-column {
   flex: 1;
   width: 100%;
+  min-width: 0;
 }
 .content-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 1.25rem;
   margin-bottom: 1rem;
 }
 .subject-info {
   flex: 1;
+  min-width: 0;
 }
 .subject-name {
   font-weight: 700;
-  font-size: 1.25rem;
-  margin-bottom: 0.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  font-size: 1.2rem;
+  line-height: 1.3;
+  color: #0f172a;
+  margin-bottom: 0.6rem;
 }
 .subject-meta {
   display: flex;
@@ -515,50 +474,56 @@ const componentStyles = `
 }
 .badge-type,
 .badge-room,
-.badge-status {
+.badge-status,
+.badge-academic {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.375rem 0.875rem;
+  padding: 0.35rem 0.7rem;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  line-height: 1.2;
 }
-.badge-room {
-  background: #f1f5f9;
-  color: #4a5568;
+.badge-room,
+.badge-academic {
+  background: #f8fafc;
+  color: #475569;
   border: 1px solid #e2e8f0;
 }
 .badge-status.published {
-  background: #dcfce7;
+  background: #ecfdf3;
   color: #166534;
   border: 1px solid #bbf7d0;
 }
 .badge-status.draft {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
 }
 .timetable-info {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   flex-shrink: 0;
-  min-width: 150px;
+  max-width: 220px;
+  text-align: right;
 }
 .timetable-name {
-  font-size: 0.95rem;
-  color: #4a5568;
+  font-size: 0.9rem;
+  color: #334155;
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
+  overflow-wrap: anywhere;
 }
 .timetable-meta {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #64748b;
+  overflow-wrap: anywhere;
 }
 .content-bottom {
-  padding-top: 0.75rem;
-  border-top: 1px dashed #e2e8f0;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -567,110 +532,133 @@ const componentStyles = `
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #4a5568;
-  font-size: 0.95rem;
+  color: #475569;
+  font-size: 0.92rem;
 }
 .teacher-icon {
   color: #1a4b6d;
 }
 .btn-action {
   width: 100%;
-  padding: 0.875rem;
-  border-radius: 12px;
+  min-height: 46px;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
   border: none;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  transition: all 0.3s ease;
+  gap: 0.625rem;
+  transition: all 0.2s ease;
 }
 .btn-action:disabled {
   cursor: not-allowed;
   opacity: 0.8;
 }
 .btn-creating {
-  background: #28a745;
+  background: #16a34a;
   color: white;
 }
 .btn-active {
-  background: #dcfce7;
+  background: #ecfdf3;
   color: #166534;
-  border: 2px solid #86efac;
+  border: 1px solid #86efac;
 }
 .btn-ended {
-  background: #cbd5e1;
-  color: #64748b;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 .btn-unpublished {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
 }
 .btn-upcoming {
   background: #f0f9ff;
   color: #0c4a6e;
   border: 1px solid #bae6fd;
 }
-.btn-start {
-  background: #28a745;
-  color: white;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.35);
-}
-.btn-start:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.45);
-}
-.info-message {
-  padding: 0.75rem;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.info-error {
-  background: #fee2e2;
-  color: #b91c1c;
+.btn-cancelled {
+  background: #fef2f2;
+  color: #991b1b;
   border: 1px solid #fecaca;
 }
+.btn-holiday {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.btn-rescheduled {
+  background: #ecfeff;
+  color: #155e75;
+  border: 1px solid #a5f3fc;
+}
+.btn-start {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.22);
+}
+.btn-start:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.28);
+}
+.info-message {
+  padding: 0.75rem 0.875rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.info-message svg {
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+.info-error {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
 .info-success {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #86efac;
+  background: #f0f9ff;
+  color: #075985;
+  border: 1px solid #bae6fd;
 }
 .info-info {
   background: #f0f9ff;
-  color: #0c4a6e;
+  color: #075985;
   border: 1px solid #bae6fd;
 }
 .info-warning {
-  background: #fef3c7;
+  background: #fffbeb;
   color: #92400e;
   border: 1px solid #fde68a;
 }
 .info-banner {
   margin-top: 1.5rem;
-  padding: 1.25rem;
-  border-radius: 16px;
+  padding: 1.125rem 1.25rem;
+  border-radius: 14px;
   background: #fffbeb;
-  border: 1px solid #f59e0b;
+  border: 1px solid #fcd34d;
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 0.875rem;
 }
 .info-banner-icon {
-  color: #ffc107;
+  color: #d97706;
   flex-shrink: 0;
-  margin-top: 0.25rem;
-  font-size: 1.5rem;
+  margin-top: 0.15rem;
+  font-size: 1.25rem;
 }
 .info-banner-content {
   color: #92400e;
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.93rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 .empty-state {
   padding: 3rem 1.5rem;
@@ -718,25 +706,10 @@ const componentStyles = `
 }
 @media (max-width: 1024px) {
   .schedule-container {
-    padding: 1rem;
-  }
-  .header-top {
-    padding: 1.25rem;
-    flex-direction: column;
-    text-align: center;
-  }
-  .header-left {
-    flex-direction: column;
-  }
-  .header-right {
-    width: 100%;
-    justify-content: center;
-  }
-  .stats-bar {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem 1rem;
   }
   .stats-items {
-    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (max-width: 768px) {
@@ -750,7 +723,9 @@ const componentStyles = `
   .timetable-info {
     align-items: flex-start;
     min-width: 100%;
-    margin-top: 0.5rem;
+    max-width: 100%;
+    text-align: left;
+    margin-top: 0.25rem;
   }
   .btn-action {
     font-size: 0.95rem;
@@ -758,22 +733,57 @@ const componentStyles = `
   }
 }
 @media (max-width: 480px) {
-  .header-title {
-    font-size: 1.5rem;
-  }
-  .header-subtitle {
-    font-size: 0.9rem;
-  }
-  .header-icon-wrapper {
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
-  }
   .subject-name {
     font-size: 1.1rem;
   }
   .schedule-row {
     padding: 1rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .schedule-container {
+    padding: 0.5rem !important;
+  }
+  .schedule-container .schedule-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .schedule-container .schedule-current-time {
+    flex: 1;
+  }
+  .schedule-container .stats-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+  .schedule-container .stat-item {
+    padding: 0.85rem;
+    min-height: 88px;
+  }
+  .schedule-container .stat-label {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 450px) {
+  .schedule-container .stats-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .schedule-container .stat-info {
+    min-width: 0;
+  }
+  .schedule-container .stat-label {
+    overflow-wrap: anywhere;
+  }
+  .schedule-container .schedule-header-actions {
+    gap: 0.5rem;
+  }
+  .schedule-container .schedule-refresh {
+    min-width: 44px;
+    padding: 0.65rem;
+  }
+  .schedule-container .btn-text {
+    display: none;
   }
 }
 
@@ -875,13 +885,19 @@ export default function MySchedule() {
     return () => clearInterval(timer);
   }, []);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (scoped by logged-in user id)
   useEffect(() => {
     if (!isClient) return;
+    const uid = user?.id || user?.realId;
+    if (!uid) {
+      setSessionsLoaded(true);
+      return;
+    }
     const today = new Date().toISOString().split("T")[0];
-    const storedSessions = localStorage.getItem(`activeSessions_${today}`);
+    // Read only user-scoped keys (ignore old unscoped keys to prevent cross-user leakage)
+    const storedSessions = localStorage.getItem(`${uid}_activeSessions_${today}`);
     const storedAttendance = localStorage.getItem(
-      `attendanceSessions_${today}`,
+      `${uid}_attendanceSessions_${today}`,
     );
     if (storedSessions) {
       try {
@@ -898,7 +914,7 @@ export default function MySchedule() {
       }
     }
     setSessionsLoaded(true);
-  }, [isClient]);
+  }, [isClient, user?.id, user?.realId]);
 
   // Fetch current teacher profile for HOD ownership validation
   useEffect(() => {
@@ -968,9 +984,14 @@ export default function MySchedule() {
     try {
       const res = await api.get("/attendance/today-slots");
       setTodaySlotsData(res.data);
-      // Store today's slots in localStorage for quick access
-      const today = new Date().toISOString().split("T")[0];
-      localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
+      // Store today's slots in localStorage for quick access (scoped to user)
+      if (isClient) {
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          const today = new Date().toISOString().split("T")[0];
+          localStorage.setItem(`${uid}_todaySlots_${today}`, JSON.stringify(res.data));
+        }
+      }
     } catch (err) {
       // Don't fail the entire load, just use weekly data
     }
@@ -1001,16 +1022,19 @@ export default function MySchedule() {
       }
       setActiveSessions(sessionsMap);
       setAttendanceSessions(attendanceMap);
-      // Store in localStorage
+      // Store in localStorage (scoped to user)
       if (isClient) {
-        localStorage.setItem(
-          `activeSessions_${todayStr}`,
-          JSON.stringify(sessionsMap),
-        );
-        localStorage.setItem(
-          `attendanceSessions_${todayStr}`,
-          JSON.stringify(attendanceMap),
-        );
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          localStorage.setItem(
+            `${uid}_activeSessions_${todayStr}`,
+            JSON.stringify(sessionsMap),
+          );
+          localStorage.setItem(
+            `${uid}_attendanceSessions_${todayStr}`,
+            JSON.stringify(attendanceMap),
+          );
+        }
       }
     } catch (err) {
       // Don't show error toast for this, just use empty state
@@ -1181,17 +1205,20 @@ export default function MySchedule() {
       setActiveSessions(newActiveSessions);
       setAttendanceSessions(newAttendanceSessions);
 
-      // Store in localStorage
+      // Store in localStorage (scoped to user)
       if (isClient) {
-        const todayStr = today.toISOString().split("T")[0];
-        localStorage.setItem(
-          `activeSessions_${todayStr}`,
-          JSON.stringify(newActiveSessions),
-        );
-        localStorage.setItem(
-          `attendanceSessions_${todayStr}`,
-          JSON.stringify(newAttendanceSessions),
-        );
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          const todayStr = today.toISOString().split("T")[0];
+          localStorage.setItem(
+            `${uid}_activeSessions_${todayStr}`,
+            JSON.stringify(newActiveSessions),
+          );
+          localStorage.setItem(
+            `${uid}_attendanceSessions_${todayStr}`,
+            JSON.stringify(newAttendanceSessions),
+          );
+        }
       }
 
       toast.success("Attendance session started successfully! Redirecting...", {
@@ -1240,15 +1267,18 @@ export default function MySchedule() {
         setActiveSessions(newActiveSessions);
         setAttendanceSessions(newAttendanceSessions);
         if (isClient) {
-          const todayStr = today.toISOString().split("T")[0];
-          localStorage.setItem(
-            `activeSessions_${todayStr}`,
-            JSON.stringify(newActiveSessions),
-          );
-          localStorage.setItem(
-            `attendanceSessions_${todayStr}`,
-            JSON.stringify(newAttendanceSessions),
-          );
+          const uid = user?.id || user?.realId;
+          if (uid) {
+            const todayStr = today.toISOString().split("T")[0];
+            localStorage.setItem(
+              `${uid}_activeSessions_${todayStr}`,
+              JSON.stringify(newActiveSessions),
+            );
+            localStorage.setItem(
+              `${uid}_attendanceSessions_${todayStr}`,
+              JSON.stringify(newAttendanceSessions),
+            );
+          }
         }
       }
 
@@ -1288,19 +1318,8 @@ export default function MySchedule() {
     const isTablet = width >= 768 && width < 1024;
     return {
       container: {
-        maxWidth: isMobile ? "100%" : isTablet ? "95%" : "1200px",
+        maxWidth: isMobile ? "100%" : "none",
         padding: isMobile ? "0.75rem" : "1.5rem",
-      },
-      headerTitle: {
-        fontSize: isMobile ? "1.5rem" : "2rem",
-      },
-      headerSubtitle: {
-        fontSize: isMobile ? "0.9rem" : "1.1rem",
-      },
-      headerIcon: {
-        width: isMobile ? "50px" : "72px",
-        height: isMobile ? "50px" : "72px",
-        fontSize: isMobile ? "1.5rem" : "2rem",
       },
       statsLabel: {
         fontSize: isMobile ? "0.75rem" : "0.85rem",
@@ -1322,26 +1341,23 @@ export default function MySchedule() {
   };
   const styles = getResponsiveStyles();
 
-  if (loading || !sessionsLoaded) {
-    return (
-      <div className="schedule-container">
-        <div className="loading-wrapper">
-          <div className="loading-spinner">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="spinner-icon"
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h3>Loading Today's Schedule...</h3>
-            <p>Fetching your teaching schedule for {currentDayName}</p>
-          </div>
-        </div>
-        <style>{componentStyles}</style>
+// Loading State
+if (loading || !sessionsLoaded) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Today's Schedule..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <AnimatePresence mode="wait">
@@ -1357,69 +1373,36 @@ export default function MySchedule() {
           style={{ maxWidth: styles.container.maxWidth }}
         >
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="breadcrumb"
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/teacher/dashboard")}
-              className="btn-breadcrumb"
+            <div
+              style={{
+                width: "100%",
+                margin: "0 auto",
+                paddingTop: 0,
+              }}
             >
-              <FaArrowLeft /> Back to Dashboard
-            </motion.button>
-            <span className="breadcrumb-separator">›</span>
-            <span className="breadcrumb-current">Today's Schedule</span>
-          </motion.div>
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="schedule-header"
-          >
-            <div className="header-top">
-              <div className="header-left">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="header-icon-wrapper"
-                  style={{
-                    width: styles.headerIcon.width,
-                    height: styles.headerIcon.height,
-                    fontSize: styles.headerIcon.fontSize,
-                  }}
-                >
-                  <FaCalendarAlt />
-                </motion.div>
-                <div>
-                  <h1
-                    className="header-title"
-                    style={{ fontSize: styles.headerTitle.fontSize }}
-                  >
-                    Today's Schedule
-                  </h1>
-                  <p
-                    className="header-subtitle"
-                    style={{ fontSize: styles.headerSubtitle.fontSize }}
-                  >
-                    <FaSun /> {currentDayName},{" "}
-                    {today.toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Today's Schedule" },
+                  ]}
+                />
               </div>
-              <div className="header-right">
-                <div className="current-time-badge">
-                  <div className="time-label">Current Time</div>
-                  <div className="time-value">
+            </div>
+          <PageHeader
+            icon={FaCalendarAlt}
+            title="Today's Schedule"
+            subtitle={`${currentDayName}, ${today.toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}`}
+            className="schedule-page-header"
+            actions={
+              <div className="schedule-header-actions">
+                <div className="schedule-current-time">
+                  <div className="schedule-current-time-label">Current Time</div>
+                  <div className="schedule-current-time-value">
                     {currentTime.toLocaleTimeString("en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -1428,11 +1411,9 @@ export default function MySchedule() {
                   </div>
                 </div>
                 <motion.button
-                  whileHover={{
-                    scale: 1.05,
-                    boxShadow: "0 8px 20px rgba(26, 75, 109, 0.4)",
-                  }}
-                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={async () => {
                     setLoading(true);
                     await loadActiveSessions();
@@ -1443,49 +1424,51 @@ export default function MySchedule() {
                       icon: <FaSyncAlt />,
                     });
                   }}
-                  className="btn-refresh"
+                  className="schedule-refresh"
                 >
                   <FaSyncAlt className={loading ? "spin" : ""} />
                   <span className="btn-text">Refresh</span>
                 </motion.button>
               </div>
+            }
+          />
+          <div className="stats-bar">
+            <div className="stats-items">
+              <StatItem
+                icon={<FaUniversity />}
+                label="Total Classes"
+                value={todaysSlots.length}
+                color="#2563eb"
+                styles={styles}
+              />
+              <StatItem
+                icon={<FaCheckCircle />}
+                label="Available for Attendance"
+                value={
+                  todaySlotsData?.availableForAttendance ||
+                  todaysSlots.filter(
+                    (s) => s.timetable_id?.status === "PUBLISHED",
+                  ).length
+                }
+                color="#16a34a"
+                styles={styles}
+              />
+              <StatItem
+                icon={<FaBell />}
+                label="Active Sessions"
+                value={Object.keys(activeSessions).length}
+                color="#d97706"
+                styles={styles}
+              />
+              <StatItem
+                icon={<FaCalendarAlt />}
+                label="Current Day"
+                value={currentDayName}
+                color="#0f766e"
+                styles={styles}
+              />
             </div>
-            {/* Stats Bar */}
-            <div className="stats-bar">
-              <div className="stats-items">
-                <StatItem
-                  icon={<FaUniversity />}
-                  label="Total Classes"
-                  value={todaysSlots.length}
-                  color={BRAND_COLORS.primary.main}
-                  styles={styles}
-                />
-                <StatItem
-                  icon={<FaCheckCircle />}
-                  label="Available for Attendance"
-                  value={
-                    todaySlotsData?.availableForAttendance ||
-                    todaysSlots.filter(
-                      (s) => s.timetable_id?.status === "PUBLISHED",
-                    ).length
-                  }
-                  color={BRAND_COLORS.success.main}
-                  styles={styles}
-                />
-                <StatItem
-                  icon={<FaBell />}
-                  label="Active Sessions"
-                  value={Object.keys(activeSessions).length}
-                  color={BRAND_COLORS.warning.main}
-                  styles={styles}
-                />
-              </div>
-              <div className="day-badge">
-                <FaCalendarAlt size={14} />
-                {currentDayName}
-              </div>
-            </div>
-          </motion.div>
+          </div>
           {/* ================= ERROR STATE ================= */}
           {error && (
             <motion.div
@@ -1637,18 +1620,14 @@ function isCurrentTimeSlot(timeSlot) {
 
 /* ================= STAT ITEM ================= */
 function StatItem({ icon, label, value, color, styles }) {
-  const isMobile =
-    typeof window !== "undefined" ? window.innerWidth < 768 : false;
   return (
-    <div className="stat-item">
+    <div className="stat-item" style={{ "--stat-accent": color }}>
       <div
         className="stat-icon"
         style={{
-          width: isMobile ? "32px" : "36px",
-          height: isMobile ? "32px" : "36px",
           backgroundColor: `${color}15`,
           color: color,
-          fontSize: isMobile ? "1rem" : "1.1rem",
+          fontSize: "1.1rem",
         }}
       >
         {icon}
@@ -1837,10 +1816,24 @@ function ScheduleRow({
         <div className="content-top">
           <div className="subject-info">
             <div className="subject-name">
-              <FaBook size={isMobile ? 16 : 18} />
               {slot.subject_id?.name}
             </div>
             <div className="subject-meta">
+              {slot.timetable_id?.course_id?.name && (
+                <span className="badge-academic">
+                  {slot.timetable_id.course_id.name}
+                </span>
+              )}
+              {slot.timetable_id?.semester && (
+                <span className="badge-academic">
+                  Sem {slot.timetable_id.semester}
+                </span>
+              )}
+              {slot.timetable_id?.academicYear && (
+                <span className="badge-academic">
+                  {slot.timetable_id.academicYear}
+                </span>
+              )}
               <span
                 className="badge-type"
                 style={{
@@ -1878,8 +1871,9 @@ function ScheduleRow({
             <div className="timetable-info">
               <div className="timetable-name">{slot.timetable_id?.name}</div>
               <div className="timetable-meta">
-                Sem {slot.timetable_id?.semester} •{" "}
-                {slot.timetable_id?.academicYear}
+                {slot.timetable_id?.course_id?.name && (
+                  <span>{slot.timetable_id.course_id.name}</span>
+                )}
               </div>
             </div>
           </div>
@@ -1913,28 +1907,19 @@ function ScheduleRow({
             <motion.div
               className="btn-action btn-active"
               style={{
-                background: "linear-gradient(135deg, #28a745, #1e7e34)",
-                color: "white",
-                boxShadow: "0 4px 15px rgba(40, 167, 69, 0.4)",
                 cursor: "default",
               }}
             >
               <FaCheckCircle size={isMobile ? 18 : 20} />
-              <span style={{ fontWeight: 600 }}>Attendance Active</span>
+              <span>Attendance Active</span>
             </motion.div>
           ) : buttonState === "ended" ? (
-            <motion.div
-              className="btn-action btn-ended"
-              style={{
-                background: "linear-gradient(135deg, #6c757d, #5a6268)",
-                color: "white",
-                cursor: "not-allowed",
-                opacity: 0.7,
-              }}
-            >
-              <FaTimesCircle size={isMobile ? 18 : 20} />
-              <span>Session Closed</span>
-            </motion.div>
+            <div className="info-message info-error info-closed-panel">
+              <FaLock size={16} />
+              <span>
+                This class ended at {formatTime12Hour(endTime)}. Attendance session is closed.
+              </span>
+            </div>
           ) : buttonState === "cancelled" ? (
             <div
               className="btn-action btn-cancelled"
@@ -2009,22 +1994,15 @@ function ScheduleRow({
           ) : canStartAttendance ? (
             <motion.button
               whileHover={{
-                scale: 1.03,
-                boxShadow: "0 6px 20px rgba(40, 167, 69, 0.45)",
+                y: -1,
+                boxShadow: "0 6px 14px rgba(22, 163, 74, 0.28)",
               }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onStartAttendance(slot, time)}
               className="btn-action btn-start"
-              style={{
-                background: "linear-gradient(135deg, #28a745, #1e7e34)",
-                color: "white",
-                boxShadow: "0 4px 15px rgba(40, 167, 69, 0.35)",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
             >
               <FaPlay />
-              <span style={{ fontWeight: 600 }}>Start Attendance</span>
+              <span>Start Attendance</span>
             </motion.button>
           ) : (
             <button
@@ -2056,14 +2034,6 @@ function ScheduleRow({
             >
               <FaInfoCircle size={16} />
               <span>{attendanceMessage}</span>
-            </div>
-          )}
-          {buttonState === "ended" && isPublished && (
-            <div className="info-message info-error">
-              <FaTimesCircle size={16} />
-              <span>
-                This class ended at {endTime}. Attendance session is closed.
-              </span>
             </div>
           )}
           {buttonState === "active" && (
