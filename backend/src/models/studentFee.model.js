@@ -235,6 +235,12 @@ const studentFeeSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // ⚡ PERFORMANCE: Indexes for common queries
+// 🔒 DATA INTEGRITY: Unique compound index to prevent duplicate fee records per course (#565)
+// Authoritative Business Rule: One StudentFee per student per course for entire course duration
+studentFeeSchema.index(
+  { college_id: 1, student_id: 1, course_id: 1 },
+  { unique: true, background: true, name: "college_1_student_1_course_1_unique" }
+);
 studentFeeSchema.index({ student_id: 1, college_id: 1 }); // Student-wise fee
 studentFeeSchema.index({ college_id: 1, course_id: 1 }); // Course-wise fee
 studentFeeSchema.index({ college_id: 1 }); // College-wise fees

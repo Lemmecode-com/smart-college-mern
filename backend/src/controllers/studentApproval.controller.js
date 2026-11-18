@@ -129,12 +129,12 @@ exports.approveStudent = async (req, res, next) => {
       );
     }
 
-    // 4️⃣ Prevent duplicate fee record
+    // 4️⃣ Prevent duplicate fee record (One fee per student per course - #565)
     const admissionAcademicYear = student.currentAcademicYear || `${student.admissionYear}-${student.admissionYear + 1}`;
     let studentFee = await StudentFee.findOne({
       student_id: student._id,
       college_id: student.college_id,
-      academicYear: admissionAcademicYear,
+      course_id: student.course_id,
     });
 
     if (!studentFee) {
@@ -465,12 +465,12 @@ exports.bulkApproveStudents = async (req, res, next) => {
         const sequence = String(existingCount + 1).padStart(4, "0");
         student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
 
-        // ── 8. Create student fee ──
+        // ── 8. Create student fee (One fee per student per course - #565) ──
         const admissionAcademicYear = student.currentAcademicYear || `${student.admissionYear}-${student.admissionYear + 1}`;
         const existingEnrollmentFee = await StudentFee.findOne({
           student_id: student._id,
           college_id: student.college_id,
-          academicYear: admissionAcademicYear,
+          course_id: student.course_id,
         });
 
         if (!existingEnrollmentFee) {
