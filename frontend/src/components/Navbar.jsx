@@ -133,8 +133,6 @@ export default function NavbarComponent({
     };
   }, [notifOpen, profileOpen]);
 
-  if (!user) return null;
-
   // Auto-clear backoff when time expires
   useEffect(() => {
     if (rateLimitBackoff && backoffUntil) {
@@ -150,6 +148,12 @@ export default function NavbarComponent({
 
    // Fetch college information when user is available
    useEffect(() => {
+     if (!user) {
+       setCollege(null);
+       setLoading(false);
+       return;
+     }
+
      const fetchCollegeInfo = async () => {
        setLoading(true);
        try {
@@ -195,10 +199,11 @@ export default function NavbarComponent({
      };
 
      fetchCollegeInfo();
-   }, [user.college_id, user.role]);
+   }, [user]);
 
 /* ================= FETCH COUNT (UNREAD ONLY) ================= */
    const fetchCount = async (silent = false) => {
+    if (!user) return;
     // Skip if in backoff period
     if (rateLimitBackoff && backoffUntil && Date.now() < backoffUntil) {
       return;
@@ -268,6 +273,10 @@ export default function NavbarComponent({
 
 /* ================= FETCH UNREAD FOR BELL ================= */
    const fetchNotes = async () => {
+     if (!user) {
+       setNotes([]);
+       return;
+     }
      // Only supported roles have notification endpoints
       const supportedRoles = ["COLLEGE_ADMIN", "PRINCIPAL", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
       if (!supportedRoles.includes(user.role)) {
@@ -390,6 +399,11 @@ export default function NavbarComponent({
 
   /* ================= INITIAL POLLING ================= */
   useEffect(() => {
+    if (!user) {
+      setCount(0);
+      return;
+    }
+
     fetchCount(true); // Silent initial fetch
     const interval = setInterval(() => {
       // Skip polling if in backoff period
@@ -402,6 +416,8 @@ export default function NavbarComponent({
 
   /* ================= NOTIFICATION READ EVENT LISTENER ================= */
   useEffect(() => {
+    if (!user) return;
+
     const handleNotificationRead = () => {
       fetchCount(true);
     };
@@ -409,20 +425,22 @@ export default function NavbarComponent({
     return () => {
       window.removeEventListener("notification-read", handleNotificationRead);
     };
-  }, []);
+  }, [user]);
 
   /* ================= FETCH NOTES WHEN COUNT INCREASES ================= */
   useEffect(() => {
     // Only fetch notes if count increased (new notifications arrived)
-    if (count > 0 && count > prevCount.current) {
+    if (user && count > 0 && count > prevCount.current) {
       fetchNotes(); // ✅ Auto-fetch new notifications
     }
     // Update ref for next comparison
     prevCount.current = count;
-  }, [count]);
+  }, [user, count]);
 
   /* ================= KEYBOARD SHORTCUTS ================= */
   useEffect(() => {
+    if (!user) return;
+
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "b") {
         e.preventDefault();
@@ -436,7 +454,7 @@ export default function NavbarComponent({
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [notifOpen]);
+  }, [user, notifOpen]);
 
   /* ================= LOGOUT ================= */
   const handleLogoutClick = () => {
@@ -462,6 +480,8 @@ export default function NavbarComponent({
 
   /* ================= GET USER INITIALS ================= */
   const getUserInitials = () => {
+    if (!user) return "U";
+
     // Priority 1: Use user.name from context (dynamically fetched)
     if (user.name) {
       const nameParts = user.name.trim().split(" ");
@@ -493,6 +513,8 @@ export default function NavbarComponent({
 
   /* ================= GET USER DISPLAY NAME ================= */
   const getUserDisplayName = () => {
+    if (!user) return "User";
+
     // Priority 1: Use user.name from context (dynamically fetched)
     if (user.name) {
       return user.name;
@@ -529,6 +551,8 @@ export default function NavbarComponent({
     if (hours < 24) return `${hours}h ago`;
     return date.toLocaleDateString();
   };
+
+  if (!user) return null;
 
   return (
     <>
