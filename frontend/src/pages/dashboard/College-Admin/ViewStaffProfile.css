@@ -566,6 +566,337 @@
     margin: 0 !important;
   }
 }
+
+/* Staff profile page */
+.view-staff-profile-page {
+  background: #f3f7fa;
+}
+
+.view-staff-profile-page > .view-staff-profile-container {
+  width: 100%;
+  max-width: 1780px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 2vw, 32px);
+}
+
+.view-staff-profile-page .staff-profile-header {
+  margin-bottom: 1.25rem;
+  padding: 1.2rem 1.5rem;
+  color: #fff;
+  background: linear-gradient(120deg, #0e3746, #164e63);
+  border: 1px solid rgba(22, 78, 99, 0.18);
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(14, 55, 70, 0.12);
+}
+
+.view-staff-profile-page .staff-profile-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.view-staff-profile-page .staff-profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.view-staff-profile-page .staff-profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  color: #fff;
+  font-size: 1.65rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+}
+
+.view-staff-profile-page .staff-profile-details {
+  min-width: 0;
+}
+
+.view-staff-profile-page .staff-profile-details h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.view-staff-profile-page .staff-profile-details p {
+  margin: 0.25rem 0 0.5rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.view-staff-profile-page .staff-profile-status {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+.view-staff-profile-page .staff-profile-status.bg-success {
+  color: #d7fff1;
+  background: rgba(34, 184, 130, 0.22) !important;
+  border: 1px solid rgba(179, 255, 228, 0.28);
+}
+
+.view-staff-profile-page .staff-profile-status.bg-secondary {
+  color: #edf2f7;
+  background: rgba(220, 230, 239, 0.2) !important;
+  border: 1px solid rgba(220, 230, 239, 0.28);
+}
+
+.view-staff-profile-page .staff-profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.view-staff-profile-page .staff-profile-back-button,
+.view-staff-profile-page .staff-profile-edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 0.65rem;
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.view-staff-profile-page .staff-profile-back-button {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.view-staff-profile-page .staff-profile-back-button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.view-staff-profile-page .staff-profile-edit-button {
+  color: #0e3746;
+  background: #fff;
+  border: 1px solid #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+.view-staff-profile-page .staff-profile-edit-button:hover {
+  color: #164e63;
+  background: #eaf8fc;
+  border-color: #eaf8fc;
+}
+
+.view-staff-profile-page .staff-info-section-heading {
+  margin: 0 0 0.65rem !important;
+}
+
+.view-staff-profile-page .staff-info-section-heading h5 {
+  margin: 0;
+  color: #164e63 !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.view-staff-profile-page .staff-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 0 0 1.35rem !important;
+  width: 100%;
+  --bs-gutter-x: 0;
+  --bs-gutter-y: 0;
+}
+
+.view-staff-profile-page .staff-info-grid > [class*="col-"] {
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0;
+  padding: 0 !important;
+  flex: none !important;
+}
+
+.view-staff-profile-page .staff-info-grid .staff-address-column {
+  grid-column: span 2;
+}
+
+.view-staff-profile-page .staff-info-card {
+  height: 100% !important;
+  min-height: 104px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #dce6ef !important;
+  border-radius: 0.85rem !important;
+  box-shadow: 0 3px 10px rgba(14, 55, 70, 0.045) !important;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.view-staff-profile-page .staff-info-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 184, 230, 0.48) !important;
+  box-shadow: 0 8px 18px rgba(14, 55, 70, 0.09) !important;
+}
+
+.view-staff-profile-page .staff-info-card .card-body {
+  display: flex;
+  align-items: center;
+  min-height: 104px;
+  padding: 1rem 1.1rem;
+}
+
+.view-staff-profile-page .staff-info-card .card-body > div {
+  display: flex !important;
+  align-items: center;
+  gap: 0.85rem !important;
+  width: 100%;
+  min-width: 0;
+}
+
+.view-staff-profile-page .staff-info-card .card-body > div > div:first-child {
+  display: grid !important;
+  place-items: center;
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px;
+  color: #087c99 !important;
+  font-size: 1rem;
+  background: #e4f7fb !important;
+  border: 1px solid #d4f0f7;
+  border-radius: 0.72rem !important;
+}
+
+.view-staff-profile-page .staff-contact-grid .staff-info-card .card-body > div > div:first-child {
+  color: #164e63 !important;
+  background: #e8f1f5 !important;
+  border-color: #dce6ef;
+}
+
+.view-staff-profile-page .staff-professional-grid .staff-info-card .card-body > div > div:first-child {
+  color: #a76b00 !important;
+  background: #fff4d8 !important;
+  border-color: #ffebba;
+}
+
+.view-staff-profile-page .staff-info-card .card-body > div > div:last-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.view-staff-profile-page .staff-info-card .text-muted {
+  margin: 0 0 0.16rem;
+  color: #718198 !important;
+  font-size: 0.82rem !important;
+  line-height: 1.25;
+}
+
+.view-staff-profile-page .staff-info-card .fw-bold {
+  margin: 0;
+  color: #164e63 !important;
+  font-size: 0.98rem !important;
+  font-weight: 650 !important;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.view-staff-profile-page .staff-info-card .badge {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .view-staff-profile-page .staff-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .view-staff-profile-page .staff-info-grid .staff-address-column {
+    grid-column: auto;
+  }
+
+  .view-staff-profile-page .staff-contact-grid > :last-child,
+  .view-staff-profile-page .staff-professional-grid > :last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .view-staff-profile-page > .view-staff-profile-container {
+    padding-inline: 0.85rem;
+  }
+
+  .view-staff-profile-page .staff-profile-header {
+    padding: 1rem;
+    border-radius: 0.85rem;
+  }
+
+  .view-staff-profile-page .staff-profile-header-content {
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .view-staff-profile-page .staff-profile-identity {
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .view-staff-profile-page .staff-profile-avatar {
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    font-size: 1.35rem;
+  }
+
+  .view-staff-profile-page .staff-profile-actions {
+    width: 100%;
+  }
+
+  .view-staff-profile-page .staff-profile-actions > button {
+    flex: 1 1 0;
+  }
+
+  .view-staff-profile-page .staff-info-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+    margin-bottom: 1.1rem !important;
+  }
+
+  .view-staff-profile-page .staff-info-grid .staff-address-column,
+  .view-staff-profile-page .staff-contact-grid > :last-child,
+  .view-staff-profile-page .staff-professional-grid > :last-child {
+    grid-column: auto;
+  }
+
+  .view-staff-profile-page .staff-info-card,
+  .view-staff-profile-page .staff-info-card .card-body {
+    min-height: 88px;
+  }
+
+  .view-staff-profile-page .staff-info-card .card-body {
+    padding: 0.85rem;
+  }
+
+  .view-staff-profile-page .staff-info-card .card-body > div > div:first-child {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px;
+  }
+}
 /* =========================================================
    VIEW PARENT PROFILE
    RESPONSIVE STYLES
@@ -1358,3 +1689,93 @@
    992px+
    NO RESPONSIVE OVERRIDES
    ========================================================= */
+
+.view-staff-profile-page {
+  padding-inline: clamp(6px, 1vw, 16px) !important;
+}
+
+.view-staff-profile-page > .view-staff-profile-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin-inline: 0 !important;
+  padding-inline: clamp(6px, 1vw, 16px) !important;
+}
+
+.view-staff-profile-page .staff-info-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.85rem !important;
+}
+
+.view-staff-profile-page .staff-info-grid > [class*="col-"] {
+  width: auto !important;
+  max-width: none !important;
+  padding: 0 !important;
+  flex: none !important;
+}
+
+.view-staff-profile-page .staff-info-card {
+  min-height: 104px !important;
+  border: 1px solid #dce6ef !important;
+}
+
+.view-staff-profile-page .staff-info-card .card-body {
+  min-height: 104px !important;
+}
+
+.view-staff-profile-page .staff-info-card .card-body > div > div:first-child {
+  color: #087c99 !important;
+  background: #e4f7fb !important;
+}
+
+.view-staff-profile-page .staff-contact-grid .staff-info-card .card-body > div > div:first-child {
+  color: #164e63 !important;
+  background: #e8f1f5 !important;
+}
+
+.view-staff-profile-page .staff-professional-grid .staff-info-card .card-body > div > div:first-child {
+  color: #a76b00 !important;
+  background: #fff4d8 !important;
+}
+
+@media (min-width: 1200px) {
+  .view-staff-profile-page .staff-personal-grid .staff-address-column {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .view-staff-profile-page .staff-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .view-staff-profile-page .staff-info-grid .staff-address-column {
+    grid-column: auto;
+  }
+
+  .view-staff-profile-page .staff-contact-grid > :last-child,
+  .view-staff-profile-page .staff-professional-grid > :last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .view-staff-profile-page > .view-staff-profile-container {
+    padding-inline: 0.5rem !important;
+  }
+
+  .view-staff-profile-page .staff-info-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .view-staff-profile-page .staff-info-grid .staff-address-column,
+  .view-staff-profile-page .staff-contact-grid > :last-child,
+  .view-staff-profile-page .staff-professional-grid > :last-child {
+    grid-column: auto;
+  }
+
+  .view-staff-profile-page .staff-info-card,
+  .view-staff-profile-page .staff-info-card .card-body {
+    min-height: 88px !important;
+  }
+}

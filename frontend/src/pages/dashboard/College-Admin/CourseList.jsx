@@ -2402,6 +2402,19 @@ if (loading) {
   }
 }
 
+  /* ---- Lifecycle modal button alignment (page-scoped) ---- */
+  .erp-modal-footer {
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .erp-modal-footer button {
+    height: 52px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
       `}</style>
     </div>
   );

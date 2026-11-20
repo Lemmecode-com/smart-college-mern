@@ -408,7 +408,7 @@ export default function EditFeeStructure() {
   }
 
   return (
-    <div className="container-fluid pt-2 pb-4">
+    <div className="container-fluid pt-2 pb-4 edit-fee-page">
       {/* ================= BREADCRUMB ================= */}
     <div
       style={{
@@ -557,7 +557,7 @@ export default function EditFeeStructure() {
             <div className="card-body p-4">
               {/* COURSE SELECTION */}
               <div className="mb-4 pb-3 border-bottom">
-                <h3 className="h6 fw-bold text-uppercase text-muted mb-3">Course Selection</h3>
+                <h3 className="efs-section-heading mb-3">Course Selection</h3>
                 <div className="row g-3">
                   <div className="col-md-6">
                     <label className="form-label fw-semibold text-dark">Department <span className="text-danger">*</span></label>
@@ -616,7 +616,7 @@ export default function EditFeeStructure() {
 
               {/* FEE DETAILS */}
               <div className="mb-4 pb-3 border-bottom">
-                <h3 className="h6 fw-bold text-uppercase text-muted mb-3">Fee Configuration & Statutory GST</h3>
+                <h3 className="efs-section-heading mb-3">Fee Configuration &amp; Statutory GST</h3>
                 <div className="row g-3">
                   <div className="col-md-6">
                     <label className="form-label fw-semibold text-dark">Category <span className="text-danger">*</span></label>
@@ -800,7 +800,7 @@ export default function EditFeeStructure() {
               {/* INSTALLMENTS */}
               <div>
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h3 className="h6 fw-bold text-uppercase text-muted mb-0">Payment Schedule</h3>
+                  <h3 className="efs-section-heading mb-0">Payment Schedule</h3>
                   <div className="d-flex align-items-center gap-2">
                     <button 
                       type="button"
@@ -813,10 +813,10 @@ export default function EditFeeStructure() {
                     </button>
                     <button 
                       type="button"
-                      className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 hover-lift"
+                      className="efs-add-btn d-flex align-items-center gap-2"
                       onClick={addInstallment}
                     >
-                      <FaPlus size={12} /> Add Installment
+                      <FaPlus size={13} /> Add Installment
                     </button>
                   </div>
                 </div>
@@ -1417,6 +1417,265 @@ export default function EditFeeStructure() {
   }
 }
         
+  /* ===== Standardized Edit Fee Structure (page-scoped) ===== */
+  .edit-fee-page .card {
+    border: 1px solid #DCE6EF;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16,42,60,.05), 0 8px 24px rgba(16,42,60,.06);
+    background: #ffffff;
+  }
+  .edit-fee-page .card-header {
+    border-radius: 14px 14px 0 0;
+  }
+  .edit-fee-page .card-header h2 { font-size: 1.05rem; font-weight: 700; }
+  .edit-fee-page .card-body { padding: 1.25rem 1.5rem 1.5rem; }
+
+  .edit-fee-page .form-label { font-size: 0.78rem; font-weight: 600; color: #0f2b3a; }
+  .edit-fee-page .form-control, .edit-fee-page .form-select {
+    height: 42px;
+    border: 1.5px solid #DCE6EF;
+    border-radius: 10px;
+    background: #f7fafc;
+    font-size: 0.88rem;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  }
+  .edit-fee-page .form-control:focus, .edit-fee-page .form-select:focus {
+    border-color: #22B8E6;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(34,184,230,0.14);
+    outline: none;
+  }
+  .edit-fee-page .input-group-text {
+    border: 1.5px solid #DCE6EF;
+    border-right: 0;
+    background: #f1f5f9;
+    color: #5b7183;
+    border-radius: 10px 0 0 10px;
+  }
+  .edit-fee-page .input-group .form-control { border-left: 0; border-radius: 0 10px 10px 0; }
+
+  /* Section headings */
+  .edit-fee-page h3.h6, .edit-fee-page .section-heading {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #0E3746;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Summary panel */
+  .edit-fee-page .col-lg-4 .card-header {
+    background: linear-gradient(135deg, #0E3746 0%, #164E63 100%) !important;
+  }
+  .edit-fee-page .col-lg-4 .card-body { padding: 1rem 1.15rem 1.25rem !important; }
+  .edit-fee-page .col-lg-4 .btn { width: 100%; height: 42px; border-radius: 10px; font-weight: 600; }
+
+  /* Payment schedule table */
+  .edit-fee-page .table-responsive { border-radius: 10px; border: 1px solid #DCE6EF; }
+  .edit-fee-page .table thead th {
+    background: #eef3f8;
+    color: #0E3746;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #DCE6EF;
+    padding: 0.7rem 0.85rem;
+  }
+  .edit-fee-page .table tbody td {
+    padding: 0.6rem 0.85rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #eef3f8;
+  }
+  .edit-fee-page .table tbody tr:hover { background: #f5fbfe; }
+  .edit-fee-page .table .form-control { height: 38px; font-size: 0.85rem; }
+  .edit-fee-page .table .btn-danger, .edit-fee-page .table .btn-outline-danger {
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+  }
+
+  /* Buttons */
+  .edit-fee-page .btn-success {
+    background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(21,128,61,0.28);
+  }
+  .edit-fee-page .btn-success:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(21,128,61,0.36);
+  }
+  .edit-fee-page .btn-outline-secondary {
+    border: 1.5px solid #DCE6EF;
+    color: #0f2b3a;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .edit-fee-page .btn-outline-secondary:hover {
+    background: #f1f5f9;
+    border-color: #22B8E6;
+    color: #0E3746;
+  }
+
+  /* Responsive */
+  @media (max-width: 992px) {
+    .edit-fee-page .col-lg-8, .edit-fee-page .col-lg-4 { flex: 0 0 100%; max-width: 100%; }
+  }
+  @media (max-width: 768px) {
+    .edit-fee-page .card-body { padding: 1rem 1.1rem 1.2rem; }
+    .edit-fee-page .row.g-3 { gap: 0.75rem; }
+  }
+
+  /* ===== Refinement pass (page-scoped) ===== */
+
+  /* Add Installment button - prominent cyan filled */
+  .edit-fee-page .efs-add-btn {
+    height: 41px;
+    padding: 0 1.1rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #22B8E6 0%, #0e9ac4 100%);
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(34, 184, 230, 0.32);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  }
+  .edit-fee-page .efs-add-btn:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #0ea5c4 0%, #0b86a3 100%);
+    box-shadow: 0 8px 20px rgba(34, 184, 230, 0.42);
+  }
+  .edit-fee-page .efs-add-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(34, 184, 230, 0.22), 0 4px 12px rgba(34, 184, 230, 0.32);
+  }
+  .edit-fee-page .efs-add-btn:active { transform: translateY(0); }
+
+  /* Section headings */
+  .edit-fee-page .efs-section-heading {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #0E3746;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9f0f6;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Payment schedule table polish */
+  .edit-fee-page .table-responsive {
+    border: 1px solid #DCE6EF;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+  }
+  .edit-fee-page .table-responsive table { min-width: 680px; margin: 0; }
+  .edit-fee-page .table thead th {
+    background: #eef3f8;
+    color: #0E3746;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #DCE6EF;
+    padding: 0.75rem 0.9rem;
+    white-space: nowrap;
+  }
+  .edit-fee-page .table tbody td {
+    padding: 0.65rem 0.9rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .edit-fee-page .table tbody tr { transition: background 0.15s ease; }
+  .edit-fee-page .table tbody tr:hover { background: #f5fbfe; }
+  .edit-fee-page .table tbody tr:last-child td { border-bottom: none; }
+  .edit-fee-page .table .form-control {
+    height: 38px;
+    font-size: 0.85rem;
+    border: 1.5px solid #DCE6EF;
+    border-radius: 8px;
+    background: #f7fafc;
+  }
+  .edit-fee-page .table .form-control:focus {
+    border-color: #22B8E6;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(34,184,230,0.12);
+  }
+  .edit-fee-page .table .btn-outline-danger,
+  .edit-fee-page .table .btn-danger {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .edit-fee-page .table .btn-outline-danger:hover,
+  .edit-fee-page .table .btn-danger:hover {
+    background: #fee2e2;
+    border-color: #f87171;
+    color: #b91c1c;
+    transform: translateY(-1px);
+  }
+
+  /* Summary panel hierarchy */
+  .edit-fee-page .col-lg-4 .card { border: 1px solid #DCE6EF; }
+  .edit-fee-page .col-lg-4 .card-body .h5,
+  .edit-fee-page .col-lg-4 .card-body .fw-bold { color: #0E3746; }
+  .edit-fee-page .col-lg-4 .btn-success {
+    background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(21,128,61,0.28);
+  }
+  .edit-fee-page .col-lg-4 .btn-outline-secondary {
+    border: 1.5px solid #DCE6EF;
+    color: #0f2b3a;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .edit-fee-page .col-lg-4 .btn-outline-secondary:hover {
+    background: #f1f5f9;
+    border-color: #22B8E6;
+    color: #0E3746;
+  }
+
+  /* Card presentation consistency */
+  .edit-fee-page .card {
+    border: 1px solid #DCE6EF;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16,42,60,.05), 0 8px 24px rgba(16,42,60,.06);
+  }
+  .edit-fee-page .card-header { border-radius: 14px 14px 0 0; }
+  .edit-fee-page .card-body { padding: 1.25rem 1.5rem 1.5rem; }
+
+  /* Responsive */
+  @media (max-width: 992px) {
+    .edit-fee-page .col-lg-8, .edit-fee-page .col-lg-4 { flex: 0 0 100%; max-width: 100%; }
+  }
+  @media (max-width: 768px) {
+    .edit-fee-page .card-body { padding: 1rem 1.1rem 1.2rem; }
+  }
+
         `}</style>
     </div>
   );
