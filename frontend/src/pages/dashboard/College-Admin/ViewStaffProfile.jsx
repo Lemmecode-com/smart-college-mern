@@ -184,8 +184,8 @@ export default function ViewStaffProfile() {
   const emergencySub = emergencyContactPhone ? `${emergencyContactPhone}${emergencyRelation ? ` (${emergencyRelation})` : ""}` : "";
 
   return (
-    <div className="dashboard-wrapper erp-viewport-min-100">
-      <Container fluid className="pt-0 pb-4">
+    <div className="dashboard-wrapper erp-viewport-min-100 view-staff-profile-page">
+      <Container fluid className="pt-0 pb-4 view-staff-profile-container">
 
     {/* ================= BREADCRUMB ================= */}
         <div
@@ -209,88 +209,27 @@ export default function ViewStaffProfile() {
 
         {/* Header */}
 {/* ================= STAFF PROFILE HEADER ================= */}
-<div
-  style={{
-    background: "#0E3746",
-    borderRadius: "1.25rem",
-    padding: "1.5rem 1.75rem",
-    marginBottom: "1.5rem",
-    color: "white",
-    boxShadow: "0 10px 25px rgba(15, 58, 74, 0.18)",
-  }}
->
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: "1.5rem",
-      flexWrap: "wrap",
-    }}
-  >
+<div className="staff-profile-header">
+  <div className="staff-profile-header-content">
     {/* Left: Profile Information */}
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "1.25rem",
-        minWidth: 0,
-      }}
-    >
+    <div className="staff-profile-identity">
       {/* Profile Icon */}
-      <div
-        style={{
-          width: 76,
-          height: 76,
-          minWidth: 76,
-          borderRadius: "50%",
-          background: "rgba(255, 255, 255, 0.14)",
-          border: "1px solid rgba(255, 255, 255, 0.18)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "white",
-          fontSize: "2rem",
-        }}
-      >
+      <div className="staff-profile-avatar">
         <FaUser />
       </div>
 
       {/* Name + Details */}
-      <div style={{ minWidth: 0 }}>
-        <h2
-          style={{
-            margin: 0,
-            color: "white",
-            fontSize: "2rem",
-            fontWeight: 700,
-            lineHeight: 1.2,
-          }}
-        >
+      <div className="staff-profile-details">
+        <h2>
           {userName}
         </h2>
 
-        <p
-          style={{
-            margin: "0.35rem 0 0",
-            color: "rgba(255, 255, 255, 0.82)",
-            fontSize: "1rem",
-            lineHeight: 1.5,
-          }}
-        >
+        <p>
           {userRole} • {collegeName}
           {collegeCode && ` (${collegeCode})`}
         </p>
 
-        <Badge
-          bg={statusVariant}
-          style={{
-            marginTop: "0.6rem",
-            padding: "0.45rem 0.8rem",
-            fontSize: "0.8rem",
-            borderRadius: "999px",
-          }}
-        >
+        <Badge bg={statusVariant} className="staff-profile-status">
           <FaCheckCircle size={12} className="me-1" />
           {statusLabel}
         </Badge>
@@ -298,36 +237,10 @@ export default function ViewStaffProfile() {
     </div>
 
     {/* Right: Actions */}
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "0.75rem",
-        flexShrink: 0,
-      }}
-    >
+    <div className="staff-profile-actions">
       <button
         onClick={() => navigate("/college/staff")}
-        style={{
-          background: "rgba(255, 255, 255, 0.12)",
-          border: "1px solid rgba(255, 255, 255, 0.25)",
-          color: "white",
-          cursor: "pointer",
-          padding: "0.75rem 1.25rem",
-          borderRadius: "0.75rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          fontSize: "0.95rem",
-          fontWeight: 600,
-          transition: "all 0.2s ease",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
-        }}
+        className="staff-profile-back-button"
       >
         <FaArrowLeft />
         Back
@@ -336,16 +249,7 @@ export default function ViewStaffProfile() {
       {canEdit && (
         <Button
           onClick={() => navigate(`/staff/profile/edit/${actualUserId}`)}
-          style={{
-            background: "white",
-            border: "none",
-            color: BRAND_COLORS.primary.main,
-            padding: "0.75rem 1.35rem",
-            borderRadius: "0.75rem",
-            fontSize: "0.95rem",
-            fontWeight: 600,
-            boxShadow: "0 4px 10px rgba(0, 0, 0, 0.12)",
-          }}
+          className="staff-profile-edit-button"
         >
           Edit Profile
         </Button>
@@ -355,12 +259,12 @@ export default function ViewStaffProfile() {
 </div>
 
         {/* Personal Information */}
-        <div className="mb-3">
+        <div className="mb-3 staff-info-section-heading">
           <h5 className="text-muted text-uppercase fw-semibold" style={{ letterSpacing: "0.05em", fontSize: "0.85rem" }}>Personal Information</h5>
         </div>
-        <Row className="g-4 mb-4">
+        <Row className="g-4 mb-4 staff-info-grid staff-personal-grid">
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.info.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -377,7 +281,7 @@ export default function ViewStaffProfile() {
             </Card>
           </Col>
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.info.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -394,7 +298,7 @@ export default function ViewStaffProfile() {
             </Card>
           </Col>
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.info.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -410,8 +314,8 @@ export default function ViewStaffProfile() {
               </Card.Body>
             </Card>
           </Col>
-          <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+          <Col md={6} lg={4} className="staff-address-column">
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.info.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -430,12 +334,12 @@ export default function ViewStaffProfile() {
         </Row>
 
         {/* Contact Information */}
-        <div className="mb-3">
+        <div className="mb-3 staff-info-section-heading">
           <h5 className="text-muted text-uppercase fw-semibold" style={{ letterSpacing: "0.05em", fontSize: "0.85rem" }}>Contact Information</h5>
         </div>
-        <Row className="g-4 mb-4">
+        <Row className="g-4 mb-4 staff-info-grid staff-contact-grid">
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.primary.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -452,7 +356,7 @@ export default function ViewStaffProfile() {
             </Card>
           </Col>
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.primary.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -469,7 +373,7 @@ export default function ViewStaffProfile() {
             </Card>
           </Col>
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.primary.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -493,12 +397,12 @@ export default function ViewStaffProfile() {
         </Row>
 
         {/* Professional Information */}
-        <div className="mb-3">
+        <div className="mb-3 staff-info-section-heading">
           <h5 className="text-muted text-uppercase fw-semibold" style={{ letterSpacing: "0.05em", fontSize: "0.85rem" }}>Professional Information</h5>
         </div>
-        <Row className="g-4 mb-4">
+        <Row className="g-4 mb-4 staff-info-grid staff-professional-grid">
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -516,7 +420,7 @@ export default function ViewStaffProfile() {
           </Col>
           {profile.department_id?.name && (
             <Col md={6} lg={4}>
-              <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
                 <Card.Body>
                   <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                     <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -534,7 +438,7 @@ export default function ViewStaffProfile() {
             </Col>
           )}
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -551,7 +455,7 @@ export default function ViewStaffProfile() {
             </Card>
           </Col>
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -571,7 +475,7 @@ export default function ViewStaffProfile() {
             </Card>
           </Col>
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
@@ -588,7 +492,7 @@ export default function ViewStaffProfile() {
             </Card>
           </Col>
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+            <Card className="h-100 border-0 shadow-sm staff-info-card" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>

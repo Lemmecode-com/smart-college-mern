@@ -293,7 +293,7 @@ export default function EditDepartment() {
   }
 
   return (
-    <div className="container-fluid pt-2 pb-3 pb-md-4 animate-fade-in">
+    <div className="container-fluid pt-2 pb-3 pb-md-4 animate-fade-in edit-department-page">
       {/* ================= BREADCRUMB ================= */}
       <div
         style={{
@@ -407,24 +407,21 @@ export default function EditDepartment() {
       )}
 
       {/* ================= FORM CARD ================= */}
-      <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
-        <div className="card-header bg-gradient-primary text-white py-3 py-md-4" style={{ background: "#0E3746" }}>
-          <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
-            <FaBuilding /> Department Configuration
-          </h2>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="card-body p-3 p-md-4">
+      <form onSubmit={handleSubmit} className="ed-form">
             {/* BASIC INFO SECTION */}
-            <div className="section-group mb-4">
-              <h3 className="section-title">
-                <FaGraduationCap className="me-2" /> Basic Information
-              </h3>
+            <div className="ed-section">
+              <header className="ed-section-head">
+                <span className="ed-section-icon"><FaGraduationCap /></span>
+                <div className="ed-section-text">
+                  <h3 className="ed-section-title">Basic Information</h3>
+                  <p className="ed-section-subtitle">Department identity and official identification code</p>
+                </div>
+              </header>
+              <div className="ed-divider" />
               <div className="row g-3">
                 <div className="col-md-6">
                   <div className="form-group">
-                    <label className="form-label fw-semibold d-flex align-items-center gap-1">
+                    <label className="form-label fw-semibold d-flex align-items-center gap-1 ed-basic-label">
                       Department Name <span className="text-danger">*</span>
                     </label>
                     <div className="input-with-icon">
@@ -451,7 +448,7 @@ export default function EditDepartment() {
                 
                 <div className="col-md-6">
                   <div className="form-group">
-                    <label className="form-label fw-semibold d-flex align-items-center justify-content-between">
+                    <label className="form-label fw-semibold d-flex align-items-center justify-content-between ed-basic-label">
                       <span>
                         Department Code <span className="text-danger">*</span>
                         <FaInfoCircle 
@@ -535,10 +532,15 @@ export default function EditDepartment() {
             </div>
 
             {/* CONFIGURATION SECTION */}
-            <div className="section-group mb-4">
-              <h3 className="section-title">
-                <FaToggleOn className="me-2" /> Configuration
-              </h3>
+            <div className="ed-section">
+              <header className="ed-section-head">
+                <span className="ed-section-icon ed-section-icon--config"><FaToggleOn /></span>
+                <div className="ed-section-text">
+                  <h3 className="ed-section-title">Department Configuration</h3>
+                  <p className="ed-section-subtitle">Configure department classification and operational status</p>
+                </div>
+              </header>
+              <div className="ed-divider" />
               <div className="row g-3">
                 <div className="col-md-6">
                   <div className="form-group">
@@ -589,10 +591,15 @@ export default function EditDepartment() {
             </div>
 
             {/* PROGRAMS SECTION */}
-            <div className="section-group mb-4">
-              <h3 className="section-title">
-                <FaBookOpen className="me-2" /> Programs Offered
-              </h3>
+            <div className="ed-section">
+              <header className="ed-section-head">
+                <span className="ed-section-icon ed-section-icon--programs"><FaBookOpen /></span>
+                <div className="ed-section-text">
+                  <h3 className="ed-section-title">Programs Offered</h3>
+                  <p className="ed-section-subtitle">Select the academic programs supported by this department</p>
+                </div>
+              </header>
+              <div className="ed-divider" />
               <div className="alert alert-warning border-0 bg-warning bg-opacity-10 p-3 mb-3">
                 <div className="d-flex align-items-start gap-2">
                   <FaExclamationTriangle className="mt-1 flex-shrink-0" />
@@ -637,10 +644,15 @@ export default function EditDepartment() {
             </div>
 
             {/* CAPACITY SECTION */}
-            <div className="section-group">
-              <h3 className="section-title">
-                <FaUsers className="me-2" /> Capacity Details
-              </h3>
+            <div className="ed-section">
+              <header className="ed-section-head">
+                <span className="ed-section-icon ed-section-icon--capacity"><FaUsers /></span>
+                <div className="ed-section-text">
+                  <h3 className="ed-section-title">Capacity Details</h3>
+                  <p className="ed-section-subtitle">Department establishment and approved capacity</p>
+                </div>
+              </header>
+              <div className="ed-divider" />
               <div className="row g-3">
                 <div className="col-md-4">
                   <div className="form-group">
@@ -716,14 +728,13 @@ export default function EditDepartment() {
                 </div>
               </div>
             </div>
-          </div>
 
           {/* ================= FORM FOOTER ================= */}
-          <div className="card-footer bg-light py-3 d-flex flex-column flex-md-row justify-content-between gap-2">
+          <div className="card-footer bg-light py-3 d-flex flex-column flex-md-row justify-content-between gap-2 ed-footer">
             <div className="d-flex gap-2 flex-wrap">
               <button
                 type="button"
-                className="btn btn-outline-secondary d-flex align-items-center gap-2 px-4 py-2 hover-lift"
+                className="btn btn-outline-secondary d-flex align-items-center gap-2 px-4 py-2 hover-lift ed-btn ed-btn-back"
                 onClick={() => navigate("/departments")}
               >
                 <FaArrowLeft /> Back to List
@@ -731,7 +742,7 @@ export default function EditDepartment() {
               
               <button
                 type="button"
-                className="btn btn-outline-warning d-flex align-items-center gap-2 px-4 py-2 hover-lift"
+                className="btn btn-outline-warning d-flex align-items-center gap-2 px-4 py-2 hover-lift ed-btn ed-btn-reset"
                 onClick={resetForm}
               >
                 <FaUndo /> Reset Changes
@@ -740,7 +751,7 @@ export default function EditDepartment() {
             
             <button
               type="submit"
-              className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button"
+              className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button ed-btn ed-btn-save"
               disabled={saving || !formData.name || !formData.code || formData.programsOffered.length === 0}
             >
               {saving ? (
@@ -755,7 +766,6 @@ export default function EditDepartment() {
             </button>
           </div>
         </form>
-      </div>
 
       {/* ================= FOOTER ================= */}
       <div className="card border-0 shadow-lg rounded-4 overflow-hidden mt-3 mt-md-4 animate-fade-in-up">
@@ -1080,6 +1090,196 @@ export default function EditDepartment() {
   padding: 10px 12px;
 }
         }
+  /* ---- Standardized Edit Page (page-scoped) ---- */
+  .edit-department-page .ed-form { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  .edit-department-page .ed-section {
+    background: #ffffff;
+    border: 1px solid #DCE6EF;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16,42,60,.05), 0 8px 24px rgba(16,42,60,.06);
+    padding: 1.35rem 1.5rem 1.5rem;
+    margin-bottom: 1.5rem;
+    
+  }
+
+  .edit-department-page .ed-section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .edit-department-page .ed-section-icon {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #22B8E6;
+    background: #e8f7fd;
+    border: 1px solid #c6e7f7;
+  }
+
+  .edit-department-page .ed-section-icon--config { color: #0E3746; background: #eef0fe; border-color: #dcd9fb; }
+  .edit-department-page .ed-section-icon--programs { color: #0E3746; background: #eef0fe; border-color: #dcd9fb; }
+  .edit-department-page .ed-section-icon--capacity { color: #0E3746; background: #eef0fe; border-color: #dcd9fb; }
+
+  .edit-department-page .ed-section-text { min-width: 0; }
+  .edit-department-page .ed-section-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: #0E3746; line-height: 1.2; }
+  .edit-department-page .ed-section-subtitle { margin: 0.15rem 0 0; font-size: 0.78rem; color: #5b7183; }
+
+  .edit-department-page .ed-divider { height: 1px; background: #DCE6EF; margin: 0.85rem 0 1.15rem; }
+
+  .edit-department-page .ed-section .row { margin: 0; }
+  .edit-department-page .ed-section .form-group { margin-bottom: 0.25rem; }
+  .edit-department-page .ed-section .form-label { font-size: 0.78rem; font-weight: 600; color: #0f2b3a; }
+
+  .edit-department-page .ed-section .form-control,
+  .edit-department-page .ed-section .form-select {
+    border: 1.5px solid #DCE6EF;
+    border-radius: 10px;
+    background: #f7fafc;
+    font-size: 0.88rem;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  }
+  .edit-department-page .ed-section .form-control:focus,
+  .edit-department-page .ed-section .form-select:focus {
+    border-color: #22B8E6;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(34,184,230,0.14);
+  }
+
+  /* Programs offered cards */
+  .edit-department-page .programs-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; }
+  .edit-department-page .program-card {
+    padding: 0.9rem 1rem;
+    border: 1.5px solid #DCE6EF;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    background: #ffffff;
+  }
+  .edit-department-page .program-card:hover {
+    border-color: #22B8E6;
+    box-shadow: 0 4px 12px rgba(34,184,230,0.12);
+  }
+  .edit-department-page .program-card.active {
+    border-color: #22B8E6;
+    background: #e8f7fd;
+    box-shadow: 0 0 0 3px rgba(34,184,230,0.15);
+  }
+  .edit-department-page .program-card.active .form-check-label { color: #164E63; font-weight: 600; }
+
+  /* Footer actions */
+  .edit-department-page .card-footer {
+    border-top: 1px solid #DCE6EF;
+    background: #ffffff;
+    padding: 1rem 1.25rem;
+  }
+
+  /* Help info panel compact */
+  .edit-department-page .help-info-panel {
+    background: #eef3f8;
+    border: 1px solid #DCE6EF;
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+  }
+
+  @media (max-width: 992px) {
+    .edit-department-page .programs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 576px) {
+    .edit-department-page .programs-grid { grid-template-columns: 1fr; }
+    .edit-department-page .ed-section { padding: 1.1rem 1.15rem 1.25rem; }
+  }
+
+  /* ---- Correction pass: width, alignment, footer buttons ---- */
+  .edit-department-page .ed-form { width: 100%; }
+  .edit-department-page .ed-section { width: 100%; margin-left: 0; margin-right: 0; box-sizing: border-box; }
+  .edit-department-page .ed-section .row { margin-left: 0; margin-right: 0; }
+
+  /* Basic Information label alignment */
+  .edit-department-page .ed-basic-label {
+    min-height: 32px;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .edit-department-page .ed-basic-label .code-mode-toggle { margin-left: auto; }
+
+  /* Footer action buttons */
+  .edit-department-page .ed-footer {
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #DCE6EF;
+    background: #ffffff;
+  }
+  .edit-department-page .ed-btn {
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0 1.25rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+  }
+  .edit-department-page .ed-btn-back {
+    background: #ffffff;
+    color: #0E3746;
+    border-color: #DCE6EF;
+  }
+  .edit-department-page .ed-btn-back:hover {
+    background: #f1f5f9;
+    border-color: #22B8E6;
+    color: #0E3746;
+  }
+  .edit-department-page .ed-btn-reset {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+  }
+  .edit-department-page .ed-btn-reset:hover {
+    background: #fde68a;
+    border-color: #f59e0b;
+  }
+  .edit-department-page .ed-btn-save {
+    background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(21, 128, 61, 0.28);
+  }
+  .edit-department-page .ed-btn-save:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(21, 128, 61, 0.36);
+  }
+  .edit-department-page .ed-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* Standardize section spacing */
+  .edit-department-page .ed-section {
+    margin-bottom: 1.25rem;
+  }
+  .edit-department-page .ed-section:last-of-type { margin-bottom: 0; }
+
+  @media (max-width: 768px) {
+    .edit-department-page .ed-footer {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .edit-department-page .ed-footer > div { width: 100%; }
+    .edit-department-page .ed-btn { width: 100%; justify-content: center; }
+    .edit-department-page .ed-basic-label { min-height: auto; }
+  }
+
       `}</style>
     </div>
   );
