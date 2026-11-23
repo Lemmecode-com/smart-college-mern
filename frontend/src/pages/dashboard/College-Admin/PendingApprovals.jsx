@@ -1,4 +1,4 @@
-﻿import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -23,6 +23,7 @@ import {
   FaExclamationTriangle,
   FaSyncAlt,
   FaCheck,
+  FaCheckCircle,
   FaTimes,
   FaEye,
   FaCheckDouble,
@@ -67,8 +68,10 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [bulkVerifyingDocs, setBulkVerifyingDocs] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showBulkApproveModal, setShowBulkApproveModal] = useState(false);
+  const [showBulkVerifyDocsModal, setShowBulkVerifyDocsModal] = useState(false);
   const [pendingApproveId, setPendingApproveId] = useState(null);
   const [parentAccountDetails, setParentAccountDetails] = useState(null);
   const [showParentDetailsModal, setShowParentDetailsModal] = useState(false);
@@ -78,12 +81,33 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
   const [assigningDivision, setAssigningDivision] = useState(false);
   const [loadingDivisions, setLoadingDivisions] = useState(false);
   const [assigningStudentId, setAssigningStudentId] = useState(null);
+  const [approveOnlyReady, setApproveOnlyReady] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     byDepartment: {},
     byCourse: {},
     byYear: {},
   });
+
+  const selectedStudentList = useMemo(() => {
+    return students.filter((s) => selectedStudents.has(s._id));
+  }, [students, selectedStudents]);
+
+  const readyForApprovalCount = useMemo(() => {
+    return selectedStudentList.filter(
+      (s) => s.documentSummary?.status === "ALL_VERIFIED"
+    ).length;
+  }, [selectedStudentList]);
+
+  const notReadyForApprovalCount = useMemo(() => {
+    return selectedStudentList.length - readyForApprovalCount;
+  }, [selectedStudentList, readyForApprovalCount]);
+
+  const missingDocsCount = useMemo(() => {
+    return selectedStudentList.filter(
+      (s) => s.documentSummary?.status === "MISSING"
+    ).length;
+  }, [selectedStudentList]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -184,14 +208,10 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
       return;
     }
 
-    const studentsWithoutDivision = students.filter(
-      (s) => selectedStudents.has(s._id) && !s.division
-    );
-    if (studentsWithoutDivision.length > 0) {
-      toast.warning(
-        `${studentsWithoutDivision.length} selected student(s) do not have a division assigned. Please assign divisions before approving.`,
-      );
-      return;
+    if (notReadyForApprovalCount > 0) {
+      setApproveOnlyReady(true);
+    } else {
+      setApproveOnlyReady(false);
     }
 
     setShowBulkApproveModal(true);
@@ -200,8 +220,21 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
   const executeBulkApprove = async () => {
     setBulkApproving(true);
     try {
+      let targetIds = [...selectedStudents];
+      if (approveOnlyReady && notReadyForApprovalCount > 0) {
+        targetIds = selectedStudentList
+          .filter((s) => s.documentSummary?.status === "ALL_VERIFIED")
+          .map((s) => s._id);
+        if (targetIds.length === 0) {
+          toast.warning("None of the selected students have all required documents verified.");
+          setBulkApproving(false);
+          setShowBulkApproveModal(false);
+          return;
+        }
+      }
+
       const { data } = await api.post("/students/bulk-approve", {
-        studentIds: [...selectedStudents],
+        studentIds: targetIds,
       });
 
       toast.success(`${data.approved.length} students approved`);
@@ -253,6 +286,38 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
       toast.error(err.response?.data?.message || "Bulk approve failed");
     } finally {
       setBulkApproving(false);
+      setShowBulkApproveModal(false);
+    }
+  };
+
+  /* ================= BULK VERIFY DOCUMENTS HANDLER ================= */
+  const handleBulkVerifyDocs = () => {
+    if (selectedStudents.size === 0) {
+      toast.warning("No students selected");
+      return;
+    }
+    setShowBulkVerifyDocsModal(true);
+  };
+
+  const executeBulkVerifyDocs = async () => {
+    setBulkVerifyingDocs(true);
+    try {
+      const { data } = await api.post("/students/bulk-verify-documents", {
+        studentIds: [...selectedStudents],
+      });
+
+      const processed = data?.data?.totalStudentsProcessed || selectedStudents.size;
+      const docCount = data?.data?.totalDocumentsVerified ?? 0;
+      toast.success(
+        data?.message || `Successfully verified ${docCount} document(s) for ${processed} student(s)!`,
+        { autoClose: 5000 }
+      );
+      fetchPendingStudents();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Bulk document verification failed");
+    } finally {
+      setBulkVerifyingDocs(false);
+      setShowBulkVerifyDocsModal(false);
     }
   };
 
@@ -494,6 +559,72 @@ const columns = [
         )}
       </div>
     ),
+  },
+
+  {
+    key: "documents",
+    label: "Documents",
+    sortable: false,
+    width: "185px",
+    render: (student) => {
+      const summary = student.documentSummary;
+      if (!summary) return <span style={{ color: "#94a3b8" }}>—</span>;
+
+      if (summary.status === "ALL_VERIFIED") {
+        return (
+          <span
+            className="badge badge-doc-verified"
+            title={
+              summary.totalRequired > 0
+                ? `All ${summary.totalRequired} required document(s) verified`
+                : "All uploaded document(s) verified"
+            }
+          >
+            <FaCheckCircle className="badge-icon" />
+            Verified {summary.totalRequired > 0 ? `(${summary.verifiedRequired}/${summary.totalRequired})` : ""}
+          </span>
+        );
+      }
+
+      if (summary.status === "REJECTED") {
+        return (
+          <span
+            className="badge badge-doc-rejected"
+            title="One or more documents were rejected. Replacement required."
+          >
+            <FaTimesCircle className="badge-icon" />
+            Doc Rejected
+          </span>
+        );
+      }
+
+      if (summary.status === "MISSING") {
+        const missingStr = summary.missingTypes?.join(", ");
+        return (
+          <span
+            className="badge badge-doc-missing"
+            title={`Missing required documents: ${missingStr}`}
+          >
+            <FaExclamationTriangle className="badge-icon" />
+            Missing Docs ({summary.uploadedRequired}/{summary.totalRequired})
+          </span>
+        );
+      }
+
+      return (
+        <span
+          className="badge badge-doc-unverified"
+          title={
+            summary.unverifiedTypes?.length > 0
+              ? `Unverified: ${summary.unverifiedTypes.join(", ")}`
+              : "Documents pending verification"
+          }
+        >
+          <FaClock className="badge-icon" />
+          Unverified ({summary.uploadedRequired}/{summary.totalRequired || summary.uploadedRequired})
+        </span>
+      );
+    },
   },
 ];
 
@@ -740,21 +871,40 @@ const tableActions = {
               </label>
 
               {selectedStudents.size > 0 && canEdit('students') && (
-                <button
-                  className="btn btn-bulk-approve"
-                  onClick={handleBulkApprove}
-                  disabled={bulkApproving}
-                >
-                  {bulkApproving ? (
-                    <>
-                      <FaSpinner className="spin" /> Approving…
-                    </>
-                  ) : (
-                    <>
-                      <FaCheckDouble /> Approve Selected ({selectedStudents.size})
-                    </>
-                  )}
-                </button>
+                <div className="bulk-actions-group" style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn btn-bulk-verify-docs"
+                    onClick={handleBulkVerifyDocs}
+                    disabled={bulkVerifyingDocs || bulkApproving}
+                    title="Verify all uploaded documents for selected students"
+                  >
+                    {bulkVerifyingDocs ? (
+                      <>
+                        <FaSpinner className="spin" /> Verifying Docs…
+                      </>
+                    ) : (
+                      <>
+                        <FaClipboardCheck /> Verify Documents ({selectedStudents.size})
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    className="btn btn-bulk-approve"
+                    onClick={handleBulkApprove}
+                    disabled={bulkApproving || bulkVerifyingDocs}
+                  >
+                    {bulkApproving ? (
+                      <>
+                        <FaSpinner className="spin" /> Approving…
+                      </>
+                    ) : (
+                      <>
+                        <FaCheckDouble /> Approve Selected ({selectedStudents.size})
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -827,11 +977,108 @@ const tableActions = {
         onClose={() => setShowBulkApproveModal(false)}
         onConfirm={executeBulkApprove}
         title="Bulk Approve Students"
-        message={`Are you sure you want to approve ${selectedStudents.size} student(s)? Approval emails will be sent to all selected students.`}
+        message={
+          notReadyForApprovalCount > 0 && approveOnlyReady
+            ? `Approve ${readyForApprovalCount} student(s) with verified documents? Approval emails will be sent.`
+            : `Are you sure you want to approve ${selectedStudents.size} student(s)? Approval emails will be sent to all selected students.`
+        }
         type="success"
-        confirmText={`Approve ${selectedStudents.size} Students`}
+        confirmText={
+          notReadyForApprovalCount > 0 && approveOnlyReady
+            ? `Approve ${readyForApprovalCount} Ready Students`
+            : `Approve ${selectedStudents.size} Students`
+        }
         cancelText="Cancel"
         isLoading={bulkApproving}
+        customContent={
+          notReadyForApprovalCount > 0 ? (
+            <div style={{ marginTop: "1rem", textAlign: "left", fontSize: "0.9rem" }}>
+              <div
+                style={{
+                  background: "#fffbeb",
+                  border: "1px solid #fde68a",
+                  borderRadius: "8px",
+                  padding: "10px 14px",
+                  color: "#92400e",
+                  marginBottom: "12px",
+                }}
+              >
+                <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                  <FaExclamationTriangle />
+                  {notReadyForApprovalCount} student(s) do not have all required documents verified!
+                </div>
+                <div style={{ fontSize: "0.82rem", marginTop: "4px" }}>
+                  Bulk approval will fail for students with unverified or missing documents.
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", marginBottom: "12px", flexWrap: "wrap" }}>
+                <span className="badge badge-doc-verified" style={{ padding: "4px 8px" }}>
+                  ✓ Ready for Approval: {readyForApprovalCount}
+                </span>
+                <span className="badge badge-doc-missing" style={{ padding: "4px 8px" }}>
+                  ⚠ Incomplete / Missing: {notReadyForApprovalCount}
+                </span>
+              </div>
+
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  color: "#1e293b",
+                  userSelect: "none",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={approveOnlyReady}
+                  onChange={(e) => setApproveOnlyReady(e.target.checked)}
+                />
+                Approve only the {readyForApprovalCount} ready student(s) with verified documents
+              </label>
+            </div>
+          ) : null
+        }
+      />
+
+      {/* CONFIRM BULK VERIFY DOCUMENTS MODAL */}
+      <ConfirmModal
+        isOpen={showBulkVerifyDocsModal}
+        onClose={() => setShowBulkVerifyDocsModal(false)}
+        onConfirm={executeBulkVerifyDocs}
+        title="Bulk Verify Documents"
+        message={`Are you sure you want to verify all uploaded documents for the ${selectedStudents.size} selected student(s)? This will mark their active uploaded documents as VERIFIED, making them ready for approval.`}
+        type="info"
+        confirmText={`Verify Documents (${selectedStudents.size})`}
+        cancelText="Cancel"
+        isLoading={bulkVerifyingDocs}
+        customContent={
+          missingDocsCount > 0 ? (
+            <div
+              style={{
+                marginTop: "1rem",
+                textAlign: "left",
+                fontSize: "0.85rem",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                color: "#166534",
+              }}
+            >
+              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                <FaInfoCircle />
+                Note on Missing Documents ({missingDocsCount} student(s))
+              </div>
+              <div style={{ marginTop: "4px", fontSize: "0.8rem", color: "#15803d" }}>
+                Bulk verification updates all existing uploaded documents. Students who have not uploaded mandatory documents will still show as missing.
+              </div>
+            </div>
+          ) : null
+        }
       />
 
       {/* REJECT MODAL */}
@@ -1374,6 +1621,34 @@ const tableActions = {
           transform: none;
         }
 
+        .btn-bulk-verify-docs {
+          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+          color: white;
+          padding: 0.65rem 1.3rem;
+          font-size: 0.88rem;
+          font-weight: 700;
+          border-radius: 9px;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          border: none;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
+          white-space: nowrap;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-bulk-verify-docs:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(2, 132, 199, 0.36);
+        }
+
+        .btn-bulk-verify-docs:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
         /* ---------- TABLE ---------- */
         .table-container {
           overflow-x: auto;
@@ -1506,6 +1781,38 @@ const tableActions = {
           letter-spacing: 0;
           font-size: 10.5px;
           display: inline-flex;
+        }
+
+        .badge-doc-verified {
+          background: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .badge-doc-missing {
+          background: #fffbeb;
+          color: #92400e;
+          border: 1px solid #fde68a;
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .badge-doc-rejected {
+          background: #fef2f2;
+          color: #991b1b;
+          border: 1px solid #fecaca;
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .badge-doc-unverified {
+          background: #eff6ff;
+          color: #1e40af;
+          border: 1px solid #bfdbfe;
+          font-size: 11px;
+          font-weight: 600;
         }
 
         .cell-status {

@@ -56,6 +56,7 @@ import LandingPage from "./pages/LandingPage";
 /* ================= AUTH ================= */
 import Login from "./pages/auth/Login";
 import StudentRegister from "./pages/auth/StudentRegister";
+import ReuploadDocument from "./pages/auth/ReuploadDocument";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import VerifyOTP from "./pages/auth/VerifyOTP";
 import ChangePassword from "./pages/auth/ChangePassword";
@@ -651,6 +652,10 @@ function AppContent({
                   <StudentRegister />
                 </GuestRoute>
               }
+            />
+            <Route
+              path="/reupload-document/:token"
+              element={<ReuploadDocument />}
             />
 
             {/* ================= PROTECTED ROUTES (WITH LAYOUT) ================= */}

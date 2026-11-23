@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useCallback, useMemo } from "react";
+import { useContext, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -41,7 +41,8 @@ import {
   FaCopy,
   FaEdit,
   FaUsers,
-  FaExternalLinkAlt
+  FaExternalLinkAlt,
+  FaUpload,
 } from "react-icons/fa";
 
 /* =========================================================
@@ -257,7 +258,11 @@ function DocumentCard({
   onReject,
   isVerifying = false,
   isRejecting = false,
+  type,
+  onAdminUpload,
+  isUploading = false,
 }) {
+  const fileInputRef = useRef(null);
   const rawFileName = getFileName(path);
   const displayFileName =
     originalFileName ||
@@ -269,6 +274,18 @@ function DocumentCard({
   const VerifyIcon = verifyConfig.icon;
 
   const canVerifyNow = canAct && isUploaded && verificationStatus !== "VERIFIED";
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file && onAdminUpload) {
+      onAdminUpload(type, file);
+    }
+    if (e.target) e.target.value = "";
+  };
 
   return (
     <div className={`document-card-enterprise ${!isUploaded ? "document-card-empty" : ""}`}>
@@ -304,6 +321,7 @@ function DocumentCard({
                 originalFileName: displayFileName,
                 mimeType,
                 verificationStatus,
+                type,
               })
             }
             aria-label={`View ${label}`}
@@ -352,6 +370,51 @@ function DocumentCard({
             >
               <FaTimesCircle className="me-1" />
               {isRejecting === documentId ? "Rejecting..." : "Reject"}
+            </button>
+          </div>
+        )}
+
+        {/* 📤 Admin Upload / Replacement action (resolves missing / rejected re-upload deadlock) */}
+        {canAct && !isUploaded && (
+          <div className="doc-admin-upload-wrapper" style={{ marginTop: "10px" }}>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              style={{ display: "none" }}
+            />
+            <button
+              type="button"
+              className="btn-admin-upload"
+              onClick={handleUploadClick}
+              disabled={isUploading}
+              aria-label={`Upload ${label}`}
+            >
+              <FaUpload className="me-1" />
+              {isUploading ? "Uploading..." : "Upload Document"}
+            </button>
+          </div>
+        )}
+
+        {canAct && isUploaded && verificationStatus === "REJECTED" && (
+          <div className="doc-admin-upload-wrapper" style={{ marginTop: "10px" }}>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              style={{ display: "none" }}
+            />
+            <button
+              type="button"
+              className="btn-admin-replace"
+              onClick={handleUploadClick}
+              disabled={isUploading}
+              aria-label={`Replace ${label}`}
+            >
+              <FaUpload className="me-1" />
+              {isUploading ? "Uploading..." : "Upload Replacement"}
             </button>
           </div>
         )}
@@ -417,6 +480,8 @@ export default function ViewStudent() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
   const [verifyingAll, setVerifyingAll] = useState(false);
+  const [uploadingDocType, setUploadingDocType] = useState(null);
+  const previewFileInputRef = useRef(null);
 
   // 🎓 Division assignment workflow
   const [showDivisionModal, setShowDivisionModal] = useState(false);
@@ -776,6 +841,7 @@ export default function ViewStudent() {
     let url = null;
     let documentId = null;
     let label = "Document";
+    let type = null;
     let originalFileName = null;
     let mimeType = null;
     let verificationStatus = "PENDING";
@@ -783,6 +849,7 @@ export default function ViewStudent() {
     if (typeof docInput === "object" && docInput !== null) {
       documentId = docInput.documentId;
       label = docInput.label || "Document";
+      type = docInput.type || null;
       originalFileName = docInput.originalFileName;
       mimeType = docInput.mimeType;
       verificationStatus = docInput.verificationStatus || "PENDING";
@@ -816,6 +883,7 @@ export default function ViewStudent() {
       url,
       documentId,
       label,
+      type,
       originalFileName,
       mimeType,
       verificationStatus,
@@ -935,13 +1003,13 @@ export default function ViewStudent() {
     }
     try {
       setShowDocRejectModal(false);
-      await api.put(
+      const res = await api.put(
         `/students/${studentId}/documents/${rejectingDocId}/reject`,
         { reason: docRejectReason.trim() }
       );
-      toast.success("Document rejected successfully", {
+      toast.success(res.data?.message || "Document rejected & re-upload link sent to student!", {
         position: "top-right",
-        autoClose: 3000,
+        autoClose: 4000,
       });
       fetchStudent();
     } catch (err) {
@@ -951,6 +1019,48 @@ export default function ViewStudent() {
       setDocRejectReason("");
     }
   }, [studentId, docRejectReason, rejectingDocId, fetchStudent]);
+
+  /* ================= ADMIN UPLOAD / REPLACE DOCUMENT ================= */
+  const handleAdminUpload = useCallback(
+    async (docType, file) => {
+      if (!file) return;
+
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size exceeds 10MB limit");
+        return;
+      }
+
+      try {
+        setUploadingDocType(docType);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await api.post(
+          `/students/${studentId}/documents/${docType}/admin-upload`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        toast.success(
+          response.data?.message || "Document uploaded and verified successfully!",
+          { position: "top-right", autoClose: 3500 }
+        );
+        fetchStudent();
+      } catch (err) {
+        logger.error("Admin upload failed:", err);
+        toast.error(
+          err.response?.data?.message || "Failed to upload document"
+        );
+      } finally {
+        setUploadingDocType(null);
+      }
+    },
+    [studentId, fetchStudent]
+  );
 
   /* ================= DIVISION ASSIGNMENT HANDLERS ================= */
   const handleOpenDivisionModal = useCallback(async () => {
@@ -1473,6 +1583,9 @@ if (loading) {
                        onReject={openDocReject}
                        isVerifying={verifyingDocId === doc.documentId}
                        isRejecting={rejectingDocId === doc.documentId}
+                       type={doc.type}
+                       onAdminUpload={handleAdminUpload}
+                       isUploading={uploadingDocType === doc.type}
                      />
                    ))}
                 </div>
@@ -1481,52 +1594,6 @@ if (loading) {
           )}
         </div>
       </div>
-
-       {/* ================= STATUS ACTION CARD ================= */}
-       {student.status === STUDENT_STATUS.PENDING && canEdit('students') && (
-         <div className="action-card-enterprise">
-           <div className="action-card-header">
-             <div className="action-card-title-wrapper">
-               <FaClipboardCheck className="action-card-icon" />
-               <h3 className="action-card-title">Student Verification</h3>
-             </div>
-             <p className="action-card-subtitle">Review and approve or reject this student's registration</p>
-           </div>
-            
-              <div className="action-card-body">
-               {requiredDocTypes.length > 0 && !allRequiredDocsVerified && (
-                 <div className="doc-verification-gate-warning">
-                   <FaExclamationTriangle className="doc-verification-gate-icon" />
-                   <span>
-                     Verify all required documents before approving. Backend enforcement is active.
-                   </span>
-                 </div>
-               )}
-               <div className="action-card-buttons">
-                <button
-                  className="btn-approve-enterprise"
-                  onClick={handleApproveClick}
-                  disabled={
-                    approving ||
-                    (requiredDocTypes.length > 0 && !allRequiredDocsVerified)
-                  }
-                >
-                  <FaCheckCircle className="btn-icon" />
-                  {approving ? 'Approving...' : 'Approve Student'}
-                </button>
-
-                <button
-                  className="btn-reject-enterprise"
-                  onClick={handleRejectClick}
-                  disabled={rejecting}
-                >
-                  <FaTimesCircle className="btn-icon" />
-                  {rejecting ? 'Rejecting...' : 'Reject Student'}
-                </button>
-              </div>
-            </div>
-         </div>
-       )}
 
       {/* ================= META INFORMATION ================= */}
       <div className="meta-info-enterprise">
@@ -1555,7 +1622,10 @@ if (loading) {
 
       <ConfirmModal
         isOpen={showRejectModal}
-        onClose={() => setShowRejectModal(false)}
+        onClose={() => {
+          setShowRejectModal(false);
+          setRejectionReason("");
+        }}
         onConfirm={handleRejectSubmit}
         title="Reject Student"
         message="Please enter the reason for rejecting this student's registration:"
@@ -1563,32 +1633,21 @@ if (loading) {
         confirmText="Reject"
         cancelText="Cancel"
         isLoading={rejecting}
-        customContent={
-          <textarea
-            className="reject-reason-textarea"
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Enter rejection reason (required)..."
-            rows={4}
-            autoFocus
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '2px solid #e2e8f0',
-              borderRadius: '8px',
-              fontSize: '0.9375rem',
-              fontFamily: 'inherit',
-              resize: 'vertical',
-              marginTop: '1rem'
-            }}
-          />
-        }
+        inputValue={rejectionReason}
+        onInputChange={setRejectionReason}
+        inputPlaceholder="Enter rejection reason (required)..."
+        inputRows={4}
+        maxChars={500}
+        confirmDisabled={!rejectionReason.trim()}
       />
 
       {/* ================= DOCUMENT REJECTION MODAL ================= */}
       <ConfirmModal
         isOpen={showDocRejectModal}
-        onClose={() => setShowDocRejectModal(false)}
+        onClose={() => {
+          setShowDocRejectModal(false);
+          setDocRejectReason("");
+        }}
         onConfirm={handleRejectDocument}
         title="Reject Document"
         message="Please enter the reason for rejecting this document:"
@@ -1596,26 +1655,12 @@ if (loading) {
         confirmText="Reject Document"
         cancelText="Cancel"
         isLoading={!!rejectingDocId}
-        customContent={
-          <textarea
-            className="reject-reason-textarea"
-            value={docRejectReason}
-            onChange={(e) => setDocRejectReason(e.target.value)}
-            placeholder="Enter rejection reason (required)..."
-            rows={4}
-            autoFocus
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              border: "2px solid #e2e8f0",
-              borderRadius: "8px",
-              fontSize: "0.9375rem",
-              fontFamily: "inherit",
-              resize: "vertical",
-              marginTop: "1rem",
-            }}
-          />
-        }
+        inputValue={docRejectReason}
+        onInputChange={setDocRejectReason}
+        inputPlaceholder="Enter rejection reason (required)..."
+        inputRows={3}
+        maxChars={500}
+        confirmDisabled={!docRejectReason.trim()}
       />
 
        {/* ================= DIVISION ASSIGNMENT MODAL ================= */}
@@ -1949,6 +1994,34 @@ if (loading) {
                       </button>
                     </>
                   )}
+                {canVerifyDocs && previewDoc.verificationStatus === "REJECTED" && previewDoc.type && (
+                  <>
+                    <input
+                      type="file"
+                      ref={previewFileInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleAdminUpload(previewDoc.type, file);
+                          setPreviewDoc(null);
+                        }
+                        if (e.target) e.target.value = "";
+                      }}
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      style={{ display: "none" }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-admin-replace"
+                      onClick={() => previewFileInputRef.current?.click()}
+                      disabled={uploadingDocType === previewDoc.type}
+                      style={{ minWidth: "140px" }}
+                    >
+                      <FaUpload className="me-1" />
+                      {uploadingDocType === previewDoc.type ? "Uploading..." : "Replace Document"}
+                    </button>
+                  </>
+                )}
                 <button
                   type="button"
                   className="btn-preview-modal-close"
@@ -2011,7 +2084,7 @@ if (loading) {
                 disabled={rejecting}
               >
                 <FaTimesCircle className="me-1" />
-                {rejecting ? "Rejecting..." : "Reject"}
+                {rejecting ? "Rejecting..." : "Reject Student"}
               </button>
             </div>
           </div>
@@ -2030,6 +2103,7 @@ if (loading) {
         .view-student-page {
           background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
           padding: 2rem;
+          padding-bottom: 6.5rem;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
         
@@ -2548,6 +2622,37 @@ if (loading) {
          .btn-verify-document:hover:not(:disabled) { background: rgba(16, 185, 129, 0.2); }
          .btn-reject-document { background: rgba(239, 68, 68, 0.12); color: #7f1d1d; }
          .btn-reject-document:hover:not(:disabled) { background: rgba(239, 68, 68, 0.2); }
+
+         .btn-admin-upload, .btn-admin-replace {
+           width: 100%;
+           border: none;
+           padding: 0.45rem 0.65rem;
+           border-radius: 8px;
+           font-size: 0.75rem;
+           font-weight: 700;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           gap: 0.35rem;
+           cursor: pointer;
+           transition: all 0.2s ease;
+         }
+
+         .btn-admin-upload {
+           background: rgba(37, 99, 235, 0.12);
+           color: #1e40af;
+         }
+         .btn-admin-upload:hover:not(:disabled) {
+           background: rgba(37, 99, 235, 0.22);
+         }
+
+         .btn-admin-replace {
+           background: rgba(234, 88, 12, 0.12);
+           color: #9a3412;
+         }
+         .btn-admin-replace:hover:not(:disabled) {
+           background: rgba(234, 88, 12, 0.22);
+         }
 
          /* Approval gate warning */
          .doc-verification-gate-warning {
@@ -3335,18 +3440,50 @@ if (loading) {
           cursor: pointer;
         }
 
-        /* Sticky Action Bar at Bottom */
+        /* Sticky Action Bar at Bottom - Sidebar Aware */
         .sticky-action-bar-enterprise {
           position: fixed;
           bottom: 0;
           left: 0;
           right: 0;
+          width: 100%;
           background: #ffffff;
           border-top: 1px solid #e2e8f0;
           box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
           padding: 0.75rem 2rem;
           z-index: 1000;
           animation: slideUp 0.3s ease-out;
+          transition: left var(--sidebar-transition-duration, 0.3s) var(--sidebar-transition-timing, cubic-bezier(0.4, 0, 0.2, 1)),
+                      width var(--sidebar-transition-duration, 0.3s) var(--sidebar-transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+        }
+
+        @media (min-width: 768px) {
+          .sticky-action-bar-enterprise {
+            left: var(--erp-sidebar-width, 250px);
+            width: calc(100% - var(--erp-sidebar-width, 250px));
+          }
+
+          body.sidebar-collapsed .sticky-action-bar-enterprise,
+          .layout-wrapper.layout-collapsed .sticky-action-bar-enterprise {
+            left: var(--erp-sidebar-collapsed-width, 80px);
+            width: calc(100% - var(--erp-sidebar-collapsed-width, 80px));
+          }
+        }
+
+        @media (max-width: 767.98px) {
+          .sticky-action-bar-enterprise {
+            left: 0 !important;
+            width: 100% !important;
+            padding: 0.65rem 1rem;
+          }
+
+          .sticky-action-content {
+            gap: 0.75rem;
+          }
+
+          .sticky-student-title {
+            font-size: 0.9rem;
+          }
         }
 
         .sticky-action-content {

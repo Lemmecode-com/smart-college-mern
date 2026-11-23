@@ -23,6 +23,8 @@ export default function ConfirmModal({
   maxChars,
   inputRows = 3,
   confirmDisabled = false,
+  children,
+  customContent,
 }) {
   const modalRef = useRef(null);
 
@@ -265,6 +267,7 @@ export default function ConfirmModal({
                   )}
                 </div>
               )}
+              {customContent || children}
             </div>
 
             <div className="erp-modal-footer">

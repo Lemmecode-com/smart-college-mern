@@ -69,6 +69,18 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const [assigningStudentId, setAssigningStudentId] = useState(null);
   const [divisionError, setDivisionError] = useState(null);
 
+  // Bulk division assignment state
+  const [selectedApprovedStudents, setSelectedApprovedStudents] = useState(new Set());
+  const [showBulkDivisionModal, setShowBulkDivisionModal] = useState(false);
+  const [bulkDivision, setBulkDivision] = useState("");
+  const [bulkAssigningDivision, setBulkAssigningDivision] = useState(false);
+  const [collegeDivisions, setCollegeDivisions] = useState([]);
+  const [loadingCollegeDivisions, setLoadingCollegeDivisions] = useState(false);
+
+  // Bulk enrollment state
+  const [bulkEnrolling, setBulkEnrolling] = useState(false);
+  const [showBulkEnrollModal, setShowBulkEnrollModal] = useState(false);
+
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (principalMode && user.role !== "PRINCIPAL") {
@@ -362,6 +374,130 @@ const executeToggleActive = async () => {
       setAssigningDivision(false);
       setAssigningStudentId(null);
       setSelectedDivision("");
+    }
+  };
+
+  /* ================= BULK DIVISION ASSIGNMENT HANDLERS ================= */
+  const canAssignDivision = !principalMode && (user?.role === "COLLEGE_ADMIN" || user?.role === "ADMISSION_OFFICER");
+
+  const toggleStudent = (id) => {
+    const next = new Set(selectedApprovedStudents);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedApprovedStudents(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedApprovedStudents.size === paginatedStudents.length) {
+      setSelectedApprovedStudents(new Set());
+    } else {
+      setSelectedApprovedStudents(new Set(paginatedStudents.map((s) => s._id)));
+    }
+  };
+
+  const handleOpenBulkDivisionModal = async () => {
+    if (selectedApprovedStudents.size === 0) {
+      toast.warning("No students selected");
+      return;
+    }
+
+    setShowBulkDivisionModal(true);
+    setBulkDivision("");
+    setLoadingCollegeDivisions(true);
+
+    try {
+      const res = await api.get("/students/college-divisions");
+      const divs = res.data?.data?.divisions || [];
+      if (divs.length > 0) {
+        setCollegeDivisions(divs);
+      } else {
+        setCollegeDivisions(["A", "B", "C", "D"]);
+      }
+    } catch (err) {
+      setCollegeDivisions(["A", "B", "C", "D"]);
+    } finally {
+      setLoadingCollegeDivisions(false);
+    }
+  };
+
+  const executeBulkAssignDivision = async () => {
+    if (selectedApprovedStudents.size === 0 || !bulkDivision) return;
+
+    setBulkAssigningDivision(true);
+    try {
+      const { data } = await api.post("/students/bulk-assign-division", {
+        studentIds: [...selectedApprovedStudents],
+        division: bulkDivision,
+      });
+
+      const updatedCount = data?.data?.updatedCount ?? selectedApprovedStudents.size;
+      const failedCount = data?.data?.failedCount ?? 0;
+
+      if (updatedCount > 0) {
+        toast.success(`Successfully assigned Division ${bulkDivision} to ${updatedCount} student(s)!`);
+      }
+
+      if (failedCount > 0 && Array.isArray(data?.data?.failed)) {
+        toast.warning(
+          `${failedCount} student(s) could not be assigned: ` +
+            data.data.failed.map((f) => `${f.fullName || f.studentId} (${f.reason})`).join("; "),
+          { autoClose: 10000 }
+        );
+      }
+
+      setSelectedApprovedStudents(new Set());
+      setShowBulkDivisionModal(false);
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to bulk assign division");
+    } finally {
+      setBulkAssigningDivision(false);
+    }
+  };
+
+  /* ================= BULK ENROLLMENT HANDLERS ================= */
+  const handleOpenBulkEnrollModal = () => {
+    if (selectedApprovedStudents.size === 0) {
+      toast.warning("No students selected");
+      return;
+    }
+    setShowBulkEnrollModal(true);
+  };
+
+  const executeBulkConfirmEnrollment = async () => {
+    if (selectedApprovedStudents.size === 0) return;
+
+    setBulkEnrolling(true);
+    try {
+      const { data } = await api.post("/students/bulk-confirm-enrollment", {
+        studentIds: [...selectedApprovedStudents],
+      });
+
+      const enrolledCount = data?.enrolled?.length ?? 0;
+      const failedCount = data?.failed?.length ?? 0;
+
+      if (enrolledCount > 0) {
+        toast.success(`Successfully confirmed enrollment for ${enrolledCount} student(s)!`);
+      }
+
+      if (data?.parentAccounts?.parents?.length) {
+        setParentCreds(data.parentAccounts.parents);
+      }
+
+      if (failedCount > 0 && Array.isArray(data?.failed)) {
+        toast.warning(
+          `${failedCount} student(s) could not be enrolled: ` +
+            data.failed.map((f) => `${f.fullName || f.studentId} (${f.reason})`).join("; "),
+          { autoClose: 10000 }
+        );
+      }
+
+      setSelectedApprovedStudents(new Set());
+      setShowBulkEnrollModal(false);
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to bulk confirm enrollment");
+    } finally {
+      setBulkEnrolling(false);
     }
   };
 
@@ -685,8 +821,8 @@ const executeToggleActive = async () => {
       {/* CONTROLS SECTION */}
       <div className="erp-card animate-fade-in">
         <div className="erp-card-body">
-          <div className="controls-container">
-            <div className="search-box">
+          <div className="controls-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div className="search-box" style={{ flex: 1, minWidth: '260px' }}>
               <FaSearch className="search-icon" />
               <input
                 type="text"
@@ -699,6 +835,65 @@ const executeToggleActive = async () => {
                 aria-label="Search approved students"
               />
             </div>
+
+            {canAssignDivision && selectedApprovedStudents.size > 0 && (
+              <div className="bulk-division-action-bar animate-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <span className="badge badge-info" style={{ padding: '0.55rem 0.85rem', fontSize: '0.85rem', fontWeight: 600 }}>
+                  {selectedApprovedStudents.size} Student(s) Selected
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-bulk-division"
+                  onClick={handleOpenBulkDivisionModal}
+                  style={{
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                    color: 'white',
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 12px rgba(79, 70, 229, 0.28)',
+                  }}
+                >
+                  <FaUsers /> Assign Division ({selectedApprovedStudents.size})
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-bulk-enroll"
+                  onClick={handleOpenBulkEnrollModal}
+                  disabled={bulkEnrolling}
+                  style={{
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: 'white',
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.28)',
+                  }}
+                >
+                  {bulkEnrolling ? (
+                    <>
+                      <FaSyncAlt className="spin" /> Enrolling…
+                    </>
+                  ) : (
+                    <>
+                      <FaCheckDouble /> Confirm Enrollment ({selectedApprovedStudents.size})
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -713,6 +908,13 @@ const executeToggleActive = async () => {
   columns={columns}
   data={paginatedStudents}
   loading={false}
+  selection={canAssignDivision ? {
+    enabled: true,
+    selectedIds: selectedApprovedStudents,
+    getRowId: (row) => row._id,
+    onToggleAll: toggleSelectAll,
+    onToggle: toggleStudent,
+  } : undefined}
   emptyState={{
     icon: FaCheckCircle,
 
@@ -2168,6 +2370,196 @@ const executeToggleActive = async () => {
           </div>
         </div>
       )}
+
+      {/* BULK DIVISION ASSIGNMENT MODAL */}
+      {showBulkDivisionModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowBulkDivisionModal(false)}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "480px", borderRadius: "14px", overflow: "hidden" }}
+          >
+            <div className="modal-header modal-header--info">
+              <h3>
+                <FaUsers className="modal-header-icon" />
+                Assign Division to {selectedApprovedStudents.size} Student(s)
+              </h3>
+              <button
+                className="btn-close"
+                onClick={() => setShowBulkDivisionModal(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: "#4b5563", marginBottom: "1.2rem", fontSize: "0.92rem", lineHeight: 1.5 }}>
+                Select a division to assign to all <strong>{selectedApprovedStudents.size}</strong> selected student(s).
+              </p>
+
+              {loadingCollegeDivisions ? (
+                <div style={{ textAlign: "center", padding: "1.5rem" }}>
+                  <FaSyncAlt className="spin" style={{ fontSize: "1.5rem", color: "#4f46e5" }} />
+                  <p style={{ marginTop: "0.5rem", color: "#6b7280" }}>Loading valid divisions...</p>
+                </div>
+              ) : (
+                <div className="form-group" style={{ marginBottom: "1rem" }}>
+                  <label style={{ display: "block", fontWeight: 600, color: "#374151", marginBottom: "0.5rem" }}>
+                    Select Division
+                  </label>
+                  <select
+                    value={bulkDivision}
+                    onChange={(e) => setBulkDivision(e.target.value)}
+                    className="form-control"
+                    style={{ width: "100%", padding: "0.7rem", borderRadius: "8px", border: "1.5px solid #d1d5db", fontSize: "0.95rem" }}
+                  >
+                    <option value="">-- Choose Division --</option>
+                    {collegeDivisions.map((div) => (
+                      <option key={div} value={div}>
+                        Division {div}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowBulkDivisionModal(false)}
+                disabled={bulkAssigningDivision}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={executeBulkAssignDivision}
+                disabled={bulkAssigningDivision || loadingCollegeDivisions || !bulkDivision}
+              >
+                {bulkAssigningDivision ? (
+                  <>
+                    <FaSyncAlt className="spin" /> Assigning…
+                  </>
+                ) : (
+                  `Assign Division ${bulkDivision ? `(${bulkDivision})` : ""}`
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK CONFIRM ENROLLMENT MODAL */}
+      {showBulkEnrollModal && (() => {
+        const selectedList = students.filter((s) => selectedApprovedStudents.has(s._id));
+        const readyToEnroll = selectedList.filter((s) => s.division && s.status !== STUDENT_STATUS.ENROLLED);
+        const missingDivision = selectedList.filter((s) => !s.division && s.status !== STUDENT_STATUS.ENROLLED);
+        const alreadyEnrolled = selectedList.filter((s) => s.status === STUDENT_STATUS.ENROLLED);
+
+        return (
+          <div
+            className="modal-overlay"
+            onClick={() => setShowBulkEnrollModal(false)}
+          >
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "520px", borderRadius: "14px", overflow: "hidden" }}
+            >
+              <div className="modal-header" style={{ background: "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "white", padding: "1.2rem 1.5rem" }}>
+                <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  <FaCheckDouble /> Confirm Enrollment ({selectedApprovedStudents.size} Students)
+                </h3>
+                <button
+                  className="btn-close"
+                  onClick={() => setShowBulkEnrollModal(false)}
+                  aria-label="Close"
+                  style={{ color: "white" }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="modal-body" style={{ padding: "1.5rem" }}>
+                <p style={{ color: "#374151", marginBottom: "1rem", fontSize: "0.95rem", lineHeight: 1.5 }}>
+                  Are you sure you want to confirm enrollment for the selected students? This will officially finalize their admission, mark their status as <strong>ENROLLED</strong>, and generate parent portal credentials.
+                </p>
+
+                {/* Pre-flight status summary */}
+                <div style={{ background: "#f9fafb", borderRadius: "10px", padding: "1rem", border: "1px solid #e5e7eb", marginBottom: "1rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
+                    <span style={{ fontSize: "0.9rem", color: "#4b5563" }}>Total Selected:</span>
+                    <strong style={{ fontSize: "0.95rem" }}>{selectedApprovedStudents.size}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
+                    <span style={{ fontSize: "0.9rem", color: "#065f46" }}>✓ Ready to Enroll (Division Assigned):</span>
+                    <strong style={{ fontSize: "0.95rem", color: "#065f46" }}>{readyToEnroll.length}</strong>
+                  </div>
+                  {missingDivision.length > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
+                      <span style={{ fontSize: "0.9rem", color: "#b45309" }}>⚠ Missing Division (Will be skipped):</span>
+                      <strong style={{ fontSize: "0.95rem", color: "#b45309" }}>{missingDivision.length}</strong>
+                    </div>
+                  )}
+                  {alreadyEnrolled.length > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: "0.9rem", color: "#6b7280" }}>ℹ Already Enrolled:</span>
+                      <strong style={{ fontSize: "0.95rem", color: "#6b7280" }}>{alreadyEnrolled.length}</strong>
+                    </div>
+                  )}
+                </div>
+
+                {missingDivision.length > 0 && (
+                  <p style={{ color: "#b45309", fontSize: "0.85rem", background: "#fef3c7", padding: "0.6rem 0.8rem", borderRadius: "8px", margin: 0 }}>
+                    💡 Tip: {missingDivision.length} student(s) do not have a division yet. You can use <strong>Assign Division</strong> first to assign them divisions in bulk.
+                  </p>
+                )}
+              </div>
+
+              <div className="modal-footer" style={{ padding: "1rem 1.5rem", background: "#f9fafb", display: "flex", justifyContent: "flex-end", gap: "0.75rem", borderTop: "1px solid #e5e7eb" }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowBulkEnrollModal(false)}
+                  disabled={bulkEnrolling}
+                  style={{ padding: "0.6rem 1.2rem", borderRadius: "8px", fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={executeBulkConfirmEnrollment}
+                  disabled={bulkEnrolling || readyToEnroll.length === 0}
+                  style={{
+                    background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
+                    color: "white",
+                    padding: "0.6rem 1.4rem",
+                    borderRadius: "8px",
+                    fontWeight: 700,
+                    border: "none",
+                    cursor: readyToEnroll.length === 0 ? "not-allowed" : "pointer",
+                    opacity: readyToEnroll.length === 0 ? 0.6 : 1,
+                  }}
+                >
+                  {bulkEnrolling ? (
+                    <>
+                      <FaSyncAlt className="spin" /> Enrolling…
+                    </>
+                  ) : (
+                    `Confirm Enrollment (${readyToEnroll.length})`
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* PARENT CREDENTIALS MODAL */}
       {parentCreds && (

@@ -1413,3 +1413,107 @@ exports.sendCollegeEmailChangeConfirmation = async ({ to, newEmail, collegeName,
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Send Document Rejection Email with Secure Re-upload Link
+ */
+exports.sendDocumentRejectionEmail = async ({
+  to,
+  studentName,
+  collegeName,
+  collegeId,
+  documentTypeLabel,
+  reason,
+  reuploadUrl,
+  expiresAt,
+}) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const formattedExpiry = expiresAt
+    ? new Date(expiresAt).toLocaleDateString("en-IN", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "72 hours";
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: `Action Required: Re-upload ${documentTypeLabel} - ${collegeName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; line-height: 1.6;">
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; padding: 25px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h2 style="margin: 0; font-size: 22px;">Document Verification Update</h2>
+          <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">${collegeName}</p>
+        </div>
+
+        <div style="background: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px;">
+          <p style="font-size: 16px;">Dear <b>${studentName}</b>,</p>
+
+          <p>
+            During the admission verification process for your application at <b>${collegeName}</b>,
+            your submitted document <b>"${documentTypeLabel}"</b> was not accepted and requires replacement.
+          </p>
+
+          <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 8px; padding: 15px; margin: 20px 0;">
+            <h4 style="margin: 0 0 6px; color: #9f1239; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
+              ⚠️ Reason for Document Rejection:
+            </h4>
+            <p style="margin: 0; color: #be123c; font-size: 15px; font-weight: 500;">
+              ${reason || "Please provide a clearer and valid copy of this document."}
+            </p>
+          </div>
+
+          <p style="font-size: 15px;">
+            Please click the button below to upload a fresh, clear copy of this document directly from your phone or computer. 
+            <b>No login or password is required.</b>
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${reuploadUrl}"
+               style="background: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);">
+              📤 Upload Corrected Document
+            </a>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; font-size: 13px; color: #64748b;">
+            <p style="margin: 0 0 6px;"><b>⏳ Link Validity:</b> This secure link is valid until <b>${formattedExpiry}</b>.</p>
+            <p style="margin: 0 0 6px;"><b>📄 Supported Formats:</b> PDF, JPG, JPEG, PNG, DOC, DOCX (Max 10MB).</p>
+            <p style="margin: 0;">If the button above does not work, copy and paste this link into your browser:<br/>
+              <a href="${reuploadUrl}" style="color: #2563eb; word-break: break-all;">${reuploadUrl}</a>
+            </p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;" />
+
+          <p style="font-size: 13px; color: #64748b; margin: 0; text-align: center;">
+            This is an automated notification from the Admission Office of ${collegeName}. Please do not reply directly to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Document rejection email sent with re-upload link", {
+      recipient: to.split("@")[0] + "@***",
+      messageId: info.messageId,
+    });
+    return { success: true };
+  } catch (error) {
+    logger.logError("❌ Failed to send document rejection email", {
+      error: error.message,
+      code: error.code,
+    });
+    return { success: false, error: error.message };
+  }
+};

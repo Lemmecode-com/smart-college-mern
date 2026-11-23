@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const Department = require("../models/department.model");
@@ -1307,9 +1308,87 @@ exports.getRegisteredStudents = async (req, res, next) => {
       .skip(skip)
       .sort({ createdAt: -1 });
 
+    // Fetch required document types for the college
+    const requiredTypes = await DocumentService.getRequiredDocumentTypes(req.college_id);
+
+    // Batch query active documents belonging to this page of students
+    const studentIds = students.map((s) => s._id);
+    const allDocs = await Document.find({
+      ownerType: "Student",
+      ownerId: { $in: studentIds },
+      status: "ACTIVE",
+    }).select("ownerId documentType verificationStatus").lean();
+
+    const docsByStudent = {};
+    for (const doc of allDocs) {
+      const sid = doc.ownerId.toString();
+      if (!docsByStudent[sid]) docsByStudent[sid] = {};
+      docsByStudent[sid][doc.documentType] = doc;
+    }
+
+    const studentsWithSummary = students.map((s) => {
+      const studentObj = s.toObject();
+      const studentDocs = docsByStudent[s._id.toString()] || {};
+
+      const totalRequired = requiredTypes.length;
+      let uploadedRequired = 0;
+      let verifiedRequired = 0;
+      const missingTypes = [];
+      const unverifiedTypes = [];
+      let hasRejected = false;
+
+      for (const doc of Object.values(studentDocs)) {
+        if (doc.verificationStatus === "REJECTED") {
+          hasRejected = true;
+        }
+      }
+
+      if (totalRequired > 0) {
+        for (const type of requiredTypes) {
+          const doc = studentDocs[type];
+          if (doc) {
+            uploadedRequired++;
+            if (doc.verificationStatus === "VERIFIED") {
+              verifiedRequired++;
+            } else {
+              unverifiedTypes.push(type);
+            }
+          } else {
+            missingTypes.push(type);
+            unverifiedTypes.push(type);
+          }
+        }
+      } else {
+        const uploadedList = Object.values(studentDocs);
+        uploadedRequired = uploadedList.length;
+        verifiedRequired = uploadedList.filter((d) => d.verificationStatus === "VERIFIED").length;
+      }
+
+      let docStatus = "ALL_VERIFIED";
+      if (hasRejected) {
+        docStatus = "REJECTED";
+      } else if (missingTypes.length > 0) {
+        docStatus = "MISSING";
+      } else if (unverifiedTypes.length > 0 || (totalRequired > 0 && verifiedRequired < totalRequired)) {
+        docStatus = "PENDING_VERIFICATION";
+      }
+
+      studentObj.documentSummary = {
+        totalRequired,
+        uploadedRequired,
+        verifiedRequired,
+        missingTypes,
+        unverifiedTypes,
+        hasRejected,
+        status: docStatus,
+      };
+
+      return studentObj;
+    });
+
     ApiResponse.paginate(
       res,
-      students,
+      studentsWithSummary,
       {
         page,
         limit,
@@ -1818,5 +1897,137 @@ exports.searchStudents = async (req, res) => {
       success: false,
       message: "Failed to search students"
     });
+  }
+};
+
+/**
+ * COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL: Get all distinct divisions defined in college timetables
+ * GET /api/students/college-divisions
+ */
+exports.getCollegeDivisions = async (req, res, next) => {
+  try {
+    const divisions = await Timetable.find({
+      college_id: req.college_id,
+      division: { $ne: null, $ne: "" },
+      status: { $ne: "ARCHIVED" },
+    }).distinct("division");
+
+    ApiResponse.success(
+      res,
+      { divisions: divisions.sort() },
+      "College divisions fetched successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL: Bulk assign division to students
+ * POST /api/students/bulk-assign-division
+ * Body: { studentIds: [...], division: "A" }
+ */
+exports.bulkAssignDivision = async (req, res, next) => {
+  try {
+    const { studentIds, division } = req.body;
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      throw new AppError("Provide studentIds array in request body", 400, "INVALID_INPUT");
+    }
+
+    if (studentIds.length > 200) {
+      throw new AppError("Cannot process more than 200 students at a time", 400, "BATCH_LIMIT_EXCEEDED");
+    }
+
+    const divisionValue = division?.toString().trim().toUpperCase() || null;
+    if (!divisionValue) {
+      throw new AppError("Division is required", 400, "INVALID_INPUT");
+    }
+
+    const validStudentIds = studentIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validStudentIds.length === 0) {
+      throw new AppError("No valid student IDs provided", 400, "INVALID_INPUT");
+    }
+
+    const students = await Student.find({
+      _id: { $in: validStudentIds },
+      college_id: req.college_id,
+      status: { $ne: "DELETED" },
+    });
+
+    if (students.length === 0) {
+      throw new AppError("No matching students found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    const DIVISION_ASSIGNABLE_STATUSES = [
+      STUDENT_STATUS.APPROVED,
+      STUDENT_STATUS.OFFER_MADE,
+      STUDENT_STATUS.SEAT_CONFIRMED,
+    ];
+
+    const results = { updated: [], failed: [] };
+
+    for (const student of students) {
+      if (!DIVISION_ASSIGNABLE_STATUSES.includes(student.status)) {
+        results.failed.push({
+          studentId: student._id,
+          fullName: student.fullName,
+          reason: `Division can only be assigned to approved students. Current status: ${student.status}`,
+        });
+        continue;
+      }
+
+      // Check if student's course/semester has timetables configured
+      const courseTimetablesCount = await Timetable.countDocuments({
+        college_id: student.college_id,
+        course_id: student.course_id,
+        semester: student.currentSemester,
+        status: { $ne: "ARCHIVED" },
+      });
+
+      if (courseTimetablesCount > 0) {
+        const validTimetable = await Timetable.findOne({
+          college_id: student.college_id,
+          department_id: student.department_id,
+          course_id: student.course_id,
+          semester: student.currentSemester,
+          academicYear: student.currentAcademicYear,
+          division: divisionValue,
+          status: { $ne: "ARCHIVED" },
+        });
+
+        if (!validTimetable) {
+          results.failed.push({
+            studentId: student._id,
+            fullName: student.fullName,
+            reason: `Division "${divisionValue}" is not valid for timetable in this student's course/semester`,
+          });
+          continue;
+        }
+      }
+
+      student.division = divisionValue;
+      await student.save();
+
+      results.updated.push({
+        studentId: student._id,
+        fullName: student.fullName,
+        division: divisionValue,
+      });
+    }
+
+    ApiResponse.success(
+      res,
+      {
+        totalRequested: studentIds.length,
+        updatedCount: results.updated.length,
+        failedCount: results.failed.length,
+        updated: results.updated,
+        failed: results.failed,
+      },
+      `Successfully assigned Division ${divisionValue} to ${results.updated.length} student(s)`
+    );
+  } catch (error) {
+    next(error);
   }
 };

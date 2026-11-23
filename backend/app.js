@@ -221,6 +221,9 @@ app.use(
 /* ================= PUBLIC DEPARTMENT & COURSE ROUTES ================= */
 app.use("/api/public", require("./src/routes/public.department.course.routes"));
 
+/* ================= PUBLIC RE-UPLOAD DOCUMENT ROUTES ================= */
+app.use("/api/public/documents", require("./src/routes/publicDocument.routes"));
+
 /* ================= DOCUMENT CONFIGURATION ================= */
 app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 

@@ -518,7 +518,7 @@ function InstallmentTable({ installments, studentId, onMarkPaid, canMarkPaid }) 
       >
         <thead>
           <tr>
-            <th scope="col">#</th>
+            <th scope="col" className="text-left">Sr.NO.</th>
             <th scope="col">Name</th>
             <th scope="col">Amount</th>
             <th scope="col">Due Date</th>
