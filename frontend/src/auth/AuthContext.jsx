@@ -212,7 +212,20 @@ const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED", 
         errorData.error?.code ||
         null,
       user,
-      lockedUntil: errorData.error?.data?.lockedUntil,
+      lockedUntil:
+        errorData.data?.lockedUntil ||
+        errorData.error?.data?.lockedUntil ||
+        errorData.details?.lockedUntil ||
+        errorData.lockedUntil,
+      attemptsRemaining:
+        errorData.data?.attemptsRemaining ??
+        errorData.details?.attemptsRemaining ??
+        errorData.error?.data?.attemptsRemaining ??
+        errorData.attemptsRemaining,
+      retryAfter:
+        errorData.data?.retryAfter ??
+        errorData.details?.retryAfter ??
+        errorData.error?.data?.retryAfter,
     };
   }
   };

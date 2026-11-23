@@ -12,6 +12,7 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaExclamationCircle,
+  FaExclamationTriangle,
   FaRedo,
   FaTimes,
   FaShieldAlt,
@@ -47,6 +48,7 @@ export default function VerifyOTP() {
   const [focusedField, setFocusedField] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [otpAttemptsRemaining, setOtpAttemptsRemaining] = useState(null);
 
   useEffect(() => {
     if (timer > 0) {
@@ -67,6 +69,7 @@ export default function VerifyOTP() {
     if (!canResend) return;
     setLoading(true);
     setError("");
+    setOtpAttemptsRemaining(null);
     try {
       await api.post("/auth/forgot-password", { email: formData.email });
       toast.success("✅ OTP resent successfully!", { position: "top-right", autoClose: 3000 });
@@ -111,8 +114,31 @@ export default function VerifyOTP() {
         msg = backendData.message;
       }
 
-      setError(msg);
-      toast.error("❌ " + msg, { position: "top-right", autoClose: 5000 });
+      const remainingFromPayload =
+        backendData?.details?.attemptsRemaining ??
+        backendData?.error?.data?.attemptsRemaining ??
+        backendData?.attemptsRemaining;
+
+      if (typeof remainingFromPayload === "number") {
+        setOtpAttemptsRemaining(remainingFromPayload);
+      } else {
+        const match = msg.match(/Only\s+(\d+)\s+attempt/i);
+        if (match) {
+          setOtpAttemptsRemaining(parseInt(match[1], 10));
+        }
+      }
+
+      if (backendData?.code === "OTP_MAX_ATTEMPTS" || msg.includes("OTP blocked")) {
+        setOtpAttemptsRemaining(0);
+      }
+
+      if (msg.includes("Caution:")) {
+        setError("Invalid OTP");
+        toast.error("❌ Invalid OTP", { position: "top-right", autoClose: 5000 });
+      } else {
+        setError(msg);
+        toast.error("❌ " + msg, { position: "top-right", autoClose: 5000 });
+      }
     } finally {
       setLoading(false);
     }
@@ -293,6 +319,35 @@ export default function VerifyOTP() {
                 <div className="vo-input-bar" />
               </div>
             </motion.div>
+
+            {/* Caution Alert when 1 or 2 attempts remain */}
+            {otpAttemptsRemaining !== null &&
+              (otpAttemptsRemaining === 1 || otpAttemptsRemaining === 2) && (
+                <div className="vo-caution-box">
+                  <FaExclamationTriangle className="vo-caution-icon" />
+                  <div className="vo-caution-content">
+                    <span className="vo-caution-title">
+                      Caution: Only {otpAttemptsRemaining} attempt{otpAttemptsRemaining > 1 ? "s" : ""} remaining!
+                    </span>
+                    <span className="vo-caution-sub">
+                      Entering an incorrect OTP again will permanently block this code.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+            {/* Blocked Alert when attempts exhausted */}
+            {otpAttemptsRemaining === 0 && (
+              <div className="vo-blocked-box">
+                <FaTimes className="vo-blocked-icon" />
+                <div className="vo-blocked-content">
+                  <span className="vo-blocked-title">⛔ OTP Blocked</span>
+                  <span className="vo-blocked-sub">
+                    This OTP has been permanently invalidated. Please click below to request a fresh OTP.
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* New Password */}
             <motion.div
@@ -588,6 +643,69 @@ export default function VerifyOTP() {
         .vo-alert__icon { flex-shrink:0; font-size:.9rem; margin-top:1px; }
         .vo-alert__close { margin-left:auto; background:none; border:none; color:inherit; cursor:pointer; opacity:.5; transition:opacity .2s; display:flex; align-items:center; padding:2px; flex-shrink:0; }
         .vo-alert__close:hover { opacity:1; }
+
+        .vo-caution-box {
+          background: rgba(245, 158, 11, 0.08);
+          border: 1.5px solid rgba(245, 158, 11, 0.35);
+          border-radius: 9px;
+          padding: 0.65rem 0.85rem;
+          margin-bottom: 0.9rem;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.65rem;
+          color: #d97706;
+        }
+        .vo-caution-icon {
+          font-size: 1.1rem;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .vo-caution-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+        }
+        .vo-caution-title {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #b45309;
+        }
+        .vo-caution-sub {
+          font-size: 0.72rem;
+          color: #92400e;
+          line-height: 1.35;
+        }
+        .vo-blocked-box {
+          background: rgba(239, 68, 68, 0.08);
+          border: 1.5px solid rgba(239, 68, 68, 0.35);
+          border-radius: 9px;
+          padding: 0.65rem 0.85rem;
+          margin-bottom: 0.9rem;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.65rem;
+          color: #ef4444;
+        }
+        .vo-blocked-icon {
+          font-size: 1.1rem;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .vo-blocked-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+        }
+        .vo-blocked-title {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #b91c1c;
+        }
+        .vo-blocked-sub {
+          font-size: 0.72rem;
+          color: #991b1b;
+          line-height: 1.35;
+        }
 
         /* Form */
         .vo-form { flex:1; display:flex; flex-direction:column; }

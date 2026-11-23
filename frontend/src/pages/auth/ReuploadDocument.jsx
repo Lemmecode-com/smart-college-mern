@@ -438,7 +438,7 @@ export default function ReuploadDocument() {
                   <FaExclamationTriangle className="caution-alert-icon" />
                   <div className="caution-alert-body">
                     <span className="caution-alert-title">
-                      ⚠️ Caution: Only {attemptsRemaining} upload attempt{attemptsRemaining > 1 ? "s" : ""} remaining!
+                      Caution: Only {attemptsRemaining} upload attempt{attemptsRemaining > 1 ? "s" : ""} remaining!
                     </span>
                     <span className="caution-alert-text">
                       Subsequent failed attempts will temporarily lock file uploads for 15 minutes.

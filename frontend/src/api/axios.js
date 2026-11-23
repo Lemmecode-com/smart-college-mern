@@ -113,13 +113,14 @@ api.interceptors.response.use(
   },
   (error) => {
     // 🔒 STANDARDIZE ERROR FORMAT
-    // Backend sends: { success: false, error: { code, message, details } }
-    // Transform to: { success: false, message, code, details }
+    // Backend sends: { success: false, error: { code, message, details, data } }
+    // Transform to: { success: false, message, code, details, data }
     if (error.response?.data?.error) {
       const { error: errorObj } = error.response.data;
       error.response.data.message = errorObj.message;
       error.response.data.code = errorObj.code;
       error.response.data.details = errorObj.details;
+      error.response.data.data = errorObj.data;
     }
 
     // Handle 401 errors globally

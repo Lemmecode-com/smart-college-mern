@@ -120,8 +120,9 @@ exports.verifyOTP = async (email, otp) => {
     if (record.failedAttempts >= record.maxAttempts) {
       return {
         valid: false,
-        message: "OTP blocked",
+        message: "OTP blocked due to too many failed attempts. Please request a new OTP.",
         code: "OTP_MAX_ATTEMPTS",
+        attemptsRemaining: 0,
       };
     }
 
@@ -137,15 +138,21 @@ exports.verifyOTP = async (email, otp) => {
         await PasswordReset.findByIdAndUpdate(record._id, { isUsed: true });
         return {
           valid: false,
-          message: "OTP blocked",
+          message: "OTP blocked due to too many failed attempts. Please request a new OTP.",
           code: "OTP_MAX_ATTEMPTS",
+          attemptsRemaining: 0,
         };
       }
 
+      const remaining = Math.max(0, updated.maxAttempts - updated.failedAttempts);
       return {
         valid: false,
-        message: "Invalid OTP",
+        message:
+          remaining <= 2
+            ? `Invalid OTP. Caution: Only ${remaining} attempt${remaining > 1 ? "s" : ""} remaining before this OTP is permanently blocked!`
+            : "Invalid OTP",
         code: "INVALID_OTP",
+        attemptsRemaining: remaining,
       };
     }
 

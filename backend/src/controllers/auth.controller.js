@@ -32,6 +32,40 @@ const isAccountLocked = (record) => {
   return new Date() < new Date(record.lockedUntil);
 };
 
+const throwAccountLockedError = (record) => {
+  const remainingSeconds = Math.max(
+    0,
+    Math.ceil((new Date(record.lockedUntil) - new Date()) / 1000)
+  );
+  const remainingMinutes = Math.max(1, Math.ceil(remainingSeconds / 60));
+  const remainingLabel = remainingMinutes === 1 ? "minute" : "minutes";
+  throw new AppError(
+    `Account locked due to multiple failed login attempts. Try again in ${remainingMinutes} ${remainingLabel}.`,
+    423,
+    "ACCOUNT_LOCKED",
+    {
+      lockedUntil: record.lockedUntil.toISOString(),
+      retryAfter: remainingSeconds,
+      attemptsRemaining: 0,
+    }
+  );
+};
+
+const throwInvalidCredentialsError = (nextAttempts) => {
+  const remaining = Math.max(0, MAX_LOGIN_ATTEMPTS - nextAttempts);
+  if (remaining <= 2 && remaining > 0) {
+    throw new AppError(
+      `Invalid credentials. Caution: Only ${remaining} login attempt${remaining > 1 ? "s" : ""} remaining before your account is temporarily locked!`,
+      401,
+      "INVALID_CREDENTIALS",
+      { attemptsRemaining: remaining }
+    );
+  }
+  throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS", {
+    attemptsRemaining: remaining,
+  });
+};
+
 const incrementLoginAttempts = async (Model, id) => {
   const attempts = (await Model.findById(id).select("loginAttempts")) || {};
   const next = (attempts.loginAttempts || 0) + 1;
@@ -59,23 +93,16 @@ exports.login = async (req, res, next) => {
     let user = await User.findOne({ email });
     if (user) {
       if (isAccountLocked(user)) {
-        const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
-        const remainingLabel = remaining === 1 ? "minute" : "minutes";
-        throw new AppError(
-          `Account locked due to multiple failed login attempts. Try again in ${remaining} ${remainingLabel}.`,
-          423,
-          "ACCOUNT_LOCKED",
-          { lockedUntil: user.lockedUntil.toISOString() },
-        );
+        throwAccountLockedError(user);
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        await incrementLoginAttempts(User, user._id);
+        const nextAttempts = await incrementLoginAttempts(User, user._id);
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
-        throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+        throwInvalidCredentialsError(nextAttempts);
       }
 
       await resetLoginAttempts(User, user._id);
@@ -111,23 +138,16 @@ exports.login = async (req, res, next) => {
     let teacher = await Teacher.findOne({ email, status: "ACTIVE" });
     if (teacher) {
       if (isAccountLocked(teacher)) {
-        const remaining = Math.ceil((new Date(teacher.lockedUntil) - new Date()) / 60000);
-        const remainingLabel = remaining === 1 ? "minute" : "minutes";
-        throw new AppError(
-          `Account locked due to multiple failed login attempts. Try again in ${remaining} ${remainingLabel}.`,
-          423,
-          "ACCOUNT_LOCKED",
-          { lockedUntil: teacher.lockedUntil.toISOString() },
-        );
+        throwAccountLockedError(teacher);
       }
 
       const isMatch = await bcrypt.compare(password, teacher.password);
       if (!isMatch) {
-        await incrementLoginAttempts(Teacher, teacher._id);
+        const nextAttempts = await incrementLoginAttempts(Teacher, teacher._id);
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
-        throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+        throwInvalidCredentialsError(nextAttempts);
       }
 
       await resetLoginAttempts(Teacher, teacher._id);
@@ -182,22 +202,16 @@ exports.login = async (req, res, next) => {
 
       if (user) {
         if (isAccountLocked(user)) {
-          const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
-          throw new AppError(
-            `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
-            423,
-            "ACCOUNT_LOCKED",
-            { lockedUntil: user.lockedUntil.toISOString() },
-          );
+          throwAccountLockedError(user);
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          await incrementLoginAttempts(User, user._id);
+          const nextAttempts = await incrementLoginAttempts(User, user._id);
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
-          throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+          throwInvalidCredentialsError(nextAttempts);
         }
 
         await resetLoginAttempts(User, user._id);
@@ -222,22 +236,16 @@ exports.login = async (req, res, next) => {
 
       if (user) {
         if (isAccountLocked(user)) {
-          const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
-          throw new AppError(
-            `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
-            423,
-            "ACCOUNT_LOCKED",
-            { lockedUntil: user.lockedUntil.toISOString() },
-          );
+          throwAccountLockedError(user);
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          await incrementLoginAttempts(User, user._id);
+          const nextAttempts = await incrementLoginAttempts(User, user._id);
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
-          throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+          throwInvalidCredentialsError(nextAttempts);
         }
 
         await resetLoginAttempts(User, user._id);
@@ -554,7 +562,9 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
 
     if (!result.valid) {
       const errorCode = result.code === "OTP_MAX_ATTEMPTS" ? "OTP_MAX_ATTEMPTS" : "INVALID_OTP";
-      throw new AppError(result.message, 400, errorCode);
+      throw new AppError(result.message, 400, errorCode, {
+        attemptsRemaining: result.attemptsRemaining,
+      });
     }
 
     // Find user and update password
