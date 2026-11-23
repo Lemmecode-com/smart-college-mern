@@ -227,25 +227,6 @@ const paymentLimiter = rateLimit({
 });
 
 /**
- * Payment Status Polling Limiter - Higher limit for polling
- * Allows frequent polling (every 2-3 seconds) without hitting rate limit
- * For development: 500 requests per minute
- * For production: 200 requests per 5 minutes
- */
-const paymentStatusLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : 5 * 60 * 1000,
-  max: process.env.NODE_ENV === "development" ? 500 : 200,
-  message: {
-    success: false,
-    message: "Payment status polling rate limit exceeded, please wait",
-    code: "RATE_LIMIT_EXCEEDED",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => generateRateLimitKey(req),
-});
-
-/**
  * Health Check Rate Limiter - Higher limit for monitoring
  * Always tracks by IP (health checks don't have authentication)
  */
@@ -260,23 +241,6 @@ const healthCheckLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => `ip:${normalizeIp(req)}`,
-});
-
-/**
- * API Limiter - For general API routes (slightly higher than global)
- * For production: 100 requests per 5 minutes
- */
-const apiLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 100, // Limit each user/IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: "Too many API requests, please try again after 5 minutes",
-    code: "RATE_LIMIT_EXCEEDED",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => generateRateLimitKey(req),
 });
 
 /**
@@ -438,9 +402,7 @@ module.exports = {
   authLimiter,
   passwordResetLimiter,
   paymentLimiter,
-  paymentStatusLimiter,
   healthCheckLimiter,
-  apiLimiter,
   publicLimiter,
   webhookLimiter,
   sessionLimiter,

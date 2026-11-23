@@ -13,7 +13,6 @@ const {
   healthCheckLimiter,
   publicLimiter,
   paymentLimiter,
-  paymentStatusLimiter,
   webhookLimiter,
 } = require("./src/middlewares/rateLimit.middleware");
 const logger = require("./src/utils/logger");
