@@ -191,8 +191,10 @@ exports.verifyEmailChange = async (req, res, next) => {
       return res.status(400).json({
         message: isBlocked
           ? "OTP blocked due to too many failed attempts. Please request a new OTP."
-          : "Invalid or expired OTP. Please request a new one.",
+          : (otpResult.message || "Invalid or expired OTP. Please request a new one."),
         code: isBlocked ? "OTP_MAX_ATTEMPTS" : "INVALID_OTP",
+        details: { attemptsRemaining: otpResult.attemptsRemaining ?? 0 },
+        attemptsRemaining: otpResult.attemptsRemaining ?? 0,
       });
     }
 

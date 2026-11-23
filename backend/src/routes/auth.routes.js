@@ -83,6 +83,6 @@ router.post("/change-password", authLimiter, validateChangePassword, changePassw
 
 // 🔐 Centralized Email Change
 router.post("/change-email/request", auth, validateEmailChangeRequest, requestEmailChange);
-router.post("/change-email/verify", auth, validateEmailChangeVerify, verifyEmailChange);
+router.post("/change-email/verify", auth, authLimiter, validateEmailChangeVerify, verifyEmailChange);
 
 module.exports = router;

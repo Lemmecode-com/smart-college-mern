@@ -504,7 +504,10 @@ exports.requestPasswordReset = async (req, res, next) => {
     // ✅ CHECK RATE LIMIT (Prevent duplicate requests)
     const rateLimit = await checkRateLimit(email);
     if (!rateLimit.allowed) {
-      throw new AppError(rateLimit.message, 429, "RATE_LIMIT_EXCEEDED");
+      throw new AppError(rateLimit.message, 429, "RATE_LIMIT_EXCEEDED", {
+        attemptsRemaining: 0,
+        retryAfter: rateLimit.retryAfter,
+      });
     }
 
     // ✅ Check if there's already an active OTP for this email
@@ -522,6 +525,7 @@ exports.requestPasswordReset = async (req, res, next) => {
         success: true,
         message: `OTP already sent! Please check your email. Valid for ${minutesLeft} more minutes.`,
         otpAlreadySent: true,
+        attemptsRemaining: rateLimit.attemptsRemaining,
       });
     }
 
@@ -531,6 +535,7 @@ exports.requestPasswordReset = async (req, res, next) => {
     res.json({
       success: true,
       message: "OTP sent successfully to your email.",
+      attemptsRemaining: Math.max(0, (rateLimit.attemptsRemaining || 1) - 1),
     });
   } catch (error) {
     console.error("❌ Password Reset Error:", error.message);

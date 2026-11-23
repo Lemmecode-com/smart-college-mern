@@ -1,9 +1,10 @@
 import { useState, useEffect, useContext } from "react";
 import { Container, Row, Col, Card, Form, Button, Alert } from "react-bootstrap";
-import { FaKey, FaCheckCircle, FaExclamationTriangle, FaArrowLeft, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaKey, FaCheckCircle, FaExclamationTriangle, FaArrowLeft, FaEye, FaEyeSlash, FaLock } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import { AuthContext } from "../../auth/AuthContext";
+import useCountdown from "../../hooks/useCountdown";
 
 export default function ChangePassword() {
   const navigate = useNavigate();
@@ -23,6 +24,21 @@ export default function ChangePassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [lockRemaining, setLockRemaining] = useState(0);
+  const [attemptsRemaining, setAttemptsRemaining] = useState(null);
+
+  const {
+    seconds: lockSeconds,
+    formatTime: lockTime,
+    reset: resetLockCountdown,
+  } = useCountdown(lockRemaining, () => {
+    setError(null);
+    setLockRemaining(0);
+  });
+
+  const isLocked =
+    (typeof lockSeconds === "number" && lockSeconds > 0) ||
+    (typeof lockRemaining === "number" && lockRemaining > 0);
 
 // Get userId: from sessionStorage (first-login) OR from auth context (logged-in users)
    useEffect(() => {
@@ -61,6 +77,7 @@ export default function ChangePassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLocked) return;
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -107,13 +124,38 @@ export default function ChangePassword() {
         sessionStorage.removeItem("userId");
         // Clear form
         setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        setAttemptsRemaining(null);
       }
     } catch (err) {
-      const apiErrors = err.response?.data?.errors;
-      const validationMsg = Array.isArray(apiErrors) && apiErrors.length > 0
-        ? apiErrors[0].message
-        : null;
-      setError(validationMsg || err.response?.data?.message || "Failed to change password");
+      const backendData = err.response?.data;
+      const errorCode = backendData?.code;
+      const retryAfter =
+        backendData?.retryAfter ??
+        backendData?.data?.retryAfter ??
+        backendData?.details?.retryAfter;
+
+      const remaining =
+        backendData?.attemptsRemaining ??
+        backendData?.data?.attemptsRemaining ??
+        backendData?.details?.attemptsRemaining;
+
+      if (typeof remaining === "number") {
+        setAttemptsRemaining(remaining);
+      }
+
+      if (errorCode === "RATE_LIMIT_EXCEEDED" || err.response?.status === 429) {
+        setAttemptsRemaining(0);
+        const seconds = typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 900;
+        setLockRemaining(seconds);
+        resetLockCountdown(seconds);
+        setError("Too many password change attempts. Please wait for the security cooldown to complete.");
+      } else {
+        const apiErrors = backendData?.errors;
+        const validationMsg = Array.isArray(apiErrors) && apiErrors.length > 0
+          ? apiErrors[0].message
+          : null;
+        setError(validationMsg || backendData?.message || "Failed to change password");
+      }
     } finally {
       setLoading(false);
     }
@@ -134,8 +176,24 @@ export default function ChangePassword() {
                   </p>
                 </div>
 
-                {error && (
+                {isLocked && (
                   <Alert variant="danger" className="mb-3">
+                    <FaLock className="me-2" />
+                    <strong>Action Locked:</strong> Too many attempts. Try again in <strong>{lockTime}</strong>
+                  </Alert>
+                )}
+
+                {attemptsRemaining !== null &&
+                  (attemptsRemaining === 1 || attemptsRemaining === 2) &&
+                  !isLocked && (
+                    <Alert variant="warning" className="mb-3">
+                      <FaExclamationTriangle className="me-2" />
+                      <strong>Caution:</strong> Only {attemptsRemaining} attempt{attemptsRemaining > 1 ? "s" : ""} remaining! Repeated incorrect attempts will temporarily lock password changes for 15 minutes.
+                    </Alert>
+                  )}
+
+                {error && !isLocked && (
+                  <Alert variant="danger" className="mb-3" dismissible onClose={() => setError(null)}>
                     <FaExclamationTriangle className="me-2" />
                     {error}
                   </Alert>
@@ -162,13 +220,14 @@ export default function ChangePassword() {
                         value={formData.currentPassword}
                         onChange={handleChange}
                         required
-                        disabled={loading || success}
+                        disabled={loading || success || isLocked}
                       />
                       <button
                         type="button"
                         className="password-toggle"
                         onClick={() => handleTogglePassword("currentPassword")}
                         aria-label={showPassword.currentPassword ? "Hide password" : "Show password"}
+                        disabled={isLocked}
                       >
                         {showPassword.currentPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
@@ -185,13 +244,14 @@ export default function ChangePassword() {
                         value={formData.newPassword}
                         onChange={handleChange}
                         required
-                        disabled={loading || success}
+                        disabled={loading || success || isLocked}
                       />
                       <button
                         type="button"
                         className="password-toggle"
                         onClick={() => handleTogglePassword("newPassword")}
                         aria-label={showPassword.newPassword ? "Hide password" : "Show password"}
+                        disabled={isLocked}
                       >
                         {showPassword.newPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
@@ -211,13 +271,14 @@ export default function ChangePassword() {
                         value={formData.confirmPassword}
                         onChange={handleChange}
                         required
-                        disabled={loading || success}
+                        disabled={loading || success || isLocked}
                       />
                       <button
                         type="button"
                         className="password-toggle"
                         onClick={() => handleTogglePassword("confirmPassword")}
                         aria-label={showPassword.confirmPassword ? "Hide password" : "Show password"}
+                        disabled={isLocked}
                       >
                         {showPassword.confirmPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
@@ -225,10 +286,20 @@ export default function ChangePassword() {
                   </Form.Group>
 
                   <div className="d-grid gap-2">
-                    <Button variant="primary" type="submit" disabled={loading || success}>
-                      {loading ? "Changing Password..." : (
+                    <Button
+                      variant={isLocked ? "danger" : "primary"}
+                      type="submit"
+                      disabled={loading || success || isLocked}
+                    >
+                      {loading ? (
+                        "Changing Password..."
+                      ) : isLocked ? (
                         <>
-                          <FaCheckCircle /> Change Password
+                          <FaLock className="me-2" /> Locked — retry in {lockTime}
+                        </>
+                      ) : (
+                        <>
+                          <FaCheckCircle className="me-2" /> Change Password
                         </>
                       )}
                     </Button>

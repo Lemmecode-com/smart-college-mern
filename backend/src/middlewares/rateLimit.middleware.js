@@ -110,20 +110,28 @@ const authLimiter = rateLimit({
     const windowMinutes = Math.max(1, Math.round(windowMs / 60000));
     const windowLabel = windowMinutes === 1 ? "minute" : "minutes";
     const max = typeof options?.max === 'number' ? options.max : 5;
+    const retryAfter = Math.ceil(windowMs / 1000);
     logger.logWarning(`RATE LIMIT HIT - Auth endpoint from ${identifierType}: ${identifier}`, {
       identifier,
       type: identifierType,
       window: `${windowMinutes} minutes`,
       max,
       endpoint: "auth",
+      retryAfter,
     });
     res.status(429).json({
       success: false,
       message:
         process.env.NODE_ENV === "development"
-          ? "Too many login attempts, please wait 1 minute (Development Mode)"
-          : `Too many login attempts, please try again after ${windowMinutes} ${windowLabel}`,
+          ? "Too many attempts, please wait 1 minute (Development Mode)"
+          : `Too many attempts, please try again after ${windowMinutes} ${windowLabel}`,
       code: "RATE_LIMIT_EXCEEDED",
+      retryAfter,
+      attemptsRemaining: 0,
+      data: {
+        retryAfter,
+        attemptsRemaining: 0,
+      },
     });
   },
 });
@@ -149,19 +157,32 @@ const passwordResetLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => `ip:${normalizeIp(req)}`,
   handler: (req, res, next, options) => {
+    const windowMs = typeof options?.windowMs === "number" ? options.windowMs : 60 * 60 * 1000;
+    const retryAfter = Math.ceil(windowMs / 1000);
+    const windowMinutes = Math.max(1, Math.round(windowMs / 60000));
+    const windowLabel = windowMinutes === 1 ? "minute" : windowMinutes === 60 ? "hour" : "minutes";
+    const windowDisplay = windowMinutes === 60 ? "1 hour" : `${windowMinutes} ${windowLabel}`;
+
     logger.logWarning(`RATE LIMIT HIT - Password Reset from IP: ${req.ip}`, {
       ip: req.ip,
-      window: `${options.windowMs / 60000} minutes`,
-      max: options.max,
+      window: windowDisplay,
+      max: options?.max || 3,
       endpoint: "password-reset",
+      retryAfter,
     });
-    res.status(options.statusCode).json({
+    res.status(options?.statusCode || 429).json({
       success: false,
+      code: "RATE_LIMIT_EXCEEDED",
       message:
         process.env.NODE_ENV === "development"
           ? "Too many password reset requests, please wait 1 minute (Development Mode)"
-          : "Too many password reset requests, please try again after 1 hour",
-      code: "RATE_LIMIT_EXCEEDED",
+          : `Too many password reset requests, please try again after ${windowDisplay}`,
+      retryAfter,
+      attemptsRemaining: 0,
+      data: {
+        retryAfter,
+        attemptsRemaining: 0,
+      },
     });
   },
 });

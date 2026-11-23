@@ -11,12 +11,15 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaExclamationCircle,
+  FaExclamationTriangle,
+  FaLock,
   FaTimes,
   FaShieldAlt,
   FaArrowRight,
   FaHome,
   FaPaperPlane,
 } from "react-icons/fa";
+import useCountdown from "../../hooks/useCountdown";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -24,14 +27,37 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [focusedField, setFocusedField] = useState("");
+  const [lockRemaining, setLockRemaining] = useState(0);
+  const [attemptsRemaining, setAttemptsRemaining] = useState(null);
+
+  const {
+    seconds: lockSeconds,
+    formatTime: lockTime,
+    reset: resetLockCountdown,
+  } = useCountdown(lockRemaining, () => {
+    setError("");
+    setLockRemaining(0);
+  });
+
+  const isLocked =
+    (typeof lockSeconds === "number" && lockSeconds > 0) ||
+    (typeof lockRemaining === "number" && lockRemaining > 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLocked) return;
     setError("");
     setLoading(true);
 
     try {
       const response = await api.post("/auth/forgot-password", { email });
+
+      const remainingFromPayload =
+        response.data?.attemptsRemaining ??
+        response.data?.data?.attemptsRemaining;
+      if (typeof remainingFromPayload === "number") {
+        setAttemptsRemaining(remainingFromPayload);
+      }
 
       if (response.data.otpAlreadySent) {
         toast.info("ℹ️ " + response.data.message, {
@@ -49,15 +75,31 @@ export default function ForgotPassword() {
         navigate("/verify-otp", { state: { email } });
       }, 1500);
     } catch (err) {
-      const errorCode = err.response?.data?.code;
-      const errorMsg = err.response?.data?.message || "Failed to send OTP";
+      const backendData = err.response?.data;
+      const errorCode = backendData?.code;
+      const errorMsg = backendData?.message || "Failed to send OTP";
+      const retryAfter =
+        backendData?.retryAfter ??
+        backendData?.data?.retryAfter ??
+        backendData?.details?.retryAfter;
+
+      const remaining =
+        backendData?.attemptsRemaining ??
+        backendData?.data?.attemptsRemaining ??
+        backendData?.details?.attemptsRemaining;
+
+      if (typeof remaining === "number") {
+        setAttemptsRemaining(remaining);
+      }
 
       if (errorCode === "EMAIL_NOT_FOUND") {
         setError("Please enter a valid or registered email address.");
-      } else if (errorCode === "RATE_LIMIT_EXCEEDED") {
-        setError(
-          "⏰ Too many requests. Please wait 1 hour before trying again.",
-        );
+      } else if (errorCode === "RATE_LIMIT_EXCEEDED" || err.response?.status === 429) {
+        setAttemptsRemaining(0);
+        let seconds = typeof retryAfter === "number" && retryAfter > 0 ? retryAfter : 3600;
+        setLockRemaining(seconds);
+        resetLockCountdown(seconds);
+        setError("Too many password reset requests from this network.");
         toast.error("⏰ " + errorMsg, {
           position: "top-right",
           autoClose: 5000,
@@ -204,9 +246,101 @@ export default function ForgotPassword() {
             </div>
           </div>
 
-          {/* Error Alert */}
+          {/* Alerts */}
           <AnimatePresence mode="wait">
-            {error && (
+            {isLocked ? (
+              <motion.div
+                key="locked"
+                className="fp-alert fp-alert--error"
+                initial={{
+                  opacity: 0,
+                  y: -10,
+                  maxHeight: 0,
+                  marginBottom: 0,
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  maxHeight: 200,
+                  marginBottom: "1rem",
+                  paddingTop: "0.75rem",
+                  paddingBottom: "0.75rem",
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -10,
+                  maxHeight: 0,
+                  marginBottom: 0,
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <FaLock className="fp-alert__icon" />
+                <div className="fp-alert__body">
+                  <span className="fp-alert__text" style={{ fontWeight: 600 }}>
+                    Too many reset requests from this network.
+                  </span>
+                  <div className="fp-alert__countdown">
+                    ⏱ Cooldown: Try again in <span className="fp-alert__time">{lockTime}</span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : attemptsRemaining !== null && attemptsRemaining === 1 ? (
+              <motion.div
+                key="caution"
+                className="fp-alert fp-alert--caution"
+                initial={{
+                  opacity: 0,
+                  y: -10,
+                  maxHeight: 0,
+                  marginBottom: 0,
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  maxHeight: 200,
+                  marginBottom: "1rem",
+                  paddingTop: "0.75rem",
+                  paddingBottom: "0.75rem",
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -10,
+                  maxHeight: 0,
+                  marginBottom: 0,
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <FaExclamationTriangle className="fp-alert__icon" />
+                <div className="fp-alert__body">
+                  <span className="fp-alert__text" style={{ fontWeight: 600 }}>
+                    Caution: Only 1 password reset request remaining this hour!
+                  </span>
+                  <span className="fp-alert__subtext">
+                    Please check your spam or junk folder before requesting again to avoid a 1-hour security lockout.
+                  </span>
+                </div>
+                <button
+                  className="fp-alert__close"
+                  onClick={() => {
+                    setAttemptsRemaining(null);
+                    setError("");
+                  }}
+                  aria-label="Dismiss alert"
+                >
+                  <FaTimes />
+                </button>
+              </motion.div>
+            ) : error ? (
               <motion.div
                 key="err"
                 className="fp-alert fp-alert--error"
@@ -238,15 +372,18 @@ export default function ForgotPassword() {
                 style={{ overflow: "hidden" }}
               >
                 <FaExclamationCircle className="fp-alert__icon" />
-                <span>{error}</span>
+                <div className="fp-alert__body">
+                  <span className="fp-alert__text">{error}</span>
+                </div>
                 <button
                   className="fp-alert__close"
                   onClick={() => setError("")}
+                  aria-label="Dismiss alert"
                 >
                   <FaTimes />
                 </button>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
 
           {/* Form */}
@@ -288,8 +425,8 @@ export default function ForgotPassword() {
             >
               <button
                 type="submit"
-                className={`fp-submit ${loading ? "fp-submit--loading" : ""}`}
-                disabled={loading}
+                className={`fp-submit ${loading ? "fp-submit--loading" : ""} ${isLocked ? "fp-submit--locked" : ""}`}
+                disabled={loading || isLocked}
               >
                 <span className="fp-submit__bg" />
                 <span className="fp-submit__shine" />
@@ -298,6 +435,11 @@ export default function ForgotPassword() {
                     <>
                       <span className="fp-spinner" />
                       <span>Sending OTP…</span>
+                    </>
+                  ) : isLocked ? (
+                    <>
+                      <FaLock size={14} />
+                      <span>Locked — try again in {lockTime}</span>
                     </>
                   ) : (
                     <>
@@ -577,6 +719,20 @@ export default function ForgotPassword() {
           font-size: .78rem; font-weight: 500;
         }
         .fp-alert--error { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); color: #dc2626; }
+        .fp-alert--caution { background: rgba(245,158,11,.08); border: 1.5px solid rgba(245,158,11,.35); color: #b45309; }
+        .fp-alert__body { flex: 1; min-width: 0; }
+        .fp-alert__text { display: block; }
+        .fp-alert__subtext { display: block; font-size: 0.74rem; color: #92400e; margin-top: 0.2rem; line-height: 1.35; }
+        .fp-alert__countdown {
+          display: flex; align-items: center; gap: .35rem;
+          margin-top: .35rem; font-size: .72rem; font-weight: 600;
+          color: #dc2626; opacity: .9;
+        }
+        .fp-alert__time {
+          font-family: var(--mono); font-size: .85rem; font-weight: 700;
+          background: rgba(239,68,68,.12); padding: .15rem .45rem;
+          border-radius: 5px; letter-spacing: .04em;
+        }
         .fp-alert__icon { flex-shrink: 0; font-size: .9rem; margin-top: 1px; }
         .fp-alert__close { margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; opacity: .5; transition: opacity .2s; display: flex; align-items: center; padding: 2px; flex-shrink: 0; }
         .fp-alert__close:hover { opacity: 1; }
@@ -630,6 +786,8 @@ export default function ForgotPassword() {
         .fp-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 24px rgba(61,181,230,.4); }
         .fp-submit:active:not(:disabled) { transform: translateY(0); }
         .fp-submit:disabled { opacity: .5; cursor: not-allowed; }
+        .fp-submit--locked .fp-submit__bg { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
+        .fp-submit--locked { box-shadow: 0 4px 18px rgba(239,68,68,.3); }
         .fp-submit__content {
           position: relative; z-index: 1;
           display: flex; align-items: center; justify-content: center;
