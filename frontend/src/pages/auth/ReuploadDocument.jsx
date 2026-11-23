@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../api/axios";
 import { toast } from "react-toastify";
+import useCountdown from "../../hooks/useCountdown";
 import {
   FaUniversity,
   FaFileAlt,
@@ -31,6 +32,20 @@ export default function ReuploadDocument() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [success, setSuccess] = useState(false);
 
+  // Rate Limiting & Cooldown states
+  const [attemptsRemaining, setAttemptsRemaining] = useState(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  const {
+    seconds: countdownLeft,
+    formatTime: cooldownDisplay,
+    reset: resetCooldown,
+  } = useCountdown(cooldownSeconds, () => {
+    setCooldownSeconds(0);
+    setAttemptsRemaining(null);
+    toast.info("Upload cooldown expired. You may now retry submitting your document.");
+  });
+
   const fileInputRef = useRef(null);
 
   // Fetch document re-upload info on mount
@@ -48,7 +63,11 @@ export default function ReuploadDocument() {
         setError(null);
         const res = await api.get(`/public/documents/reupload/${token}`);
         if (isMounted) {
-          setDocInfo(res.data?.data || res.data);
+          const data = res.data?.data || res.data;
+          setDocInfo(data);
+          if (typeof data.attemptsRemaining === "number") {
+            setAttemptsRemaining(data.attemptsRemaining);
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -172,7 +191,44 @@ export default function ReuploadDocument() {
       toast.success(res.data?.message || "Document re-uploaded successfully!");
       setSuccess(true);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to upload document. Please try again.");
+      const isRateLimit =
+        err.response?.status === 429 ||
+        err.response?.data?.code === "RATE_LIMIT_EXCEEDED";
+
+      if (isRateLimit) {
+        const retryAfter =
+          err.response?.data?.retryAfter ||
+          parseInt(err.response?.headers?.["retry-after"], 10) ||
+          60;
+        setCooldownSeconds(retryAfter);
+        resetCooldown(retryAfter);
+        setAttemptsRemaining(0);
+        toast.error(
+          err.response?.data?.message ||
+            "Upload rate limit reached. Please wait for the cooldown timer before retrying."
+        );
+      } else {
+        const remainingFromPayload =
+          err.response?.data?.error?.attemptsRemaining ??
+          err.response?.data?.attemptsRemaining;
+        const remainingFromHdr = err.response?.headers?.["ratelimit-remaining"];
+        const remaining =
+          typeof remainingFromPayload === "number"
+            ? remainingFromPayload
+            : remainingFromHdr !== undefined
+            ? parseInt(remainingFromHdr, 10)
+            : null;
+
+        if (remaining !== null && !isNaN(remaining)) {
+          setAttemptsRemaining(remaining);
+        }
+
+        toast.error(
+          err.response?.data?.message ||
+            err.response?.data?.error?.message ||
+            "Failed to upload document. Please check the file and try again."
+        );
+      }
     } finally {
       setUploading(false);
     }
@@ -356,16 +412,58 @@ export default function ReuploadDocument() {
               </div>
             )}
 
+            {/* COOLDOWN / LOCKOUT BANNER */}
+            {countdownLeft > 0 && (
+              <div className="cooldown-lock-card">
+                <div className="cooldown-lock-left">
+                  <FaClock className="cooldown-lock-icon" />
+                  <div className="cooldown-lock-text">
+                    <span className="cooldown-lock-title">Upload Rate Limit Active</span>
+                    <span className="cooldown-lock-sub">
+                      Too many attempts from your network. Please wait for the security cooldown to complete.
+                    </span>
+                  </div>
+                </div>
+                <div className="cooldown-timer-badge">
+                  ⏱ {cooldownDisplay}
+                </div>
+              </div>
+            )}
+
+            {/* PRE-LIMIT CAUTION BANNER (1 OR 2 ATTEMPTS REMAINING) */}
+            {countdownLeft === 0 &&
+              attemptsRemaining !== null &&
+              (attemptsRemaining === 1 || attemptsRemaining === 2) && (
+                <div className="caution-alert-card">
+                  <FaExclamationTriangle className="caution-alert-icon" />
+                  <div className="caution-alert-body">
+                    <span className="caution-alert-title">
+                      ⚠️ Caution: Only {attemptsRemaining} upload attempt{attemptsRemaining > 1 ? "s" : ""} remaining!
+                    </span>
+                    <span className="caution-alert-text">
+                      Subsequent failed attempts will temporarily lock file uploads for 15 minutes.
+                      Please double-check your document format (
+                      {docInfo.allowedFormats?.join(", ").toUpperCase() || "PDF / JPG"}) and file size.
+                    </span>
+                  </div>
+                </div>
+              )}
+
             {/* SUBMIT BUTTON */}
             <button
               type="submit"
               className="btn-submit-reupload"
-              disabled={!selectedFile || uploading}
+              disabled={!selectedFile || uploading || countdownLeft > 0}
             >
               {uploading ? (
                 <>
                   <FaSpinner className="spinner-icon me-2" />
                   Uploading Document...
+                </>
+              ) : countdownLeft > 0 ? (
+                <>
+                  <FaClock className="me-2" />
+                  Upload Locked (Cooldown ⏱ {cooldownDisplay})
                 </>
               ) : (
                 <>
@@ -817,6 +915,107 @@ export default function ReuploadDocument() {
           color: #15803d;
           margin: 0;
           line-height: 1.5;
+        }
+
+        /* COOLDOWN LOCK CARD */
+        .cooldown-lock-card {
+          background: #fef2f2;
+          border: 1.5px solid #fca5a5;
+          border-radius: 12px;
+          padding: 0.9rem 1.1rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          margin-bottom: 0.5rem;
+          box-shadow: 0 2px 4px rgba(239, 68, 68, 0.08);
+          animation: pulseBorder 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseBorder {
+          0%, 100% { border-color: #fca5a5; }
+          50% { border-color: #ef4444; }
+        }
+
+        .cooldown-lock-left {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .cooldown-lock-icon {
+          color: #ef4444;
+          font-size: 1.35rem;
+          flex-shrink: 0;
+        }
+
+        .cooldown-lock-text {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+        }
+
+        .cooldown-lock-title {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #991b1b;
+        }
+
+        .cooldown-lock-sub {
+          font-size: 0.75rem;
+          color: #b91c1c;
+          line-height: 1.35;
+        }
+
+        .cooldown-timer-badge {
+          background: #dc2626;
+          color: #ffffff;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 1.05rem;
+          font-weight: 700;
+          padding: 0.4rem 0.8rem;
+          border-radius: 8px;
+          letter-spacing: 0.06em;
+          flex-shrink: 0;
+          box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+        }
+
+        /* CAUTION ALERT CARD */
+        .caution-alert-card {
+          background: #fffbeb;
+          border: 1.5px solid #fcd34d;
+          border-radius: 12px;
+          padding: 0.85rem 1.1rem;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          margin-bottom: 0.5rem;
+          box-shadow: 0 2px 4px rgba(245, 158, 11, 0.08);
+        }
+
+        .caution-alert-icon {
+          color: #d97706;
+          font-size: 1.25rem;
+          flex-shrink: 0;
+          margin-top: 0.1rem;
+        }
+
+        .caution-alert-body {
+          display: flex;
+          flex-direction: column;
+          gap: 0.2rem;
+        }
+
+        .caution-alert-title {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: #92400e;
+        }
+
+        .caution-alert-text {
+          font-size: 0.75rem;
+          color: #b45309;
+          line-height: 1.4;
         }
       `}</style>
     </div>

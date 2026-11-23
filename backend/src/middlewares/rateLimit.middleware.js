@@ -364,6 +364,45 @@ const sessionLimiter = rateLimit({
   },
 });
 
+/**
+ * Public Document Re-upload Limiter
+ * Guards student public re-upload endpoints against DoS and memory exhaustion.
+ *
+ * For development: 30 requests per minute
+ * For production: 10 requests per 15 minutes
+ * Always tracks by IP.
+ */
+const documentReuploadLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 30 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `ip:${normalizeIp(req)}`,
+  handler: (req, res, next, options) => {
+    const windowMs = typeof options?.windowMs === "number" ? options.windowMs : 15 * 60 * 1000;
+    const retryAfter = Math.ceil(windowMs / 1000);
+    const windowMinutes = Math.max(1, Math.round(windowMs / 60000));
+    const windowLabel = windowMinutes === 1 ? "minute" : "minutes";
+
+    logger.logWarning(`RATE LIMIT HIT - Public Document Re-upload from IP: ${req.ip}`, {
+      ip: req.ip,
+      endpoint: req.originalUrl,
+      window: `${windowMinutes} ${windowLabel}`,
+      retryAfter,
+    });
+
+    res.status(429).json({
+      success: false,
+      code: "RATE_LIMIT_EXCEEDED",
+      message:
+        process.env.NODE_ENV === "development"
+          ? "Too many document upload attempts, please wait 1 minute (Development Mode)"
+          : `Too many document upload attempts from this network. Please try again after ${windowMinutes} ${windowLabel}.`,
+      retryAfter,
+    });
+  },
+});
+
 module.exports = {
   globalLimiter,
   authLimiter,
@@ -375,4 +414,5 @@ module.exports = {
   publicLimiter,
   webhookLimiter,
   sessionLimiter,
+  documentReuploadLimiter,
 };

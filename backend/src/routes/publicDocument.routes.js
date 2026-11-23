@@ -5,11 +5,17 @@ const {
   submitReuploadDocument,
 } = require("../controllers/publicDocument.controller");
 const { uploadDocument } = require("../middlewares/upload.middleware");
+const { documentReuploadLimiter } = require("../middlewares/rateLimit.middleware");
 
-// 🌍 PUBLIC: View document rejection details by secure token
-router.get("/reupload/:token", getReuploadDocumentInfo);
+// 🌍 PUBLIC: View document rejection details by secure token (Rate-limited)
+router.get("/reupload/:token", documentReuploadLimiter, getReuploadDocumentInfo);
 
-// 🌍 PUBLIC: Submit replacement document by secure token
-router.post("/reupload/:token", uploadDocument, submitReuploadDocument);
+// 🌍 PUBLIC: Submit replacement document by secure token (Rate-limited BEFORE multer parser)
+router.post(
+  "/reupload/:token",
+  documentReuploadLimiter,
+  uploadDocument,
+  submitReuploadDocument
+);
 
 module.exports = router;

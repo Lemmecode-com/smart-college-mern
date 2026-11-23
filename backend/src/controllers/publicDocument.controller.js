@@ -68,6 +68,8 @@ exports.getReuploadDocumentInfo = async (req, res, next) => {
     const documentLabel = configDoc?.label || document.documentType.replace(/_/g, " ");
     const allowedFormats = configDoc?.allowedFormats || ["pdf", "jpg", "jpeg", "png", "doc", "docx"];
     const maxSizeBytes = (configDoc?.maxSizeMB || 5) * 1024 * 1024;
+    const attemptsRemaining =
+      typeof req.rateLimit?.remaining === "number" ? req.rateLimit.remaining : undefined;
 
     return ApiResponse.success(
       res,
@@ -81,10 +83,14 @@ exports.getReuploadDocumentInfo = async (req, res, next) => {
         reuploadTokenExpires: document.reuploadTokenExpires,
         allowedFormats,
         maxSizeBytes,
+        attemptsRemaining,
       },
       "Document re-upload information fetched successfully"
     );
   } catch (error) {
+    if (req.rateLimit && typeof req.rateLimit.remaining === "number") {
+      error.attemptsRemaining = req.rateLimit.remaining;
+    }
     next(error);
   }
 };
@@ -137,6 +143,38 @@ exports.submitReuploadDocument = async (req, res, next) => {
     const student = await Student.findById(oldDoc.ownerId);
     if (!student) {
       throw new AppError("Student application record not found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    // Strict validation against college document config
+    const docConfig = await DocumentConfig.findOne({
+      college_id: student.college_id,
+      isActive: true,
+    }).lean();
+
+    const configDoc = docConfig?.documents?.find((d) => d.type === oldDoc.documentType);
+    if (configDoc) {
+      if (configDoc.allowedFormats && configDoc.allowedFormats.length > 0) {
+        const fileExt = req.file.originalname.split(".").pop().toLowerCase();
+        const allowedExts = configDoc.allowedFormats.map((f) =>
+          f.toLowerCase().replace(".", "")
+        );
+        if (!allowedExts.includes(fileExt)) {
+          throw new AppError(
+            `File format .${fileExt} is not allowed for ${configDoc.label || oldDoc.documentType}. Allowed: ${allowedExts.join(", ").toUpperCase()}`,
+            400,
+            "INVALID_FILE_FORMAT"
+          );
+        }
+      }
+
+      const maxBytes = (configDoc.maxSizeMB || 5) * 1024 * 1024;
+      if (req.file.size > maxBytes) {
+        throw new AppError(
+          `File size exceeds maximum allowed size of ${configDoc.maxSizeMB || 5}MB`,
+          400,
+          "FILE_TOO_LARGE"
+        );
+      }
     }
 
     // 1. Archive old rejected document and invalidate single-use token
@@ -211,10 +249,15 @@ exports.submitReuploadDocument = async (req, res, next) => {
         documentType: newDocument.documentType,
         originalFileName: newDocument.originalFileName,
         verificationStatus: newDocument.verificationStatus,
+        attemptsRemaining:
+          typeof req.rateLimit?.remaining === "number" ? req.rateLimit.remaining : undefined,
       },
       "Document re-uploaded successfully and submitted for admission verification"
     );
   } catch (error) {
+    if (req.rateLimit && typeof req.rateLimit.remaining === "number") {
+      error.attemptsRemaining = req.rateLimit.remaining;
+    }
     next(error);
   }
 };
