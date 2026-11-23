@@ -373,14 +373,23 @@ const sessionLimiter = rateLimit({
   skipSuccessfulRequests: false,
   keyGenerator: (req) => `ip:${normalizeIp(req)}`,
   handler: (req, res, next, options) => {
+    const windowMs = typeof options?.windowMs === "number" ? options.windowMs : 5 * 60 * 1000;
+    const retryAfter = Math.ceil(windowMs / 1000);
     logger.logWarning(`RATE LIMIT HIT - Session endpoint from IP: ${req.ip}`, {
       ip: req.ip,
       endpoint: req.originalUrl,
+      retryAfter,
     });
-    res.status(options.statusCode).json({
+    res.status(options?.statusCode || 429).json({
       success: false,
-      message: "Too many auth requests, please try again after 5 minutes",
       code: "RATE_LIMIT_EXCEEDED",
+      message: "Too many auth requests, please try again after 5 minutes",
+      retryAfter,
+      attemptsRemaining: 0,
+      data: {
+        retryAfter,
+        attemptsRemaining: 0,
+      },
     });
   },
 });

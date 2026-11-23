@@ -11,7 +11,7 @@ router.post("/login", authLimiter, validateLogin, login);
 router.post("/logout", auth, logout);
 
 // 🔐 Refresh access token (requires valid refresh token cookie)
-router.post("/refresh", authLimiter, refreshToken);
+router.post("/refresh", sessionLimiter, refreshToken);
 
 // Get user info (for checking authentication status) - DYNAMIC
 router.get("/me", auth, async (req, res) => {
