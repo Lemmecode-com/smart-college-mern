@@ -103,20 +103,20 @@ export const navigationConfig = {
           },
         ],
       },
-      {
-        id: "super-platform",
-        title: "Platform Support",
-        icon: FaShieldAlt,
-        defaultOpen: true,
-        items: [
-          {
-            path: "/super-admin/platform-support-config",
-            icon: FaCog,
-            label: "Platform Support Config",
-            exact: true,
-          },
-        ],
-      },
+      // {
+      //   id: "super-platform",
+      //   title: "Platform Support",
+      //   icon: FaShieldAlt,
+      //   defaultOpen: true,
+      //   items: [
+      //     {
+      //       path: "/super-admin/platform-support-config",
+      //       icon: FaCog,
+      //       label: "Platform Support Config",
+      //       exact: true,
+      //     },
+      //   ],
+      // },
       {
         id: "super-settings",
         title: "System Settings",
