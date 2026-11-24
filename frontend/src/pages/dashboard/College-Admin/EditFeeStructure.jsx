@@ -24,7 +24,8 @@ import {
   FaArrowLeft,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaBolt
+  FaBolt,
+  FaPercentage,
 } from "react-icons/fa";
 
 export default function EditFeeStructure() {
