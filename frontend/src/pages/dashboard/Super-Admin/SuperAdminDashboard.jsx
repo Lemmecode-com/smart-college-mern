@@ -1,6 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Loading from "../../../components/Loading";
@@ -257,7 +256,7 @@ export default function SuperAdminDashboard() {
           <FaDatabase className="pulse" />
         </div>
         <div className="info-content">
-          <strong>System Overview:</strong> This dashboard provides a
+          <strong>System Overview: </strong> This dashboard provides a
           centralized view of all registered colleges, student populations, and
           faculty statistics across your educational network. Data is updated in
           real-time.
@@ -537,67 +536,57 @@ export default function SuperAdminDashboard() {
               )}
             </div>
           ) : (
-            <div className="row g-3 g-md-4">
+            <div className="colleges-grid">
               {collegesToDisplay.map((college, index) => (
-                <div className="col-12 col-md-6 col-lg-4" key={college._id}>
-                  <div
-                    className="college-card card border-0 shadow-sm h-100"
-                    onClick={() =>
-                      navigate(`/super-admin/college/${college._id}`)
+                <div
+                  className="college-card-vertical"
+                  key={college._id}
+                  onClick={() =>
+                    navigate(`/super-admin/college/${college._id}`)
+                  }
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View details for ${college.name}`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate(`/super-admin/college/${college._id}`);
                     }
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`View details for ${college.name}`}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        navigate(`/super-admin/college/${college._id}`);
-                      }
-                    }}
-                  >
-                    <div className="college-card-header p-3">
-                      <div className="college-badge">
-                        <span>{index + 1}</span>
-                      </div>
-                      <div className="college-status">
-                        <span
-                          className={`status-badge status-${college.status?.toLowerCase() || "active"}`}
-                        >
-                          {college.status || "Active"}
+                  }}
+                >
+                  <div className="college-card-header">
+                    <div className="college-badge">
+                      <span>{index + 1}</span>
+                    </div>
+                    <div className="college-status">
+                      <span
+                        className={`status-badge status-${college.status?.toLowerCase() || "active"}`}
+                      >
+                        {college.status || "Active"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="college-card-body">
+                    <h4 className="college-name">
+                      {college.name || "Unnamed College"}
+                    </h4>
+                    <div className="college-divider" />
+                    <div className="college-meta">
+                      <div className="meta-item">
+                        <FaMapMarkerAlt className="meta-icon" aria-hidden="true" />
+                        <span>
+                          {college.address || "Location not available"}
                         </span>
                       </div>
-                    </div>
-
-                    <div className="college-card-body p-3">
-                      <h4 className="college-name h6 mb-2 fw-bold">
-                        {college.name || "Unnamed College"}
-                      </h4>
-                      <div className="college-meta d-flex flex-wrap gap-2">
-                        <div className="meta-item d-flex align-items-center gap-1">
-                          <FaMapMarkerAlt
-                            className="text-muted"
-                            aria-hidden="true"
-                          />
-                          <span className="small text-muted">
-                            {college.location ||
-                              college.city ||
-                              college.address ||
-                              "Location not available"}
-                          </span>
-                        </div>
-                        <div className="meta-item d-flex align-items-center gap-1">
-                          <FaCalendarAlt
-                            className="text-muted"
-                            aria-hidden="true"
-                          />
-                          <span className="small text-muted">
-                            {college.establishedYear
-                              ? `Since ${college.establishedYear}`
-                              : college.registeredAt
-                                ? `Since ${new Date(college.registeredAt).getFullYear()}`
-                                : "Date unknown"}
-                          </span>
-                        </div>
+                      <div className="meta-item">
+                        <FaCalendarAlt className="meta-icon" aria-hidden="true" />
+                        <span>
+                          {college.establishedYear
+                            ? `Since ${college.establishedYear}`
+                            : college.createdAt
+                            ? `Since ${new Date(college.createdAt).getFullYear()}`
+                            : "Date unknown"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1131,14 +1120,15 @@ export default function SuperAdminDashboard() {
           gap: var(--spacing-md);
           margin-bottom: 1.1rem;
           width: 100%;
+          overflow: visible;
         }
 
         .stat-card {
           background: var(--card-gradient);
           border-radius: var(--radius-lg);
           box-shadow: var(--shadow-md);
-          overflow: visible;
-          transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+          overflow: hidden;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
@@ -1147,39 +1137,10 @@ export default function SuperAdminDashboard() {
           width: 100%;
         }
 
-        .stat-card::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 4px;
-          height: 100%;
-          background: var(--accent-gradient);
-          opacity: 0;
-          transition: opacity var(--transition-base);
-          border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
-        }
-
-        .stat-card-colleges::before {
-          background: var(--sidebar-gradient);
-        }
-
-        .stat-card-students::before {
-          background: var(--accent-gradient);
-        }
-
-        .stat-card-teachers::before {
-          background: linear-gradient(180deg, #0c2d3a 0%, #09516d 100%);
-        }
-
         .stat-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-md);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
           border-color: var(--sidebar-accent);
-        }
-
-        .stat-card:hover::before {
-          opacity: 1;
         }
 
         .stat-card:nth-child(1) { animation-delay: 0.1s; }
@@ -1244,19 +1205,20 @@ export default function SuperAdminDashboard() {
         }
 
         .stat-card-body {
-          padding: 0 var(--spacing-md) 0.5rem;
+          padding: 0 var(--spacing-md) var(--spacing-md);
           flex: 1;
           display: flex;
           flex-direction: column;
-          justify-content: flex-start;
+          justify-content: center;
         }
 
         .stat-value {
-          font-size: 2rem;
+          font-size: 2.25rem;
           font-weight: 800;
           color: var(--sidebar-primary);
           line-height: 1.1;
           letter-spacing: -0.03em;
+          text-align: center;
         }
 
         .stat-card-footer {
@@ -1351,86 +1313,6 @@ export default function SuperAdminDashboard() {
           padding: var(--spacing-lg);
         }
 
-        .college-card {
-          background: var(--card-gradient);
-          border-radius: var(--radius-lg);
-          padding: 1rem;
-          cursor: pointer;
-          transition: all var(--transition-base);
-          border: 1px solid var(--border-light);
-          position: relative;
-          overflow: visible;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .college-card::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 4px;
-          height: 100%;
-          background: var(--accent-gradient);
-          opacity: 0;
-          transition: opacity var(--transition-base);
-        }
-
-        .college-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-colored);
-          border-color: var(--sidebar-accent);
-        }
-
-        .college-card:hover::before {
-          opacity: 1;
-        }
-
-        .college-card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.65rem;
-          padding-bottom: 0.5rem;
-          border-bottom: 1px solid var(--border-light);
-        }
-
-        .college-badge {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: var(--accent-gradient);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 0.8rem;
-          flex-shrink: 0;
-          box-shadow: 0 2px 6px rgba(61, 181, 230, 0.3);
-        }
-
-        .college-status {
-          background: var(--success-light);
-          color: var(--success);
-          padding: 0.2rem 0.6rem;
-          border-radius: 20px;
-          font-weight: 600;
-          font-size: 0.75rem;
-          display: flex;
-          align-items: center;
-          gap: 0.3rem;
-        }
-
-        .college-status::before {
-          content: "";
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: currentColor;
-        }
-
         .college-card-body {
           margin-bottom: 0;
           flex: 1;
@@ -1466,6 +1348,179 @@ export default function SuperAdminDashboard() {
         .meta-item .meta-icon {
           color: var(--sidebar-accent);
           font-size: 0.8rem;
+        }
+
+        /* Registered Colleges Grid */
+        .colleges-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+
+        .college-card-vertical {
+          background: #ffffff;
+          border: 1px solid #DCE6EF;
+          border-radius: 12px;
+          padding: 1.125rem;
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          cursor: pointer;
+          height: 100%;
+        }
+
+        .college-card-vertical:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+          border-color: var(--sidebar-accent);
+        }
+
+        .college-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.875rem;
+        }
+
+        .college-badge {
+          width: 26px;
+          height: 26px;
+          border-radius: 6px;
+          background: var(--accent-gradient);
+          color: white;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          flex-shrink: 0;
+        }
+
+        .college-status {
+          background: var(--success-light);
+          color: var(--success);
+          padding: 0.1875rem 0.625rem;
+          border-radius: 20px;
+          font-weight: 600;
+          font-size: 0.7rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .college-card-body {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+
+        .college-name {
+          margin: 0 0 0.5rem;
+          font-size: 0.9375rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          line-height: 1.35;
+          word-wrap: break-word;
+        }
+
+        .college-divider {
+          height: 1px;
+          background: var(--border-light);
+          margin: 0.375rem 0;
+        }
+
+        .college-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 0.3rem;
+          margin-top: auto;
+        }
+
+        .meta-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.78rem;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+
+        .meta-icon {
+          font-size: 0.8rem;
+          color: var(--sidebar-accent);
+          flex-shrink: 0;
+          width: 1rem;
+          text-align: center;
+        }
+
+        /* Tablet: 2 columns */
+        @media (max-width: 991.98px) {
+          .colleges-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+          }
+
+          .college-card-vertical {
+            padding: 1rem;
+          }
+
+          .college-badge {
+            width: 24px;
+            height: 24px;
+            font-size: 0.7rem;
+          }
+
+          .college-status {
+            padding: 0.15rem 0.5rem;
+            font-size: 0.68rem;
+          }
+
+          .college-name {
+            font-size: 0.9rem;
+          }
+
+          .meta-item {
+            font-size: 0.75rem;
+          }
+        }
+
+        /* Mobile: 1 column */
+        @media (max-width: 767.98px) {
+          .colleges-grid {
+            grid-template-columns: 1fr;
+            gap: 0.875rem;
+          }
+
+          .college-card-vertical {
+            padding: 1rem;
+          }
+
+          .college-card-header {
+            margin-bottom: 0.75rem;
+          }
+
+          .college-badge {
+            width: 22px;
+            height: 22px;
+            font-size: 0.68rem;
+          }
+
+          .college-status {
+            padding: 0.125rem 0.45rem;
+            font-size: 0.65rem;
+          }
+
+          .college-name {
+            font-size: 0.875rem;
+          }
+
+          .college-divider {
+            margin: 0.3rem 0;
+          }
+
+          .meta-item {
+            font-size: 0.72rem;
+          }
         }
 
         /* ================= QUICK ACTIONS SECTION ================= */
@@ -1511,64 +1566,32 @@ export default function SuperAdminDashboard() {
         /* QUICK ACTIONS GRID */
         .quick-actions-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: var(--spacing-md);
         }
 
         .quick-action-card {
           background: var(--card-gradient);
           border-radius: var(--radius-lg);
-          padding: 1rem 1.1rem;
+          padding: 1.25rem 1rem;
           cursor: pointer;
-          transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
           border: 1px solid var(--border-light);
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 0.9rem;
+          text-align: center;
+          gap: 0.75rem;
           position: relative;
-          overflow: visible;
+          overflow: hidden;
           z-index: 0;
-          min-height: 80px;
-        }
-
-        .quick-action-card::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 4px;
-          height: 100%;
-          background: var(--accent-gradient);
-          opacity: 0;
-          transition: opacity var(--transition-base);
-          z-index: 1;
-          border-radius: var(--radius-lg) 0 0 var(--radius-lg);
-        }
-
-        .quick-action-card::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: rgba(61, 181, 230, 0.06);
-          border-radius: var(--radius-lg);
-          opacity: 0;
-          transition: opacity var(--transition-base);
-          z-index: -1;
-          pointer-events: none;
+          min-height: 120px;
         }
 
         .quick-action-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-colored);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
           border-color: var(--sidebar-accent);
-        }
-
-        .quick-action-card:hover::before {
-          opacity: 1;
-        }
-
-        .quick-action-card:hover::after {
-          opacity: 1;
         }
 
         .quick-action-card:focus {
@@ -1594,48 +1617,46 @@ export default function SuperAdminDashboard() {
         }
 
         .quick-action-icon.add-college {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
+          color: #10b981;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
         }
 
         .quick-action-icon.view-colleges {
-          background: var(--accent-gradient);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.3);
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.08) 100%);
+          color: var(--sidebar-accent);
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.15);
         }
 
         .quick-action-icon.reports {
-          background: var(--sidebar-gradient);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.3);
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(167, 139, 250, 0.08) 100%);
+          color: #8b5cf6;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
         }
 
         .quick-action-icon.security {
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+          background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(251, 146, 60, 0.08) 100%);
+          color: #f97316;
+          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
         }
 
         .quick-action-icon.support {
-          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+          background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(167, 139, 250, 0.08) 100%);
+          color: #8b5cf6;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
         }
 
         .quick-action-content {
-          flex: 1;
-          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.25rem;
         }
 
         .quick-action-title {
           font-weight: 700;
           color: var(--sidebar-primary);
           font-size: 0.95rem;
-          margin-bottom: 0.2rem;
-          white-space: normal;
-          overflow: hidden;
-          text-overflow: ellipsis;
           line-height: 1.25;
         }
 
@@ -1643,9 +1664,6 @@ export default function SuperAdminDashboard() {
           font-size: 0.8rem;
           color: var(--text-muted);
           line-height: 1.3;
-          white-space: normal;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
 
         /* EMPTY STATE */
@@ -2083,15 +2101,6 @@ export default function SuperAdminDashboard() {
             padding: 1rem !important;
           }
 
-          .college-card {
-            padding: 0.75rem !important;
-          }
-
-          .college-card-header,
-          .college-card-body {
-            padding: 0.75rem !important;
-          }
-
           .college-name {
             font-size: 1rem !important;
           }
@@ -2403,46 +2412,6 @@ export default function SuperAdminDashboard() {
           .erp-card-body .row > [class*="col-"] {
             padding-left: 0.3rem !important;
             padding-right: 0.3rem !important;
-          }
-
-          .college-card {
-            padding: 0.7rem !important;
-            border-radius: 10px !important;
-          }
-
-          .college-card-header,
-          .college-card-body {
-            padding: 0.65rem !important;
-          }
-
-          .college-card-header {
-            margin-bottom: 0.5rem !important;
-          }
-
-          .college-badge {
-            width: 28px !important;
-            height: 28px !important;
-            font-size: 0.75rem !important;
-          }
-
-          .college-status {
-            padding: 0.2rem 0.55rem !important;
-            font-size: 0.7rem !important;
-          }
-
-          .college-name {
-            font-size: 0.9rem !important;
-            line-height: 1.3 !important;
-          }
-
-          .college-meta {
-            gap: 0.45rem !important;
-          }
-
-          .meta-item {
-            font-size: 0.72rem !important;
-            line-height: 1.35 !important;
-            min-width: 0 !important;
           }
 
           .meta-item span {
