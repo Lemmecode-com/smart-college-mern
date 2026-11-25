@@ -623,7 +623,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
 exports.superAdminDashboard = async (req, res, next) => {
   try {
     const [colleges, students, teachers, totalInquiries, newInquiries, recentInquiries] = await Promise.all([
-      College.find().select("name status"),
+      College.find().select("name status address establishedYear createdAt"),
       Student.countDocuments(),
       Teacher.countDocuments(),
       Inquiry.countDocuments(),
