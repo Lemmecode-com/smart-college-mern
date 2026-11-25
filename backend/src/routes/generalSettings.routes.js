@@ -17,7 +17,6 @@ router.use(auth);
 router.get(
   "/",
   collegeMiddleware,
-  role("COLLEGE_ADMIN"),
   asyncHandler(getGeneralSettings),
 );
 

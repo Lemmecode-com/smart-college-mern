@@ -10,10 +10,33 @@ const logger = require("../utils/logger");
  */
 exports.getGeneralSettings = async (req, res, next) => {
   try {
-    const collegeId = req.college_id;
+    let collegeId = req.college_id;
     const userId = req.user?.id;
 
+    if (!collegeId && req.user?.role === "SUPER_ADMIN") {
+      collegeId = req.query?.college_id;
+    }
+
     if (!collegeId) {
+      if (req.user?.role === "SUPER_ADMIN") {
+        return ApiResponse.success(
+          res,
+          {
+            allowMultipleLogins: "allowed",
+            autoDisableInactiveDays: 180,
+            passwordExpiryDays: 90,
+            minPasswordLength: 8,
+            maxLoginAttempts: 5,
+            allowDataExport: "allowed",
+            backupFrequency: "daily",
+            defaultTheme: "light",
+            dateFormat: "DD-MM-YYYY",
+            currency: "INR",
+            itemsPerPage: 25,
+          },
+          "Default general settings fetched successfully"
+        );
+      }
       throw new AppError(
         "College ID not available. Please login again.",
         403,

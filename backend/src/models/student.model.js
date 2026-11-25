@@ -399,6 +399,16 @@ const studentSchema = new mongoose.Schema(
     lastPromotionDate: {
       type: Date,
     },
+
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+
+    deactivationReason: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true },
 );

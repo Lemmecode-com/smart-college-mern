@@ -62,6 +62,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  passwordChangedAt: {
+    type: Date,
+    default: Date.now,
+    index: true,
+  },
+  lastLogin: {
+    type: Date,
+    default: null,
+    index: true,
+  },
+  deactivationReason: {
+    type: String,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -71,6 +85,7 @@ const userSchema = new mongoose.Schema({
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 10);
+  this.passwordChangedAt = new Date();
 });
 
 module.exports = mongoose.model("User", userSchema);
