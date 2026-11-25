@@ -197,8 +197,9 @@ export default function SuperAdminDashboard() {
 
       {/* HEADER */}
       <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse" aria-hidden="true">
+        {/* Top row: icon on left, title and description beside it; last-refreshed time below description */}
+        <div className="erp-header-top">
+          <div className="erp-header-icon" aria-hidden="true">
             <FaUniversity />
           </div>
           <div className="erp-header-text">
@@ -206,32 +207,42 @@ export default function SuperAdminDashboard() {
             <p className="erp-page-subtitle">
               Centralized management portal for all registered colleges
             </p>
-            <p className="erp-page-meta">
+            <div className="erp-page-meta">
               <FaClock className="meta-icon" aria-hidden="true" />
-              Last refreshed: {lastRefresh.toLocaleTimeString()}
-              <span className="keyboard-hint">(Ctrl+R to refresh)</span>
-            </p>
+              <span>Last refreshed: {lastRefresh.toLocaleTimeString()}</span>
+            </div>
           </div>
         </div>
-        <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={fetchDashboardData}
-            title="Refresh dashboard data (Ctrl+R)"
-            aria-label="Refresh dashboard"
-          >
-            <FaSyncAlt className="erp-btn-icon spin" aria-hidden="true" />
-            <span>Refresh</span>
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={() => navigate("/super-admin/create-college")}
-            title="Add new college (Ctrl+N)"
-            aria-label="Add new college"
-          >
-            <FaPlus className="erp-btn-icon" aria-hidden="true" />
-            <span>Add College</span>
-          </button>
+
+        {/* Subtle horizontal divider */}
+        <div className="erp-header-divider" aria-hidden="true" />
+
+        {/* Bottom row: Ctrl + R to refresh on left; Refresh and Add College buttons aligned right */}
+        <div className="erp-header-bottom">
+          <div className="erp-header-shortcut">
+            <kbd className="meta-kbd">Ctrl/Cmd + R</kbd>
+            <span className="shortcut-label">to refresh</span>
+          </div>
+          <div className="erp-header-actions">
+            <button
+              className="erp-btn erp-btn-secondary"
+              onClick={fetchDashboardData}
+              title="Refresh dashboard data (Ctrl+R)"
+              aria-label="Refresh dashboard"
+            >
+              <FaSyncAlt className="erp-btn-icon" aria-hidden="true" />
+              <span>Refresh</span>
+            </button>
+            <button
+              className="erp-btn erp-btn-primary"
+              onClick={() => navigate("/super-admin/create-college")}
+              title="Add new college (Ctrl+N)"
+              aria-label="Add new college"
+            >
+              <FaPlus className="erp-btn-icon" aria-hidden="true" />
+              <span>Add College</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -394,9 +405,9 @@ export default function SuperAdminDashboard() {
               <div className="quick-action-title">Security Audit</div>
               <div className="quick-action-description">
                 Monitor system activity
-               </div>
-           </div>
-         </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -684,15 +695,18 @@ export default function SuperAdminDashboard() {
 
         /* ================= PAGE HEADER ================= */
         .erp-page-header {
-          background: var(--sidebar-gradient);
-          padding: var(--spacing-xl);
-          border-radius: var(--radius-xl);
-          margin-bottom: var(--spacing-xl);
-          box-shadow: var(--shadow-sidebar), 0 0 0 1px rgba(61, 181, 230, 0.2);
-          color: white;
+          background: linear-gradient(135deg, #0E3746 0%, #164E63 100%);
+          padding: 24px 28px;
+          border-radius: 14px;
+          margin-bottom: 1.25rem;
+          border: 1px solid rgba(34, 184, 230, 0.22);
+          box-shadow: 0 8px 24px -4px rgba(14, 55, 70, 0.4), 0 2px 6px -1px rgba(14, 55, 70, 0.2);
+          color: #ffffff;
           display: flex;
+          flex-direction: column;
           justify-content: space-between;
-          align-items: center;
+          min-height: 175px;
+          box-sizing: border-box;
           animation: slideDown 0.5s ease;
           position: relative;
           overflow: hidden;
@@ -705,141 +719,226 @@ export default function SuperAdminDashboard() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, transparent 50%, rgba(61, 181, 230, 0.05) 100%);
+          background: radial-gradient(circle at 10% 20%, rgba(34, 184, 230, 0.12) 0%, transparent 60%),
+                      linear-gradient(135deg, rgba(34, 184, 230, 0.08) 0%, transparent 50%);
           pointer-events: none;
         }
 
+        /* Top row: icon on left, title & description beside it, last-refreshed below */
+        .erp-header-top,
         .erp-header-content {
           display: flex;
-          align-items: center;
-          gap: var(--spacing-lg);
+          align-items: flex-start;
+          gap: 20px;
           position: relative;
           z-index: 1;
+          width: 100%;
+          min-width: 0;
         }
 
         .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(61, 181, 230, 0.25);
-          border-radius: var(--radius-lg);
+          width: 58px;
+          height: 58px;
+          min-width: 58px;
+          min-height: 58px;
+          background: rgba(34, 184, 230, 0.15);
+          border: 1px solid rgba(34, 184, 230, 0.35);
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.75rem;
-          box-shadow: 0 4px 16px rgba(61, 181, 230, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          font-size: 26px;
+          color: #22B8E6;
+          box-shadow: 0 4px 14px rgba(34, 184, 230, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .erp-header-text {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          flex: 1;
         }
 
         .erp-page-title {
           margin: 0;
-          font-size: 1.75rem;
+          font-size: 28px;
           font-weight: 700;
-          letter-spacing: -0.5px;
+          letter-spacing: -0.02em;
+          line-height: 1.15;
+          color: #ffffff;
         }
 
         .erp-page-subtitle {
-          margin: 0.25rem 0 0 0;
-          opacity: 0.9;
-          font-size: 0.95rem;
+          margin: 3px 0 0 0;
+          color: rgba(230, 242, 245, 0.88);
+          font-size: 16px;
           font-weight: 400;
+          line-height: 1.25;
         }
 
         .erp-page-meta {
-          margin-top: 0.5rem;
-          font-size: 0.85rem;
-          opacity: 0.85;
-          display: flex;
+          margin-top: 6px;
+          font-size: 14px;
+          color: rgba(230, 242, 245, 0.78);
+          display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 6px;
+          line-height: 1.2;
         }
 
         .meta-icon {
-          font-size: 0.9rem;
+          font-size: 14px;
+          color: #22B8E6;
+          flex-shrink: 0;
         }
 
-        .keyboard-hint {
-          margin-left: 0.5rem;
-          padding: 0.125rem 0.5rem;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 4px;
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
-        .erp-header-actions {
-          display: flex;
-          gap: 0.75rem;
+        /* Subtle Horizontal Divider */
+        .erp-header-divider {
+          width: 100%;
+          height: 2px;
+          background: linear-gradient(90deg, rgba(34, 184, 230, 0.25) 0%, rgba(34, 184, 230, 0.08) 70%, transparent 100%);
+          margin: 6px 0 8px 0;
           position: relative;
           z-index: 1;
         }
 
-        .erp-btn {
-          padding: 0.75rem 1.25rem;
-          font-weight: 600;
-          border-radius: var(--radius-md);
-          transition: all var(--transition-base);
+        /* Bottom Row: shortcut on left, buttons on right */
+        .erp-header-bottom {
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          gap: 0.5rem;
+          width: 100%;
+          position: relative;
+          z-index: 1;
+          gap: 16px;
+          height: 1.3rem;
+        }
+
+        .erp-header-shortcut {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13.5px;
+          color: rgba(230, 242, 245, 0.78);
+          font-weight: 500;
+        }
+
+        .meta-kbd {
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 2px 7px;
+          background: rgba(34, 184, 230, 0.12);
+          border: 1px solid rgba(34, 184, 230, 0.28);
+          border-radius: 4px;
+          color: #ffffff;
+          line-height: 1.2;
+        }
+
+        .shortcut-label {
+          color: rgba(230, 242, 245, 0.75);
+        }
+
+        .erp-header-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .erp-btn {
+          height: 44px;
+          padding: 0 18px;
+          font-weight: 600;
+          border-radius: 9px;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
           cursor: pointer;
-          border: none;
-          font-size: 0.9rem;
+          border: 1px solid transparent;
+          font-size: 15px;
+          line-height: 1;
+          white-space: nowrap;
+          box-sizing: border-box;
         }
 
         .erp-btn-secondary {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
+          background: rgba(22, 78, 99, 0.65);
+          color: #ffffff;
+          border: 1px solid rgba(34, 184, 230, 0.35);
+          box-shadow: 0 2px 6px rgba(14, 55, 70, 0.25);
         }
 
         .erp-btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.25);
-          transform: translateY(-2px);
+          background: #164E63;
+          border-color: #22B8E6;
+          color: #ffffff;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(14, 55, 70, 0.35), 0 0 0 1px rgba(34, 184, 230, 0.3);
+        }
+
+        .erp-btn-secondary:hover .erp-btn-icon {
+          transform: rotate(180deg);
         }
 
         .erp-btn-primary {
-          background: var(--accent-gradient);
-          color: white;
-          box-shadow: 0 4px 16px rgba(61, 181, 230, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          background: #22B8E6;
+          color: #0E3746;
+          font-weight: 700;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          box-shadow: 0 3px 12px rgba(34, 184, 230, 0.35);
         }
 
         .erp-btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          background: #38c5f0;
+          color: #0E3746;
+          transform: translateY(-1px);
+          box-shadow: 0 5px 16px rgba(34, 184, 230, 0.48);
+        }
+
+        .erp-btn-primary .erp-btn-icon {
+          color: #0E3746;
         }
 
         .erp-btn-icon {
-          font-size: 1rem;
+          font-size: 15px;
+          transition: transform 0.4s ease;
         }
 
         /* ================= INFO BANNER ================= */
         .info-banner {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.08) 0%, rgba(79, 195, 247, 0.12) 100%);
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.07) 0%, rgba(79, 195, 247, 0.1) 100%);
           border-radius: var(--radius-lg);
-          padding: var(--spacing-md) var(--spacing-lg);
+          padding: 0.75rem 1.25rem;
           display: flex;
           align-items: center;
-          gap: var(--spacing-md);
-          margin-bottom: var(--spacing-xl);
+          gap: 0.875rem;
+          margin-bottom: 1.1rem;
           border-left: 4px solid var(--sidebar-accent);
           box-shadow: var(--shadow-sm);
         }
 
         .info-icon {
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
-          background: rgba(61, 181, 230, 0.2);
+          background: rgba(61, 181, 230, 0.18);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--sidebar-accent);
           flex-shrink: 0;
+          font-size: 1rem;
         }
 
         .info-content {
           flex: 1;
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           color: var(--text-secondary);
-          line-height: 1.5;
+          line-height: 1.45;
         }
 
         .info-content strong {
@@ -1028,8 +1127,8 @@ export default function SuperAdminDashboard() {
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: var(--spacing-lg);
-          margin-bottom: var(--spacing-lg);
+          gap: var(--spacing-md);
+          margin-bottom: 1.1rem;
           width: 100%;
         }
 
@@ -1087,7 +1186,7 @@ export default function SuperAdminDashboard() {
         .stat-card:nth-child(3) { animation-delay: 0.2s; }
 
         .stat-card-header {
-          padding: var(--spacing-sm) var(--spacing-md);
+          padding: 0.85rem var(--spacing-md) 0.6rem;
           display: flex;
           align-items: center;
           gap: var(--spacing-sm);
@@ -1096,14 +1195,14 @@ export default function SuperAdminDashboard() {
         }
 
         .stat-icon-wrapper {
-          width: 40px;
-          height: 40px;
+          width: 38px;
+          height: 38px;
           border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          font-size: 1.1rem;
+          font-size: 1rem;
           transition: transform var(--transition-base);
           overflow: hidden;
         }
@@ -1137,30 +1236,31 @@ export default function SuperAdminDashboard() {
         .stat-title {
           font-weight: 500;
           color: var(--text-muted);
-          font-size: 0.8rem;
+          font-size: 0.78rem;
+          letter-spacing: 0.01em;
           flex: 1;
+          text-transform: uppercase;
         }
 
         .stat-card-body {
-          padding: 0 var(--spacing-md);
+          padding: 0 var(--spacing-md) 0.5rem;
           flex: 1;
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
-          gap: 0.25rem;
         }
 
         .stat-value {
-          font-size: 1.75rem;
-          font-weight: 700;
+          font-size: 2rem;
+          font-weight: 800;
           color: var(--sidebar-primary);
-          line-height: 1.15;
-          letter-spacing: -0.02em;
+          line-height: 1.1;
+          letter-spacing: -0.03em;
         }
 
         .stat-card-footer {
           border-top: 1px solid var(--border-light);
-          padding: var(--spacing-xs) var(--spacing-md) var(--spacing-sm);
+          padding: 0.45rem var(--spacing-md) 0.6rem;
         }
 
         .stat-trend {
@@ -1253,7 +1353,7 @@ export default function SuperAdminDashboard() {
         .college-card {
           background: var(--card-gradient);
           border-radius: var(--radius-lg);
-          padding: var(--spacing-xl);
+          padding: 1rem;
           cursor: pointer;
           transition: all var(--transition-base);
           border: 1px solid var(--border-light);
@@ -1290,14 +1390,14 @@ export default function SuperAdminDashboard() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: var(--spacing-md);
-          padding-bottom: var(--spacing-sm);
+          margin-bottom: 0.65rem;
+          padding-bottom: 0.5rem;
           border-bottom: 1px solid var(--border-light);
         }
 
         .college-badge {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           background: var(--accent-gradient);
           color: white;
@@ -1305,82 +1405,82 @@ export default function SuperAdminDashboard() {
           align-items: center;
           justify-content: center;
           font-weight: 700;
-          font-size: 0.9rem;
+          font-size: 0.8rem;
           flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
+          box-shadow: 0 2px 6px rgba(61, 181, 230, 0.3);
         }
 
         .college-status {
           background: var(--success-light);
           color: var(--success);
-          padding: 0.25rem 0.75rem;
+          padding: 0.2rem 0.6rem;
           border-radius: 20px;
           font-weight: 600;
-          font-size: 0.85rem;
+          font-size: 0.75rem;
           display: flex;
           align-items: center;
-          gap: 0.375rem;
+          gap: 0.3rem;
         }
 
         .college-status::before {
           content: "";
-          width: 6px;
-          height: 6px;
+          width: 5px;
+          height: 5px;
           border-radius: 50%;
           background: currentColor;
         }
 
         .college-card-body {
-          margin-bottom: var(--spacing-md);
+          margin-bottom: 0;
           flex: 1;
         }
 
         .college-name {
-          font-size: 1.15rem;
+          font-size: 1rem;
           font-weight: 700;
           color: var(--text-primary);
-          margin: 0 0 var(--spacing-sm) 0;
+          margin: 0 0 0.5rem 0;
           line-height: 1.3;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
-          letter-spacing: -0.3px;
+          letter-spacing: -0.2px;
         }
 
         .college-meta {
           display: flex;
           flex-direction: column;
-          gap: var(--spacing-sm);
+          gap: 0.3rem;
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: var(--spacing-xs);
-          font-size: 0.875rem;
+          gap: 0.35rem;
+          font-size: 0.8rem;
           color: var(--text-muted);
         }
 
         .meta-item .meta-icon {
           color: var(--sidebar-accent);
-          font-size: 0.9rem;
+          font-size: 0.8rem;
         }
 
         /* ================= QUICK ACTIONS SECTION ================= */
         .quick-actions-section {
           background: var(--bg-secondary);
           border-radius: var(--radius-lg);
-          padding: var(--spacing-lg);
-          margin-bottom: var(--spacing-xl);
+          padding: 1rem 1.25rem;
+          margin-bottom: 1.1rem;
           box-shadow: var(--shadow-md);
           border: 1px solid var(--border-light);
           animation: fadeIn 0.5s ease;
         }
 
         .quick-actions-header {
-          margin-bottom: var(--spacing-lg);
-          padding-bottom: var(--spacing-md);
+          margin-bottom: 0.9rem;
+          padding-bottom: 0.65rem;
           border-bottom: 1px solid var(--border-light);
         }
 
@@ -1410,24 +1510,24 @@ export default function SuperAdminDashboard() {
         /* QUICK ACTIONS GRID */
         .quick-actions-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: var(--spacing-lg);
+          grid-template-columns: repeat(4, 1fr);
+          gap: var(--spacing-md);
         }
 
         .quick-action-card {
           background: var(--card-gradient);
           border-radius: var(--radius-lg);
-          padding: var(--spacing-lg);
+          padding: 1rem 1.1rem;
           cursor: pointer;
           transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
           border: 1px solid var(--border-light);
           display: flex;
           align-items: center;
-          gap: var(--spacing-md);
+          gap: 0.9rem;
           position: relative;
           overflow: visible;
-          height: 100%;
           z-index: 0;
+          min-height: 80px;
         }
 
         .quick-action-card::before {
@@ -1476,13 +1576,13 @@ export default function SuperAdminDashboard() {
         }
 
         .quick-action-icon {
-          width: 56px;
-          height: 56px;
+          width: 48px;
+          height: 48px;
           border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.5rem;
+          font-size: 1.35rem;
           flex-shrink: 0;
           transition: transform var(--transition-base);
           overflow: hidden;
@@ -1530,18 +1630,19 @@ export default function SuperAdminDashboard() {
         .quick-action-title {
           font-weight: 700;
           color: var(--sidebar-primary);
-          font-size: 1rem;
-          margin-bottom: 0.25rem;
-          white-space: nowrap;
+          font-size: 0.95rem;
+          margin-bottom: 0.2rem;
+          white-space: normal;
           overflow: hidden;
           text-overflow: ellipsis;
+          line-height: 1.25;
         }
 
         .quick-action-description {
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           color: var(--text-muted);
           line-height: 1.3;
-          white-space: nowrap;
+          white-space: normal;
           overflow: hidden;
           text-overflow: ellipsis;
         }
@@ -1601,26 +1702,27 @@ export default function SuperAdminDashboard() {
         .footer-note {
           background: var(--card-hover-gradient);
           border-radius: var(--radius-md);
-          padding: var(--spacing-md) var(--spacing-lg);
+          padding: 0.65rem 1.1rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: var(--spacing-md);
           margin-top: var(--spacing-md);
           border-left: 4px solid var(--sidebar-accent);
-          font-size: 0.9rem;
+          font-size: 0.82rem;
           color: var(--text-secondary);
         }
 
         .footer-note-content {
           display: flex;
           align-items: center;
-          gap: var(--spacing-sm);
+          gap: 0.5rem;
           flex: 1;
+          line-height: 1.4;
         }
 
         .note-icon {
-          font-size: 1.25rem;
+          font-size: 1rem;
           flex-shrink: 0;
           color: var(--sidebar-accent);
         }
@@ -1628,8 +1730,8 @@ export default function SuperAdminDashboard() {
         .refresh-btn {
           background: rgba(61, 181, 230, 0.15);
           border: none;
-          width: 36px;
-          height: 36px;
+          width: 30px;
+          height: 30px;
           border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
@@ -1647,7 +1749,7 @@ export default function SuperAdminDashboard() {
         }
 
         .refresh-icon {
-          font-size: 1.1rem;
+          font-size: 0.9rem;
         }
 
         /* SCREEN READER ONLY */
@@ -1803,64 +1905,73 @@ export default function SuperAdminDashboard() {
 
           /* Header */
           .erp-page-header {
-            padding: 1.5rem !important;
-            margin-bottom: 1.25rem !important;
-            border-radius: 1rem !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 1.25rem !important;
+            padding: 20px 24px !important;
+            margin-bottom: 1.15rem !important;
+            border-radius: 12px !important;
+            min-height: auto !important;
           }
 
+          .erp-header-top,
           .erp-header-content {
-            width: 100%;
-            gap: 1rem !important;
+            gap: 16px !important;
           }
 
           .erp-header-icon {
-            width: 52px !important;
-            height: 52px !important;
-            font-size: 1.5rem !important;
+            width: 50px !important;
+            height: 50px !important;
+            min-width: 50px !important;
+            min-height: 50px !important;
+            font-size: 22px !important;
+            border-radius: 10px !important;
             flex-shrink: 0;
           }
 
           .erp-page-title {
-            font-size: 1.55rem !important;
-            line-height: 1.25 !important;
+            font-size: 24px !important;
+            line-height: 1.2 !important;
           }
 
           .erp-page-subtitle {
-            font-size: 0.9rem !important;
-            line-height: 1.45 !important;
+            font-size: 15px !important;
+            line-height: 1.35 !important;
           }
 
           .erp-page-meta {
-            font-size: 0.78rem !important;
-            flex-wrap: wrap;
+            font-size: 13px !important;
+            gap: 6px !important;
           }
 
-          .keyboard-hint {
-            display: none;
+          .erp-header-divider {
+            margin: 8px 0 !important;
+          }
+
+          .erp-header-bottom {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+          }
+
+          .erp-header-shortcut {
+            font-size: 13px !important;
           }
 
           .erp-header-actions {
-            width: 100%;
-            display: grid !important;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem !important;
+            display: inline-flex !important;
+            gap: 10px !important;
           }
 
           .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-            min-height: 48px;
+            height: 42px !important;
+            min-height: 42px !important;
+            padding: 0 16px !important;
+            font-size: 14px !important;
           }
 
 
           /* Info banner */
           .info-banner {
-            padding: 1rem !important;
-            margin-bottom: 1.25rem !important;
-            align-items: flex-start !important;
+            padding: 0.75rem 1rem !important;
+            margin-bottom: 1rem !important;
           }
 
           .info-content {
@@ -1890,7 +2001,7 @@ export default function SuperAdminDashboard() {
           /* Stats */
           .stats-grid {
             grid-template-columns: repeat(3, 1fr) !important;
-            gap: 0.75rem !important;
+            gap: 0.65rem !important;
           }
 
           .stat-card-header {
@@ -2017,29 +2128,28 @@ export default function SuperAdminDashboard() {
           /* ================= HEADER ================= */
 
           .erp-page-header {
-            padding: 1rem !important;
+            padding: 16px 18px !important;
             margin-bottom: 1rem !important;
-            border-radius: 14px !important;
-
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 1rem !important;
+            border-radius: 12px !important;
+            min-height: auto !important;
           }
 
+          .erp-header-top,
           .erp-header-content {
             width: 100% !important;
             display: flex !important;
             align-items: flex-start !important;
-            gap: 0.75rem !important;
+            gap: 14px !important;
           }
 
           .erp-header-icon {
             width: 44px !important;
             height: 44px !important;
             min-width: 44px !important;
-            font-size: 1.15rem !important;
+            min-height: 44px !important;
+            font-size: 20px !important;
             border-radius: 10px !important;
+            flex-shrink: 0;
           }
 
           .erp-header-text {
@@ -2048,53 +2158,64 @@ export default function SuperAdminDashboard() {
           }
 
           .erp-page-title {
-            font-size: 1.25rem !important;
-            line-height: 1.25 !important;
+            font-size: 20px !important;
+            line-height: 1.2 !important;
             letter-spacing: -0.2px !important;
           }
 
           .erp-page-subtitle {
-            font-size: 0.78rem !important;
-            line-height: 1.45 !important;
-            margin-top: 0.3rem !important;
+            font-size: 14px !important;
+            line-height: 1.35 !important;
+            margin-top: 2px !important;
           }
 
           .erp-page-meta {
-            margin-top: 0.4rem !important;
-            font-size: 0.7rem !important;
-            line-height: 1.4 !important;
-            flex-wrap: wrap !important;
+            margin-top: 5px !important;
+            font-size: 12.5px !important;
+            line-height: 1.3 !important;
+            gap: 5px !important;
           }
 
-          .keyboard-hint {
-            display: none !important;
+          .erp-header-divider {
+            margin: 10px 0 !important;
           }
 
+          .erp-header-bottom {
+            width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+
+          .erp-header-shortcut {
+            font-size: 12.5px !important;
+            justify-content: flex-start !important;
+          }
 
           /* Header buttons */
           .erp-header-actions {
             width: 100% !important;
             display: grid !important;
             grid-template-columns: 1fr 1fr !important;
-            gap: 0.6rem !important;
+            gap: 8px !important;
           }
 
           .erp-header-actions .erp-btn {
             width: 100% !important;
-            min-height: 46px !important;
-            padding: 0.65rem 0.5rem !important;
+            height: 42px !important;
+            min-height: 42px !important;
+            padding: 0 12px !important;
             justify-content: center !important;
-            font-size: 0.8rem !important;
-            gap: 0.35rem !important;
+            font-size: 14px !important;
+            gap: 6px !important;
           }
 
           .erp-btn-icon {
-            font-size: 0.9rem !important;
+            font-size: 14px !important;
           }
 
 
           /* ================= INFO BANNER ================= */
-
           .info-banner {
             padding: 0.9rem !important;
             margin-bottom: 1rem !important;
@@ -2361,15 +2482,16 @@ export default function SuperAdminDashboard() {
           }
 
           .erp-page-header {
-            padding: 0.85rem !important;
+            padding: 14px !important;
+            border-radius: 10px !important;
           }
 
           .erp-page-title {
-            font-size: 1.15rem !important;
+            font-size: 18px !important;
           }
 
           .erp-page-subtitle {
-            font-size: 0.73rem !important;
+            font-size: 13px !important;
           }
 
           .erp-header-actions {
@@ -2377,7 +2499,8 @@ export default function SuperAdminDashboard() {
           }
 
           .erp-header-actions .erp-btn {
-            min-height: 44px !important;
+            height: 42px !important;
+            min-height: 42px !important;
           }
 
           .info-content {
