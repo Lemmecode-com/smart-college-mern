@@ -231,6 +231,16 @@ const teacherSchema = new mongoose.Schema(
     lockedUntil: {
       type: Date,
     },
+
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+
+    deactivationReason: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true },
 );

@@ -6,6 +6,7 @@ const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const teacherMiddleware = require("../middlewares/teacher.middleware");
 const studentMiddleware = require("../middlewares/student.middleware");
+const checkDataExport = require("../middlewares/checkDataExport.middleware");
 const { ROLE } = require("../utils/constants");
 
 const {
@@ -64,6 +65,7 @@ router.get(
   role(ROLE.TEACHER, ROLE.HOD, ROLE.PRINCIPAL),
   collegeMiddleware,
   teacherMiddleware,
+  checkDataExport,
   getAttendanceReport,
 );
 
@@ -82,6 +84,7 @@ router.get(
   role("STUDENT"),
   collegeMiddleware,
   studentMiddleware,
+  checkDataExport,
   getStudentAttendanceReportPDF,
 );
 

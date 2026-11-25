@@ -1,16 +1,23 @@
-import { useState } from "react";
-import { FaFilePdf, FaFileExcel, FaDownload, FaSpinner } from "react-icons/fa";
+import { useState, useContext, useEffect } from "react";
+import { FaFilePdf, FaFileExcel, FaDownload, FaSpinner, FaLock } from "react-icons/fa";
 import { exportToPDF, exportToExcel } from "../utils/exportHelpers";
 import { toast } from "react-toastify";
+import { AuthContext } from "../auth/AuthContext";
+import { getGeneralSettings } from "../api/generalSettings";
 
 /**
- * Reusable Export Buttons Component
+ * Reusable Export Buttons Component (#583)
+ * Enforces institution allowDataExport policy (allowed, restricted, disabled).
+ *
  * @param {string} title - Report title for PDF header
  * @param {Array} columns - Column definitions [{header: 'Name', key: 'name'}]
  * @param {Array} data - Data to export (can be array or async function that returns array)
  * @param {string} filename - Base filename (without extension)
  * @param {boolean} showPDF - Show PDF button (default: true)
  * @param {boolean} showExcel - Show Excel button (default: true)
+ * @param {string} [allowDataExport] - Explicit policy ('allowed' | 'restricted' | 'disabled')
+ * @param {string} [userRole] - Explicit user role override
+ * @param {boolean} [hideWhenDisabled=false] - Hide buttons entirely when export is blocked
  */
 export default function ExportButtons({
   title = "Report",
@@ -19,10 +26,70 @@ export default function ExportButtons({
   filename = "report",
   showPDF = true,
   showExcel = true,
+  allowDataExport: propExportPolicy,
+  userRole: propUserRole,
+  hideWhenDisabled = false,
 }) {
   const [exporting, setExporting] = useState(null); // 'pdf', 'excel', or null
+  const auth = useContext(AuthContext);
+  const currentUserRole = propUserRole || auth?.user?.role;
+  const [policy, setPolicy] = useState(propExportPolicy || null);
+
+  useEffect(() => {
+    if (propExportPolicy) {
+      setPolicy(propExportPolicy);
+      return;
+    }
+
+    let isMounted = true;
+    if (currentUserRole !== "SUPER_ADMIN" && !policy) {
+      getGeneralSettings()
+        .then((res) => {
+          if (isMounted && res?.allowDataExport) {
+            setPolicy(res.allowDataExport);
+          }
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [propExportPolicy, currentUserRole, policy]);
+
+  // Compute export permissions
+  const isSuperAdmin = currentUserRole === "SUPER_ADMIN";
+  const effectivePolicy = policy || "restricted";
+
+  let isAllowed = true;
+  let disabledReason = "";
+
+  if (!isSuperAdmin) {
+    if (effectivePolicy === "disabled") {
+      isAllowed = false;
+      disabledReason = "Data export is disabled by your institution policy.";
+    } else if (effectivePolicy === "restricted") {
+      const privilegedRoles = ["COLLEGE_ADMIN", "PRINCIPAL", "SUPER_ADMIN"];
+      if (!privilegedRoles.includes(currentUserRole)) {
+        isAllowed = false;
+        disabledReason = "Data export is restricted to administrators and principals only.";
+      }
+    }
+  }
+
+  if (!isAllowed && hideWhenDisabled) {
+    return null;
+  }
 
   const handleExport = async (format) => {
+    if (!isAllowed) {
+      toast.error(disabledReason || "Data export is not permitted.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return;
+    }
+
     setExporting(format);
 
     try {
@@ -81,13 +148,19 @@ export default function ExportButtons({
         });
       }
     } catch (error) {
-      toast.error("Export failed. Please try again.", {
+      const serverMsg = error.response?.data?.message;
+      toast.error(serverMsg || "Export failed. Please try again.", {
         position: "top-right",
         autoClose: 3000,
       });
     } finally {
       setExporting(null);
     }
+  };
+
+  const buttonStyle = {
+    ...exportButtonStyle,
+    ...(isAllowed ? {} : { opacity: 0.5, cursor: "not-allowed" }),
   };
 
   return (
@@ -99,9 +172,9 @@ export default function ExportButtons({
         <button
           className={`btn-export btn-export-pdf ${exporting === "pdf" ? "exporting" : ""}`}
           onClick={() => handleExport("pdf")}
-          disabled={exporting !== null}
-          title="Export to PDF"
-          style={exportButtonStyle}
+          disabled={!isAllowed || exporting !== null}
+          title={!isAllowed ? disabledReason : "Export to PDF"}
+          style={buttonStyle}
         >
           {exporting === "pdf" ? (
             <>
@@ -110,7 +183,7 @@ export default function ExportButtons({
             </>
           ) : (
             <>
-              <FaFilePdf />
+              {!isAllowed ? <FaLock /> : <FaFilePdf />}
               <span>PDF</span>
             </>
           )}
@@ -121,9 +194,9 @@ export default function ExportButtons({
         <button
           className={`btn-export btn-export-excel ${exporting === "excel" ? "exporting" : ""}`}
           onClick={() => handleExport("excel")}
-          disabled={exporting !== null}
-          title="Export to Excel"
-          style={exportButtonStyle}
+          disabled={!isAllowed || exporting !== null}
+          title={!isAllowed ? disabledReason : "Export to Excel"}
+          style={buttonStyle}
         >
           {exporting === "excel" ? (
             <>
@@ -132,7 +205,7 @@ export default function ExportButtons({
             </>
           ) : (
             <>
-              <FaFileExcel />
+              {!isAllowed ? <FaLock /> : <FaFileExcel />}
               <span>Excel</span>
             </>
           )}
@@ -159,8 +232,9 @@ const exportButtonStyle = {
 };
 
 // Add CSS styles for export buttons
-const style = document.createElement("style");
-style.textContent = `
+if (typeof document !== "undefined") {
+  const style = document.createElement("style");
+  style.textContent = `
   .btn-export {
     display: flex;
     align-items: center;
@@ -210,4 +284,5 @@ style.textContent = `
     100% { transform: rotate(360deg); }
   }
 `;
-document.head.appendChild(style);
+  document.head.appendChild(style);
+}

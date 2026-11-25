@@ -13,7 +13,11 @@ const PasswordReset = require("../models/passwordReset.model");
 const AuthSession = require("../models/authSession.model");
 const GeneralSettings = require("../models/generalSettings.model");
 const AppError = require("../utils/AppError");
-const { validatePassword, passwordValidationMessage } = require("../utils/validators");
+const {
+  validatePassword,
+  passwordValidationMessage,
+  getPasswordValidationMessage,
+} = require("../utils/validators");
 const {
   createAndSendOTP,
   verifyOTP,
@@ -22,9 +26,79 @@ const {
 } = require("../services/otp.service");
 const securityAuditService = require("../services/securityAudit.service");
 
-const MAX_LOGIN_ATTEMPTS = 5;
+const DEFAULT_MAX_LOGIN_ATTEMPTS = 5;
+const DEFAULT_MIN_PASSWORD_LENGTH = 8;
+const DEFAULT_PASSWORD_EXPIRY_DAYS = 90;
+const DEFAULT_AUTO_DISABLE_INACTIVE_DAYS = 180;
 const LOGIN_LOCKOUT_MINUTES = parseInt(process.env.LOGIN_LOCKOUT_MINUTES, 10) || 1;
 const LOCKOUT_DURATION_MS = LOGIN_LOCKOUT_MINUTES * 60 * 1000;
+
+const getCollegeAuthSettings = async (collegeId) => {
+  const DEFAULT_POLICY = {
+    maxLoginAttempts: DEFAULT_MAX_LOGIN_ATTEMPTS,
+    minPasswordLength: DEFAULT_MIN_PASSWORD_LENGTH,
+    passwordExpiryDays: DEFAULT_PASSWORD_EXPIRY_DAYS,
+    autoDisableInactiveDays: DEFAULT_AUTO_DISABLE_INACTIVE_DAYS,
+  };
+
+  if (!collegeId) return DEFAULT_POLICY;
+
+  try {
+    const settings = await GeneralSettings.findOne({ college_id: collegeId }).lean();
+    if (!settings) return DEFAULT_POLICY;
+    return {
+      maxLoginAttempts:
+        typeof settings.maxLoginAttempts === "number"
+          ? settings.maxLoginAttempts
+          : DEFAULT_MAX_LOGIN_ATTEMPTS,
+      minPasswordLength:
+        typeof settings.minPasswordLength === "number"
+          ? settings.minPasswordLength
+          : DEFAULT_MIN_PASSWORD_LENGTH,
+      passwordExpiryDays:
+        typeof settings.passwordExpiryDays === "number"
+          ? settings.passwordExpiryDays
+          : DEFAULT_PASSWORD_EXPIRY_DAYS,
+      autoDisableInactiveDays:
+        typeof settings.autoDisableInactiveDays === "number"
+          ? settings.autoDisableInactiveDays
+          : DEFAULT_AUTO_DISABLE_INACTIVE_DAYS,
+    };
+  } catch (err) {
+    logger.logError("Failed to load GeneralSettings for auth policy", {
+      error: err.message,
+      collegeId,
+    });
+    return DEFAULT_POLICY;
+  }
+};
+
+const isPasswordExpired = (user, passwordExpiryDays) => {
+  if (!user || user.role === "SUPER_ADMIN") return false;
+  if (!passwordExpiryDays || typeof passwordExpiryDays !== "number") return false;
+
+  const lastChanged = user.passwordChangedAt
+    ? new Date(user.passwordChangedAt)
+    : (user.createdAt ? new Date(user.createdAt) : new Date(0));
+
+  const expiryDurationMs = passwordExpiryDays * 24 * 60 * 60 * 1000;
+  return Date.now() - lastChanged.getTime() > expiryDurationMs;
+};
+
+const sendPasswordExpiredResponse = (res, user, passwordExpiryDays) => {
+  return res.status(403).json({
+    success: false,
+    code: "PASSWORD_EXPIRED",
+    message: `Your password has expired (policy: ${passwordExpiryDays} days). Please reset or change your password to continue.`,
+    passwordExpired: true,
+    mustChangePassword: true,
+    user: {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+    },
+  });
+};
 
 const isAccountLocked = (record) => {
   if (!record) return false;
@@ -51,8 +125,10 @@ const throwAccountLockedError = (record) => {
   );
 };
 
-const throwInvalidCredentialsError = (nextAttempts) => {
-  const remaining = Math.max(0, MAX_LOGIN_ATTEMPTS - nextAttempts);
+const throwInvalidCredentialsError = (nextAttempts, maxAttempts = DEFAULT_MAX_LOGIN_ATTEMPTS) => {
+  const effectiveMax =
+    typeof maxAttempts === "number" ? maxAttempts : DEFAULT_MAX_LOGIN_ATTEMPTS;
+  const remaining = Math.max(0, effectiveMax - nextAttempts);
   if (remaining <= 2 && remaining > 0) {
     throw new AppError(
       `Invalid credentials. Caution: Only ${remaining} login attempt${remaining > 1 ? "s" : ""} remaining before your account is temporarily locked!`,
@@ -66,11 +142,13 @@ const throwInvalidCredentialsError = (nextAttempts) => {
   });
 };
 
-const incrementLoginAttempts = async (Model, id) => {
+const incrementLoginAttempts = async (Model, id, maxAttempts = DEFAULT_MAX_LOGIN_ATTEMPTS) => {
+  const effectiveMax =
+    typeof maxAttempts === "number" ? maxAttempts : DEFAULT_MAX_LOGIN_ATTEMPTS;
   const attempts = (await Model.findById(id).select("loginAttempts")) || {};
   const next = (attempts.loginAttempts || 0) + 1;
   const update =
-    next >= MAX_LOGIN_ATTEMPTS
+    next >= effectiveMax
       ? { loginAttempts: next, lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) }
       : { loginAttempts: next };
   await Model.findByIdAndUpdate(id, update);
@@ -96,13 +174,19 @@ exports.login = async (req, res, next) => {
         throwAccountLockedError(user);
       }
 
+      const authPolicy = await getCollegeAuthSettings(user.college_id);
+
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        const nextAttempts = await incrementLoginAttempts(User, user._id);
+        const nextAttempts = await incrementLoginAttempts(
+          User,
+          user._id,
+          authPolicy.maxLoginAttempts
+        );
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
-        throwInvalidCredentialsError(nextAttempts);
+        throwInvalidCredentialsError(nextAttempts, authPolicy.maxLoginAttempts);
       }
 
       await resetLoginAttempts(User, user._id);
@@ -114,6 +198,11 @@ exports.login = async (req, res, next) => {
           403,
           "ACCOUNT_DEACTIVATED",
         );
+      }
+
+      // 🔒 Check if password has expired (skip for SUPER_ADMIN)
+      if (isPasswordExpired(user, authPolicy.passwordExpiryDays)) {
+        return sendPasswordExpiredResponse(res, user, authPolicy.passwordExpiryDays);
       }
 
       // 🔒 Force password change on first login (skip for students)
@@ -141,25 +230,36 @@ exports.login = async (req, res, next) => {
         throwAccountLockedError(teacher);
       }
 
+      const authPolicy = await getCollegeAuthSettings(teacher.college_id);
+
       const isMatch = await bcrypt.compare(password, teacher.password);
       if (!isMatch) {
-        const nextAttempts = await incrementLoginAttempts(Teacher, teacher._id);
+        const nextAttempts = await incrementLoginAttempts(
+          Teacher,
+          teacher._id,
+          authPolicy.maxLoginAttempts
+        );
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
-        throwInvalidCredentialsError(nextAttempts);
+        throwInvalidCredentialsError(nextAttempts, authPolicy.maxLoginAttempts);
       }
 
       await resetLoginAttempts(Teacher, teacher._id);
 
       const linkedUser = await User.findOne({ email, role: "TEACHER" });
-      if (linkedUser && linkedUser.mustChangePassword === true) {
-        return res.status(403).json({
-          success: false,
-          code: "MUST_CHANGE_PASSWORD",
-          message: "You must change your temporary password on first login",
-          user: { id: linkedUser._id },
-        });
+      if (linkedUser) {
+        if (isPasswordExpired(linkedUser, authPolicy.passwordExpiryDays)) {
+          return sendPasswordExpiredResponse(res, linkedUser, authPolicy.passwordExpiryDays);
+        }
+        if (linkedUser.mustChangePassword === true) {
+          return res.status(403).json({
+            success: false,
+            code: "MUST_CHANGE_PASSWORD",
+            message: "You must change your temporary password on first login",
+            user: { id: linkedUser._id },
+          });
+        }
       }
 
       securityAuditService
@@ -205,16 +305,25 @@ exports.login = async (req, res, next) => {
           throwAccountLockedError(user);
         }
 
+        const authPolicy = await getCollegeAuthSettings(student.college_id);
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          const nextAttempts = await incrementLoginAttempts(User, user._id);
+          const nextAttempts = await incrementLoginAttempts(
+            User,
+            user._id,
+            authPolicy.maxLoginAttempts
+          );
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
-          throwInvalidCredentialsError(nextAttempts);
+          throwInvalidCredentialsError(nextAttempts, authPolicy.maxLoginAttempts);
         }
 
         await resetLoginAttempts(User, user._id);
+        if (isPasswordExpired(user, authPolicy.passwordExpiryDays)) {
+          return sendPasswordExpiredResponse(res, user, authPolicy.passwordExpiryDays);
+        }
         securityAuditService
           .logLoginSuccess(student, req)
           .catch((err) => console.error("Audit log failed:", err));
@@ -239,16 +348,25 @@ exports.login = async (req, res, next) => {
           throwAccountLockedError(user);
         }
 
+        const authPolicy = await getCollegeAuthSettings(student.college_id);
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          const nextAttempts = await incrementLoginAttempts(User, user._id);
+          const nextAttempts = await incrementLoginAttempts(
+            User,
+            user._id,
+            authPolicy.maxLoginAttempts
+          );
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
-          throwInvalidCredentialsError(nextAttempts);
+          throwInvalidCredentialsError(nextAttempts, authPolicy.maxLoginAttempts);
         }
 
         await resetLoginAttempts(User, user._id);
+        if (isPasswordExpired(user, authPolicy.passwordExpiryDays)) {
+          return sendPasswordExpiredResponse(res, user, authPolicy.passwordExpiryDays);
+        }
         securityAuditService
           .logLoginSuccess(student, req)
           .catch((err) => console.error("Audit log failed:", err));
@@ -587,8 +705,18 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
       throw new AppError("User not found", 404, "USER_NOT_FOUND");
     }
 
+    const authPolicy = await getCollegeAuthSettings(user.college_id);
+    if (!validatePassword(newPassword, authPolicy.minPasswordLength)) {
+      throw new AppError(
+        getPasswordValidationMessage(authPolicy.minPasswordLength),
+        400,
+        "WEAK_PASSWORD"
+      );
+    }
+
     // Update password
     user.password = newPassword; // Will be hashed by pre-save hook
+    user.passwordChangedAt = new Date();
     await user.save();
 
     // Invalidate all existing tokens by bumping version
@@ -649,13 +777,6 @@ exports.changePassword = async (req, res, next) => {
       return next(new AppError("Invalid user ID format", 400, "INVALID_ID"));
     }
 
-    // Validate new password strength using centralized policy
-    if (!validatePassword(newPassword)) {
-      return next(
-        new AppError(passwordValidationMessage, 400, "WEAK_PASSWORD")
-      );
-    }
-
     // Find user in User collection first (for staff/college admin/super admin)
     let user = await User.findById(effectiveUserId);
 
@@ -663,54 +784,30 @@ exports.changePassword = async (req, res, next) => {
       // Check Teacher collection (unlikely for first-login but allow)
       const Teacher = require("../models/teacher.model");
       user = await Teacher.findOne({ user_id: effectiveUserId });
+    }
 
-      if (user) {
-        // Verify current password
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-          // 🔒 SECURITY AUDIT: Log failed password change attempt
-          await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
-          throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
-        }
-
-        // Update password
-        user.password = newPassword;
-        await user.save();
-
-        // 🔒 SECURITY AUDIT: Log successful password change
-        await securityAuditService.logPasswordChangeSuccess(user, req);
-
-        return res.json({
-          success: true,
-          message: "Password changed successfully. Please login with your new password.",
-        });
-      }
-
+    if (!user) {
       // Check Student collection
       const Student = require("../models/student.model");
       user = await Student.findOne({ user_id: effectiveUserId });
+    }
 
-      if (user) {
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-          await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
-          throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
-        }
-
-        user.password = newPassword;
-        await user.save();
-        await securityAuditService.logPasswordChangeSuccess(user, req);
-
-        return res.json({
-          success: true,
-          message: "Password changed successfully. Please login with your new password.",
-        });
-      }
-
+    if (!user) {
       throw new AppError("User not found", 404, "USER_NOT_FOUND");
     }
 
-    // User is from User collection
+    // Validate new password strength using college policy
+    const authPolicy = await getCollegeAuthSettings(user.college_id || req.college_id);
+    if (!validatePassword(newPassword, authPolicy.minPasswordLength)) {
+      return next(
+        new AppError(
+          getPasswordValidationMessage(authPolicy.minPasswordLength),
+          400,
+          "WEAK_PASSWORD"
+        )
+      );
+    }
+
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
@@ -720,7 +817,10 @@ exports.changePassword = async (req, res, next) => {
 
     // Update password
     user.password = newPassword;
-    user.mustChangePassword = false; // ✅ Clear flag on successful change
+    user.passwordChangedAt = new Date();
+    if (user.mustChangePassword !== undefined) {
+      user.mustChangePassword = false; // ✅ Clear flag on successful change
+    }
     await user.save();
 
     // 🔒 SECURITY AUDIT: Log successful password change
@@ -860,6 +960,23 @@ const sendTokens = async (res, id, role, college_id, tokenVersion, req) => {
     sameSite: "strict",
   });
 
+  // 🕒 Update lastLogin timestamp for user and linked records
+  const now = new Date();
+  await User.findByIdAndUpdate(id, { $set: { lastLogin: now } }).catch((err) =>
+    logger.logError("Failed to update user lastLogin", { error: err.message, id })
+  );
+  if (role === "TEACHER") {
+    await Teacher.findOneAndUpdate(
+      { $or: [{ user_id: id }, { _id: id }] },
+      { $set: { lastLogin: now } }
+    ).catch(() => {});
+  } else if (role === "STUDENT") {
+    await Student.findOneAndUpdate(
+      { $or: [{ user_id: id }, { _id: id }] },
+      { $set: { lastLogin: now } }
+    ).catch(() => {});
+  }
+
   res.json({
     success: true,
     message: "Login successful",
@@ -938,3 +1055,7 @@ const getAccessTokenExpiryMs = () =>
   parseExpiryToMilliseconds(getAccessTokenExpiry());
 
 exports.parseExpiryToMilliseconds = parseExpiryToMilliseconds;
+exports.getCollegeAuthSettings = getCollegeAuthSettings;
+exports.isPasswordExpired = isPasswordExpired;
+exports.DEFAULT_PASSWORD_EXPIRY_DAYS = DEFAULT_PASSWORD_EXPIRY_DAYS;
+exports.DEFAULT_AUTO_DISABLE_INACTIVE_DAYS = DEFAULT_AUTO_DISABLE_INACTIVE_DAYS;

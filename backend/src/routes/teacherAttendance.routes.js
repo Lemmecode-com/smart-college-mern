@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const checkDataExport = require("../middlewares/checkDataExport.middleware");
 
 const {
   getTeacherAttendanceReport
@@ -15,6 +16,7 @@ router.get(
   auth,
   role("TEACHER"),
   collegeMiddleware,
+  checkDataExport,
   getTeacherAttendanceReport
 );
 
