@@ -47,7 +47,7 @@ const VALIDATION = {
   ADDRESS_MIN_LENGTH: 20,
   LOGO_MAX_SIZE: 5 * 1024 * 1024,
   LOGO_ALLOWED_TYPES: ["image/png", "image/jpeg", "image/jpg", "image/webp"],
-  COLLEGE_NAME_PATTERN: /^[a-zA-Z0-9\s\-.,&()'\/]+$/,
+  COLLEGE_NAME_PATTERN: /^[a-zA-Z0-9\s\-.,&()'/]+$/,
 };
 
 const MESSAGES = {
@@ -79,11 +79,6 @@ const MESSAGES = {
 export default function CreateNewCollege() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "SUPER_ADMIN")
-    return <Navigate to="/super-admin/dashboard" />;
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -120,6 +115,10 @@ export default function CreateNewCollege() {
   const [logoError, setLogoError] = useState("");
   const [logoPreview, setLogoPreview] = useState(null);
 
+  /* ================= SECURITY ================= */
+  const isAuthorized = user && user.role === "SUPER_ADMIN";
+  const needsLogin = !user;
+
   /* ================= VALIDATION ================= */
   const validateField = useCallback((name, value) => {
     switch (name) {
@@ -148,12 +147,13 @@ export default function CreateNewCollege() {
         if (value.trim().length < VALIDATION.ADDRESS_MIN_LENGTH)
           return MESSAGES.ADDRESS_TOO_SHORT;
         return "";
-      case "establishedYear":
+      case "establishedYear": {
         if (!value.trim()) return MESSAGES.ESTABLISHED_YEAR_REQUIRED;
         const year = Number(value);
         if (year < VALIDATION.MIN_YEAR || year > VALIDATION.MAX_YEAR)
           return MESSAGES.ESTABLISHED_YEAR_INVALID;
         return "";
+      }
       case "adminName":
         if (!value.trim()) return MESSAGES.ADMIN_NAME_REQUIRED;
         return "";
@@ -333,7 +333,7 @@ export default function CreateNewCollege() {
         autoClose: 2000,
       });
       setTimeout(() => setCopiedField(null), 2000);
-    } catch (err) {
+    } catch {
       toast.error("Failed to copy", {
         position: "top-right",
         autoClose: 2000,
@@ -391,6 +391,12 @@ export default function CreateNewCollege() {
   };
 
   /* ================= LOADING STATE ================= */
+  if (needsLogin) {
+    return <Navigate to="/login" />;
+  }
+  if (!isAuthorized) {
+    return <Navigate to="/super-admin/dashboard" />;
+  }
   if (loading && !success) {
     return (
       <div className="parent-portal-wrapper">
@@ -562,39 +568,30 @@ export default function CreateNewCollege() {
         </div>
       )}
 
-      {/* FORM CARD */}
-      <div className="erp-form-card animate-fade-in">
-        <div className="erp-form-header">
-          <div className="erp-form-title">
-            <FaRegBuilding className="erp-form-icon" />
-            <h3>College Registration Form</h3>
+      {/* FORM SECTIONS */}
+      <div className="cnc-section-card animate-fade-in">
+        <div className="cnc-section-header">
+          <div className="cnc-section-icon-wrapper">
+            <FaRegBuilding className="cnc-section-icon" />
           </div>
-          <div className="erp-form-subtitle">
-            Fill in all required fields marked with{" "}
-            <span className="required">*</span>. All information is confidential
-            and securely stored.
+          <div className="cnc-section-text">
+            <h2 className="cnc-section-title">College Information</h2>
+            <p className="cnc-section-subtitle">Enter the institution's official details</p>
           </div>
         </div>
-
-        <form onSubmit={handleSubmitClick} className="erp-form">
-          {/* COLLEGE INFORMATION SECTION */}
-          <div className="form-section">
-            <h4 className="erp-section-title">
-              <FaRegBuilding className="erp-section-icon" />
-              College Information
-            </h4>
-
-            <div className="erp-row">
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaUniversity className="erp-label-icon" />
-                    College Name <span className="required">*</span>
+        <div className="cnc-section-body">
+          <form onSubmit={handleSubmitClick} className="cnc-form">
+            <div className="cnc-row">
+              <div className="cnc-col cnc-col-6">
+                <div className="cnc-form-group">
+                  <label className="cnc-label">
+                    <FaUniversity className="cnc-label-icon" />
+                    College Name <span className="cnc-required">*</span>
                   </label>
                   <input
                     type="text"
                     name="collegeName"
-                    className={`erp-input ${getFieldError("collegeName") ? "erp-input-error" : ""}`}
+                    className={`cnc-input ${getFieldError("collegeName") ? "cnc-input-error" : ""}`}
                     value={formData.collegeName}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -602,28 +599,28 @@ export default function CreateNewCollege() {
                     autoComplete="off"
                   />
                   {getFieldError("collegeName") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
+                    <div className="cnc-error-text">
+                      <FaExclamationTriangle className="cnc-error-icon" />
                       {getFieldError("collegeName")}
                     </div>
                   )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
+                  <div className="cnc-hint-text">
+                    <FaInfoCircle className="cnc-hint-icon" />
                     Official registered name of the institution
                   </div>
                 </div>
               </div>
 
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaGraduationCap className="erp-label-icon" />
-                    College Code <span className="required">*</span>
+              <div className="cnc-col cnc-col-6">
+                <div className="cnc-form-group">
+                  <label className="cnc-label">
+                    <FaGraduationCap className="cnc-label-icon" />
+                    College Code <span className="cnc-required">*</span>
                   </label>
                   <input
                     type="text"
                     name="collegeCode"
-                    className={`erp-input ${getFieldError("collegeCode") ? "erp-input-error" : ""}`}
+                    className={`cnc-input ${getFieldError("collegeCode") ? "cnc-input-error" : ""}`}
                     value={formData.collegeCode}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -632,28 +629,28 @@ export default function CreateNewCollege() {
                     style={{ textTransform: "uppercase" }}
                   />
                   {getFieldError("collegeCode") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
+                    <div className="cnc-error-text">
+                      <FaExclamationTriangle className="cnc-error-icon" />
                       {getFieldError("collegeCode")}
                     </div>
                   )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
+                  <div className="cnc-hint-text">
+                    <FaInfoCircle className="cnc-hint-icon" />
                     Unique identifier (3-10 alphanumeric characters)
                   </div>
                 </div>
               </div>
 
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaEnvelope className="erp-label-icon" />
-                    College Email <span className="required">*</span>
+              <div className="cnc-col cnc-col-6">
+                <div className="cnc-form-group">
+                  <label className="cnc-label">
+                    <FaEnvelope className="cnc-label-icon" />
+                    College Email <span className="cnc-required">*</span>
                   </label>
                   <input
                     type="email"
                     name="collegeEmail"
-                    className={`erp-input ${getFieldError("collegeEmail") ? "erp-input-error" : ""}`}
+                    className={`cnc-input ${getFieldError("collegeEmail") ? "cnc-input-error" : ""}`}
                     value={formData.collegeEmail}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -661,28 +658,28 @@ export default function CreateNewCollege() {
                     autoComplete="off"
                   />
                   {getFieldError("collegeEmail") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
+                    <div className="cnc-error-text">
+                      <FaExclamationTriangle className="cnc-error-icon" />
                       {getFieldError("collegeEmail")}
                     </div>
                   )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
+                  <div className="cnc-hint-text">
+                    <FaInfoCircle className="cnc-hint-icon" />
                     Official communication email address
                   </div>
                 </div>
               </div>
 
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaPhone className="erp-label-icon" />
-                    Contact Number <span className="required">*</span>
+              <div className="cnc-col cnc-col-6">
+                <div className="cnc-form-group">
+                  <label className="cnc-label">
+                    <FaPhone className="cnc-label-icon" />
+                    Contact Number <span className="cnc-required">*</span>
                   </label>
                   <input
                     type="tel"
                     name="contactNumber"
-                    className={`erp-input ${getFieldError("contactNumber") ? "erp-input-error" : ""}`}
+                    className={`cnc-input ${getFieldError("contactNumber") ? "cnc-input-error" : ""}`}
                     value={formData.contactNumber}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -690,28 +687,28 @@ export default function CreateNewCollege() {
                     autoComplete="off"
                   />
                   {getFieldError("contactNumber") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
+                    <div className="cnc-error-text">
+                      <FaExclamationTriangle className="cnc-error-icon" />
                       {getFieldError("contactNumber")}
                     </div>
                   )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
+                  <div className="cnc-hint-text">
+                    <FaInfoCircle className="cnc-hint-icon" />
                     Primary contact number with country code
                   </div>
                 </div>
               </div>
 
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaCalendarAlt className="erp-label-icon" />
-                    Established Year <span className="required">*</span>
+              <div className="cnc-col cnc-col-4">
+                <div className="cnc-form-group">
+                  <label className="cnc-label">
+                    <FaCalendarAlt className="cnc-label-icon" />
+                    Established Year <span className="cnc-required">*</span>
                   </label>
                   <input
                     type="number"
                     name="establishedYear"
-                    className={`erp-input ${getFieldError("establishedYear") ? "erp-input-error" : ""}`}
+                    className={`cnc-input ${getFieldError("establishedYear") ? "cnc-input-error" : ""}`}
                     value={formData.establishedYear}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -721,282 +718,283 @@ export default function CreateNewCollege() {
                     autoComplete="off"
                   />
                   {getFieldError("establishedYear") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
+                    <div className="cnc-error-text">
+                      <FaExclamationTriangle className="cnc-error-icon" />
                       {getFieldError("establishedYear")}
                     </div>
                   )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
+                  <div className="cnc-hint-text">
+                    <FaInfoCircle className="cnc-hint-icon" />
                     Year the college was officially established
                   </div>
                 </div>
               </div>
 
-               <div className="erp-col-12">
-                 <div className="erp-form-group">
-                   <label className="erp-label">
-                     <FaMapMarkerAlt className="erp-label-icon" />
-                     Address <span className="required">*</span>
-                   </label>
-                   <textarea
-                     name="address"
-                     className={`erp-textarea ${getFieldError("address") ? "erp-input-error" : ""}`}
-                     value={formData.address}
-                     onChange={handleChange}
-                     onBlur={handleBlur}
-                     placeholder="Building, Street, Locality, City, State, PIN Code"
-                     rows="3"
-                     autoComplete="off"
-                   />
-                   {getFieldError("address") && (
-                     <div className="erp-error-text">
-                       <FaExclamationTriangle className="erp-error-icon" />
-                       {getFieldError("address")}
-                     </div>
-                   )}
-                   <div className="erp-hint-text">
-                     <FaInfoCircle className="erp-hint-icon" />
-                     Complete physical address of the college (min 20 characters)
-                   </div>
-                 </div>
-               </div>
-
-               {/* COLLEGE LOGO UPLOAD */}
-               <div className="erp-col-12">
-                 <div className="erp-form-group">
-                   <label className="erp-label">
-                     <FaImage className="erp-label-icon" />
-                     College Logo
-                   </label>
-                   <div className="logo-upload-area">
-                     {logoPreview ? (
-                       <div className="logo-preview-container">
-                         <img
-                           src={logoPreview}
-                           alt="Logo preview"
-                           className="logo-preview-img"
-                         />
-                         <button
-                           type="button"
-                           className="logo-remove-btn"
-                           onClick={removeLogo}
-                           aria-label="Remove logo"
-                         >
-                           <FaTimes />
-                         </button>
-                       </div>
-                     ) : (
-                       <div className="logo-upload-placeholder">
-                         <FaUpload className="logo-upload-icon" />
-                         <span>Click to upload or drag and drop</span>
-                         <span className="logo-upload-hint">
-                           PNG, JPG, JPEG, WEBP (max 5MB)
-                         </span>
-                       </div>
-                     )}
-                     <input
-                       type="file"
-                       accept=".png,.jpg,.jpeg,.webp"
-                       className="logo-file-input"
-                       onChange={handleLogoChange}
-                       aria-label="Upload college logo"
-                     />
-                   </div>
-                   {logoError && (
-                     <div className="erp-error-text">
-                       <FaExclamationTriangle className="erp-error-icon" />
-                       {logoError}
-                     </div>
-                   )}
-                 </div>
-               </div>
-             </div>
-           </div>
-
-          {/* ADMIN CREDENTIALS SECTION */}
-          <div className="form-section">
-            <h4 className="erp-section-title">
-              <FaUserCog className="erp-section-icon" />
-              College Admin Credentials
-            </h4>
-            <p className="section-description">
-              Create the primary administrator account for this college.
-              Credentials will be displayed after successful creation.
-            </p>
-
-            <div className="erp-row">
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaUserShield className="erp-label-icon" />
-                    Admin Name <span className="required">*</span>
+              <div className="cnc-col cnc-col-12">
+                <div className="cnc-form-group">
+                  <label className="cnc-label">
+                    <FaMapMarkerAlt className="cnc-label-icon" />
+                    Address <span className="cnc-required">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="adminName"
-                    className={`erp-input ${getFieldError("adminName") ? "erp-input-error" : ""}`}
-                    value={formData.adminName}
+                  <textarea
+                    name="address"
+                    className={`cnc-textarea ${getFieldError("address") ? "cnc-input-error" : ""}`}
+                    value={formData.address}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    placeholder="Full name of administrator"
+                    placeholder="Building, Street, Locality, City, State, PIN Code"
+                    rows="3"
                     autoComplete="off"
                   />
-                  {getFieldError("adminName") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError("adminName")}
+                  {getFieldError("address") && (
+                    <div className="cnc-error-text">
+                      <FaExclamationTriangle className="cnc-error-icon" />
+                      {getFieldError("address")}
                     </div>
                   )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Full name of the college administrator
+                  <div className="cnc-hint-text">
+                    <FaInfoCircle className="cnc-hint-icon" />
+                    Complete physical address of the college (min 20 characters)
                   </div>
                 </div>
               </div>
 
-              <div className="erp-col-6">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaEnvelope className="erp-label-icon" />
-                    Admin Email <span className="required">*</span>
+              {/* COLLEGE LOGO UPLOAD */}
+              <div className="cnc-col cnc-col-12">
+                <div className="cnc-form-group">
+                  <label className="cnc-label">
+                    <FaImage className="cnc-label-icon" />
+                    College Logo
                   </label>
-                  <input
-                    type="email"
-                    name="adminEmail"
-                    className={`erp-input ${getFieldError("adminEmail") ? "erp-input-error" : ""}`}
-                    value={formData.adminEmail}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    placeholder="admin@college.edu"
-                    autoComplete="off"
-                  />
-                  {getFieldError("adminEmail") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError("adminEmail")}
-                    </div>
-                  )}
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Will be used for login and communications
-                  </div>
-                </div>
-              </div>
-
-              <div className="erp-col-12">
-                <div className="erp-form-group">
-                  <label className="erp-label">
-                    <FaLock className="erp-label-icon" />
-                    Admin Password <span className="required">*</span>
-                  </label>
-                  <div className="password-wrapper">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="adminPassword"
-                      className={`erp-input ${getFieldError("adminPassword") ? "erp-input-error" : ""}`}
-                      value={formData.adminPassword}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      placeholder="Minimum 8 characters with uppercase, lowercase, number & special character"
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      className="toggle-password"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                  </div>
-                  {getFieldError("adminPassword") && (
-                    <div className="erp-error-text">
-                      <FaExclamationTriangle className="erp-error-icon" />
-                      {getFieldError("adminPassword")}
-                    </div>
-                  )}
-
-                  {/* Password Strength Meter */}
-                  {formData.adminPassword && (
-                    <div className="password-strength-meter">
-                      <div className="strength-bar-container">
-                        <div
-                          className="strength-bar"
-                          style={{
-                            width: `${(strength / 5) * 100}%`,
-                            background: getStrengthColor(),
-                          }}
+                  <div className="cnc-logo-upload-area">
+                    {logoPreview ? (
+                      <div className="cnc-logo-preview-container">
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="cnc-logo-preview-img"
                         />
-                      </div>
-                      <div className="strength-info">
-                        <span
-                          className="strength-label"
-                          style={{ color: getStrengthColor() }}
+                        <button
+                          type="button"
+                          className="cnc-logo-remove-btn"
+                          onClick={removeLogo}
+                          aria-label="Remove logo"
                         >
-                          {getStrengthLabel()}
-                        </span>
-                        <span className="strength-text">{strength}/5</span>
+                          <FaTimes />
+                        </button>
                       </div>
-                      <ul className="requirements-list">
-                        {checks.map((check, idx) => (
-                          <li key={idx} className={check.met ? "met" : ""}>
-                            {check.met ? (
-                              <FaCheck className="check-icon" />
-                            ) : (
-                              <FaTimes className="check-icon" />
-                            )}
-                            <span>{check.label}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    ) : (
+                      <div className="cnc-logo-upload-placeholder">
+                        <FaUpload className="cnc-logo-upload-icon" />
+                        <span>Click to upload or drag and drop</span>
+                        <span className="cnc-logo-upload-hint">
+                          PNG, JPG, JPEG, WEBP (max 5MB)
+                        </span>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept=".png,.jpg,.jpeg,.webp"
+                      className="cnc-logo-file-input"
+                      onChange={handleLogoChange}
+                      aria-label="Upload college logo"
+                    />
+                  </div>
+                  {logoError && (
+                    <div className="cnc-error-text">
+                      <FaExclamationTriangle className="cnc-error-icon" />
+                      {logoError}
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
 
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Strong password required for security
+      {/* ADMIN CREDENTIALS SECTION */}
+      <div className="cnc-section-card animate-fade-in">
+        <div className="cnc-section-header">
+          <div className="cnc-section-icon-wrapper">
+            <FaUserCog className="cnc-section-icon" />
+          </div>
+          <div className="cnc-section-text">
+            <h2 className="cnc-section-title">College Admin Credentials</h2>
+            <p className="cnc-section-subtitle">Create the primary administrator account for this college</p>
+          </div>
+        </div>
+        <div className="cnc-section-body">
+          <div className="cnc-row">
+            <div className="cnc-col cnc-col-6">
+              <div className="cnc-form-group">
+                <label className="cnc-label">
+                  <FaUserShield className="cnc-label-icon" />
+                  Admin Name <span className="cnc-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="adminName"
+                  className={`cnc-input ${getFieldError("adminName") ? "cnc-input-error" : ""}`}
+                  value={formData.adminName}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="Full name of administrator"
+                  autoComplete="off"
+                />
+                {getFieldError("adminName") && (
+                  <div className="cnc-error-text">
+                    <FaExclamationTriangle className="cnc-error-icon" />
+                    {getFieldError("adminName")}
                   </div>
+                )}
+                <div className="cnc-hint-text">
+                  <FaInfoCircle className="cnc-hint-icon" />
+                  Full name of the college administrator
+                </div>
+              </div>
+            </div>
+
+            <div className="cnc-col cnc-col-6">
+              <div className="cnc-form-group">
+                <label className="cnc-label">
+                  <FaEnvelope className="cnc-label-icon" />
+                  Admin Email <span className="cnc-required">*</span>
+                </label>
+                <input
+                  type="email"
+                  name="adminEmail"
+                  className={`cnc-input ${getFieldError("adminEmail") ? "cnc-input-error" : ""}`}
+                  value={formData.adminEmail}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  placeholder="admin@college.edu"
+                  autoComplete="off"
+                />
+                {getFieldError("adminEmail") && (
+                  <div className="cnc-error-text">
+                    <FaExclamationTriangle className="cnc-error-icon" />
+                    {getFieldError("adminEmail")}
+                  </div>
+                )}
+                <div className="cnc-hint-text">
+                  <FaInfoCircle className="cnc-hint-icon" />
+                  Will be used for login and communications
+                </div>
+              </div>
+            </div>
+
+            <div className="cnc-col cnc-col-12">
+              <div className="cnc-form-group">
+                <label className="cnc-label">
+                  <FaLock className="cnc-label-icon" />
+                  Admin Password <span className="cnc-required">*</span>
+                </label>
+                <div className="cnc-password-wrapper">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="adminPassword"
+                    className={`cnc-input ${getFieldError("adminPassword") ? "cnc-input-error" : ""}`}
+                    value={formData.adminPassword}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    placeholder="Minimum 8 characters with uppercase, lowercase, number & special character"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="cnc-toggle-password"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                {getFieldError("adminPassword") && (
+                  <div className="cnc-error-text">
+                    <FaExclamationTriangle className="cnc-error-icon" />
+                    {getFieldError("adminPassword")}
+                  </div>
+                )}
+
+                {/* Password Strength Meter */}
+                {formData.adminPassword && (
+                  <div className="cnc-password-strength-meter">
+                    <div className="cnc-strength-bar-container">
+                      <div
+                        className="cnc-strength-bar"
+                        style={{
+                          width: `${(strength / 5) * 100}%`,
+                          background: getStrengthColor(),
+                        }}
+                      />
+                    </div>
+                    <div className="cnc-strength-info">
+                      <span
+                        className="cnc-strength-label"
+                        style={{ color: getStrengthColor() }}
+                      >
+                        {getStrengthLabel()}
+                      </span>
+                      <span className="cnc-strength-text">{strength}/5</span>
+                    </div>
+                    <ul className="cnc-requirements-list">
+                      {checks.map((check, idx) => (
+                        <li key={idx} className={check.met ? "cnc-met" : ""}>
+                          {check.met ? (
+                            <FaCheck className="cnc-check-icon" />
+                          ) : (
+                            <FaTimes className="cnc-check-icon" />
+                          )}
+                          <span>{check.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="cnc-hint-text">
+                  <FaInfoCircle className="cnc-hint-icon" />
+                  Strong password required for security
                 </div>
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* FORM ACTIONS */}
-          <div className="erp-form-footer">
-            <div className="erp-footer-left">
-              <button
-                type="button"
-                className="erp-btn erp-btn-secondary erp-btn-lg"
-                onClick={() => navigate("/super-admin/colleges-list")}
-              >
-                <FaArrowLeft className="erp-btn-icon" />
-                <span>Cancel</span>
-              </button>
-            </div>
-            <div className="erp-footer-right">
-              <button
-                type="submit"
-                className="erp-btn erp-btn-primary erp-btn-lg erp-btn-shadow pulse-btn"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <FaSyncAlt className="erp-btn-icon spin" />
-                    <span>Creating College...</span>
-                  </>
-                ) : (
-                  <>
-                    <FaUniversity className="erp-btn-icon" />
-                    <span>Create College</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </form>
+      {/* FORM ACTIONS */}
+      <div className="cnc-form-footer animate-fade-in">
+        <div className="cnc-footer-left">
+          <button
+            type="button"
+            className="cnc-btn cnc-btn-secondary"
+            onClick={() => navigate("/super-admin/colleges-list")}
+          >
+            <FaArrowLeft className="cnc-btn-icon" />
+            <span>Cancel</span>
+          </button>
+        </div>
+        <div className="cnc-footer-right">
+          <button
+            type="button"
+            className="cnc-btn cnc-btn-primary cnc-btn-shadow"
+            onClick={handleSubmitClick}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <FaSyncAlt className="cnc-btn-icon cnc-spin" />
+                <span>Creating College...</span>
+              </>
+            ) : (
+              <>
+                <FaUniversity className="cnc-btn-icon" />
+                <span>Create College</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* STYLES */}
@@ -1201,214 +1199,208 @@ export default function CreateNewCollege() {
           line-height: 1;
           padding: 0;
           color: inherit;
+          opacity: 0.6;
+          transition: opacity 0.2s ease;
           position: absolute;
           right: 1rem;
           top: 50%;
           transform: translateY(-50%);
         }
 
-        /* ================= FORM CARD ================= */
-        .erp-form-card {
-          background: white;
+        .erp-alert-close:hover {
+          opacity: 1;
+        }
+
+        /* ================= SECTION CARDS (NOVAA ERP) ================= */
+        .cnc-section-card {
+          background: #fff;
           border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 2px 12px rgba(14, 55, 70, 0.06);
+          border: 1px solid #DCE6EF;
+          margin-bottom: 1.5rem;
           overflow: hidden;
-          animation: fadeIn 0.6s ease;
         }
 
-        .erp-form-header {
-          padding: 2rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-bottom: 1px solid #e9ecef;
-        }
-
-        .erp-form-title {
+        .cnc-section-header {
           display: flex;
           align-items: center;
           gap: 1rem;
-          margin-bottom: 0.5rem;
+          padding: 1.25rem 1.5rem;
+          background: #F0F7FA;
+          border-bottom: 1px solid #DCE6EF;
         }
 
-        .erp-form-icon {
-          color: #0f3a4a;
-          font-size: 1.5rem;
-        }
-
-        .erp-form-title h3 {
-          margin: 0;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #0f3a4a;
-        }
-
-        .erp-form-subtitle {
-          font-size: 0.9rem;
-          color: #666;
-        }
-
-        .erp-form {
-          padding: 0 2rem 2rem;
-        }
-
-        .form-section {
-          margin-bottom: 2rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #f0f2f5;
-        }
-
-        .form-section:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
-        }
-
-        .erp-section-title {
+        .cnc-section-icon-wrapper {
+          width: 44px;
+          height: 44px;
+          background: #E8F4FA;
+          border-radius: 10px;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .cnc-section-icon {
           font-size: 1.25rem;
+          color: #164E63;
+        }
+
+        .cnc-section-text {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .cnc-section-title {
+          margin: 0;
+          font-size: 1.125rem;
           font-weight: 700;
-          color: #0f3a4a;
-          margin-bottom: 1.5rem;
-          padding-bottom: 0.75rem;
-          border-bottom: 2px solid #f0f2f5;
+          color: #0E3746;
+          line-height: 1.3;
         }
 
-        .erp-section-icon {
-          color: #0f3a4a;
+        .cnc-section-subtitle {
+          margin: 0.25rem 0 0 0;
+          font-size: 0.85rem;
+          color: #64748B;
+          line-height: 1.4;
         }
 
-        .section-description {
-          color: #666;
-          margin-bottom: 1.5rem;
-          line-height: 1.6;
-          font-size: 0.95rem;
+        .cnc-section-body {
+          padding: 1.5rem;
         }
 
-        .erp-row {
+        /* ================= FORM GRID ================= */
+        .cnc-row {
           display: grid;
           grid-template-columns: repeat(12, 1fr);
-          gap: 1.5rem;
+          gap: 1.25rem;
         }
 
-        .erp-col-12 { grid-column: span 12; }
-        .erp-col-6 { grid-column: span 6; }
+        .cnc-col-12 { grid-column: span 12; }
+        .cnc-col-6 { grid-column: span 6; }
+        .cnc-col-4 { grid-column: span 4; }
 
         @media (max-width: 768px) {
-          .erp-col-12,
-          .erp-col-6 {
+          .cnc-col-12,
+          .cnc-col-6,
+          .cnc-col-4 {
             grid-column: span 12;
           }
         }
 
-        .erp-form-group {
-          margin-bottom: 1.5rem;
+        /* ================= FORM GROUPS ================= */
+        .cnc-form-group {
+          margin-bottom: 1.25rem;
         }
 
-        .erp-label {
+        .cnc-label {
           display: flex;
           align-items: center;
           gap: 0.5rem;
           font-weight: 600;
-          color: #2c3e50;
+          color: #142235;
+          font-size: 0.9rem;
+          margin-bottom: 0.625rem;
+        }
+
+        .cnc-label-icon {
+          color: #164E63;
           font-size: 0.95rem;
-          margin-bottom: 0.75rem;
         }
 
-        .erp-label-icon {
-          color: #0f3a4a;
-          font-size: 1rem;
+        .cnc-required {
+          color: #dc3545;
+          margin-left: 0.125rem;
         }
 
-        .required {
-          color: #F44336;
-          margin-left: 0.25rem;
-        }
-
-        .erp-input,
-        .erp-textarea {
+        .cnc-input,
+        .cnc-textarea {
           width: 100%;
-          padding: 0.875rem 1.25rem;
-          border: 2px solid #e9ecef;
+          padding: 0.75rem 1rem;
+          border: 2px solid #DCE6EF;
           border-radius: 10px;
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 500;
-          color: #2c3e50;
-          background: white;
-          transition: all 0.3s ease;
+          color: #142235;
+          background: #fff;
+          transition: all 0.2s ease;
           outline: none;
+          box-sizing: border-box;
+          min-height: 44px;
         }
 
-        .erp-input:focus,
-        .erp-textarea:focus {
-          border-color: #0f3a4a;
-          box-shadow: 0 0 0 0.2rem rgba(15, 58, 74, 0.15);
-          transform: translateY(-1px);
+        .cnc-input:focus,
+        .cnc-textarea:focus {
+          border-color: #103B4A;
+          box-shadow: 0 0 0 3px rgba(16, 59, 74, 0.12);
         }
 
-        .erp-input-error {
-          border-color: #F44336 !important;
-          background: rgba(244, 67, 54, 0.05);
+        .cnc-input-error {
+          border-color: #dc3545 !important;
+          background: rgba(220, 53, 69, 0.04);
         }
 
-        .erp-textarea {
+        .cnc-textarea {
           min-height: 100px;
           resize: vertical;
+          font-family: inherit;
         }
 
-        .erp-error-text {
+        .cnc-error-text {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-          color: #F44336;
+          gap: 0.4rem;
+          font-size: 0.8rem;
+          color: #dc3545;
           margin-top: 0.5rem;
           padding: 0.5rem 0.75rem;
-          background: rgba(244, 67, 54, 0.05);
+          background: rgba(220, 53, 69, 0.06);
           border-radius: 6px;
         }
 
-        .erp-error-icon {
-          font-size: 0.875rem;
+        .cnc-error-icon {
+          font-size: 0.75rem;
+          flex-shrink: 0;
         }
 
-        .erp-hint-text {
+        .cnc-hint-text {
           display: flex;
           align-items: flex-start;
-          gap: 0.5rem;
-          font-size: 0.85rem;
-          color: #666;
+          gap: 0.4rem;
+          font-size: 0.8rem;
+          color: #64748B;
           margin-top: 0.5rem;
           padding: 0.5rem 0.75rem;
-          background: #f8f9fa;
+          background: #F8FAFC;
           border-radius: 6px;
-          border-left: 3px solid #0f3a4a;
+          border-left: 3px solid #22B8E6;
         }
 
-        .erp-hint-icon {
-          font-size: 0.875rem;
+        .cnc-hint-icon {
+          font-size: 0.75rem;
           margin-top: 0.125rem;
           flex-shrink: 0;
         }
 
         /* ================= PASSWORD FIELD ================= */
-        .password-wrapper {
+        .cnc-password-wrapper {
           position: relative;
         }
 
-        .toggle-password {
+        .cnc-toggle-password {
           position: absolute;
-          right: 15px;
+          right: 12px;
           top: 50%;
           transform: translateY(-50%);
           background: none;
           border: none;
-          color: #6c757d;
+          color: #64748B;
           cursor: pointer;
-          font-size: 1.1rem;
+          font-size: 1rem;
           padding: 0;
-          width: 24px;
-          height: 24px;
+          width: 28px;
+          height: 28px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1416,52 +1408,52 @@ export default function CreateNewCollege() {
           z-index: 10;
         }
 
-        .toggle-password:hover {
-          color: #0f3a4a;
+        .cnc-toggle-password:hover {
+          color: #103B4A;
         }
 
         /* ================= PASSWORD STRENGTH METER ================= */
-        .password-strength-meter {
+        .cnc-password-strength-meter {
           margin-top: 1rem;
           padding: 1rem;
-          background: #f8f9fa;
+          background: #F8FAFC;
           border-radius: 10px;
-          border: 1px solid #e9ecef;
+          border: 1px solid #DCE6EF;
         }
 
-        .strength-bar-container {
+        .cnc-strength-bar-container {
           width: 100%;
           height: 6px;
-          background: #e9ecef;
+          background: #DCE6EF;
           border-radius: 3px;
           overflow: hidden;
           margin-bottom: 0.75rem;
         }
 
-        .strength-bar {
+        .cnc-strength-bar {
           height: 100%;
           transition: width 0.3s ease, background 0.3s ease;
           border-radius: 3px;
         }
 
-        .strength-info {
+        .cnc-strength-info {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 1rem;
         }
 
-        .strength-label {
-          font-size: 0.875rem;
+        .cnc-strength-label {
+          font-size: 0.85rem;
           font-weight: 600;
         }
 
-        .strength-text {
-          font-size: 0.875rem;
-          color: #666;
+        .cnc-strength-text {
+          font-size: 0.85rem;
+          color: #64748B;
         }
 
-        .requirements-list {
+        .cnc-requirements-list {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
           gap: 0.5rem;
@@ -1470,165 +1462,190 @@ export default function CreateNewCollege() {
           margin: 0;
         }
 
-        .requirements-list li {
+        .cnc-requirements-list li {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.8125rem;
+          font-size: 0.8rem;
           padding: 0.375rem 0.5rem;
           border-radius: 6px;
           transition: all 0.2s ease;
         }
 
-        .requirements-list li.met {
+        .cnc-requirements-list li.cnc-met {
           color: #28a745;
-          background: rgba(40, 167, 69, 0.05);
+          background: rgba(40, 167, 69, 0.06);
         }
 
-        .requirements-list li:not(.met) {
-          color: #6c757d;
+        .cnc-requirements-list li:not(.cnc-met) {
+          color: #64748B;
         }
 
-        .check-icon {
-          font-size: 0.75rem;
+        .cnc-check-icon {
+          font-size: 0.7rem;
           flex-shrink: 0;
         }
 
-        /* ================= FORM FOOTER ================= */
-        .erp-form-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 2rem;
-          background: #f8f9fa;
-          border-top: 1px solid #e9ecef;
-          margin-top: 2rem;
-          border-radius: 0 0 16px 16px;
-        }
-
-        .erp-footer-left,
-        .erp-footer-right {
-          display: flex;
-          gap: 1rem;
-        }
-
-        .erp-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.875rem 1.75rem;
-          border: none;
-          border-radius: 10px;
-          font-size: 1rem;
-          font-weight: 600;
+        /* ================= LOGO UPLOAD ================= */
+        .cnc-logo-upload-area {
+          position: relative;
+          border: 2px dashed #DCE6EF;
+          border-radius: 12px;
+          padding: 1.5rem;
+          background: #F8FAFC;
+          transition: all 0.2s ease;
           cursor: pointer;
-          transition: all 0.3s ease;
-          text-decoration: none;
         }
 
-        .erp-btn-icon {
-          font-size: 1.125rem;
+        .cnc-logo-upload-area:hover {
+          border-color: #103B4A;
+          background: rgba(16, 59, 74, 0.02);
         }
 
-        .erp-btn-primary {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
-          color: white;
+        .cnc-logo-file-input {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          cursor: pointer;
         }
 
-        .erp-btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(15, 58, 74, 0.4);
-        }
-
-        .erp-btn-secondary {
-          background: white;
-          color: #0f3a4a;
-          border: 2px solid #e9ecef;
-        }
-
-        .erp-btn-secondary:hover {
-          border-color: #0f3a4a;
-          background: #f8f9fa;
-          transform: translateY(-2px);
-        }
-
-        .erp-btn-lg {
-          padding: 1rem 2rem;
-          font-size: 1.05rem;
-        }
-
-        .erp-btn-shadow {
-          box-shadow: 0 4px 16px rgba(15, 58, 74, 0.3);
-        }
-
-        .erp-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        /* ================= LOADING CONTAINER ================= */
-        .erp-loading-container {
+        .cnc-logo-upload-placeholder {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 2rem;
-          position: relative;
+          gap: 0.625rem;
+          padding: 1rem;
+          pointer-events: none;
+          text-align: center;
         }
 
-        .erp-loading-spinner {
+        .cnc-logo-upload-icon {
+          font-size: 1.75rem;
+          color: #103B4A;
+          opacity: 0.5;
+        }
+
+        .cnc-logo-upload-placeholder span:first-of-type {
+          font-size: 0.9rem;
+          color: #475569;
+        }
+
+        .cnc-logo-upload-hint {
+          font-size: 0.75rem !important;
+          color: #94A3B8 !important;
+        }
+
+        .cnc-logo-preview-container {
           position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          padding: 0.5rem;
+        }
+
+        .cnc-logo-preview-img {
           width: 80px;
           height: 80px;
+          object-fit: cover;
+          border-radius: 10px;
+          border: 2px solid #DCE6EF;
         }
 
-        .spinner-ring {
-          position: absolute;
-          width: 100%;
-          height: 100%;
+        .cnc-logo-remove-btn {
+          background: rgba(220, 53, 69, 0.1);
+          border: 1px solid rgba(220, 53, 69, 0.3);
+          color: #dc3545;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
-          border: 4px solid transparent;
-          border-top-color: #0f3a4a;
-          animation: spin 1s linear infinite;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
         }
 
-        .spinner-ring:nth-child(2) {
-          border-top-color: #0c2d3a;
-          animation-delay: 0.1s;
+        .cnc-logo-remove-btn:hover {
+          background: rgba(220, 53, 69, 0.2);
+          border-color: #dc3545;
+          transform: scale(1.1);
         }
 
-        .spinner-ring:nth-child(3) {
-          border-top-color: rgba(15, 58, 74, 0.5);
-          animation-delay: 0.2s;
+        /* ================= FORM FOOTER ================= */
+        .cnc-form-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.25rem 1.5rem;
+          background: #F8FAFC;
+          border-top: 1px solid #DCE6EF;
+          margin-top: 1.5rem;
         }
 
-        .erp-loading-text {
-          font-size: 1.35rem;
+        .cnc-footer-left,
+        .cnc-footer-right {
+          display: flex;
+          gap: 0.75rem;
+        }
+
+        .cnc-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.625rem;
+          padding: 0 1.5rem;
+          height: 50px;
+          border: none;
+          border-radius: 10px;
+          font-size: 0.95rem;
           font-weight: 600;
-          color: #0f3a4a;
+          cursor: pointer;
+          transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+          text-decoration: none;
         }
 
-        .loading-progress {
-          width: 250px;
-          height: 8px;
-          background: #e9ecef;
-          border-radius: 4px;
-          overflow: hidden;
-          margin-top: -1rem;
+        .cnc-btn-icon {
+          font-size: 1rem;
         }
 
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #0f3a4a 0%, #0c2d3a 100%);
-          width: 35%;
-          animation: progressPulse 1.8s ease-in-out infinite;
+        .cnc-btn-primary {
+          background: #0E3746;
+          color: #fff;
+          box-shadow: 0 2px 8px rgba(14, 55, 70, 0.2);
+        }
+
+        .cnc-btn-primary:hover:not(:disabled) {
+          background: #164E63;
+        }
+
+        .cnc-btn-secondary {
+          background: #fff;
+          color: #0E3746;
+          border: 1px solid #DCE6EF;
+        }
+
+        .cnc-btn-secondary:hover:not(:disabled) {
+          background: #F0F8FA;
+          border-color: #0E3746;
+        }
+
+        .cnc-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .cnc-btn-shadow {
+          box-shadow: 0 4px 16px rgba(14, 55, 70, 0.25);
+        }
+
+        .cnc-spin {
+          animation: spin 1s linear infinite;
         }
 
         /* ================= ANIMATIONS ================= */
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
+          from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
@@ -1638,7 +1655,7 @@ export default function CreateNewCollege() {
         }
 
         @keyframes slideIn {
-          from { opacity: 0; transform: translateX(-20px); }
+          from { opacity: 0; transform: translateX(-16px); }
           to { opacity: 1; transform: translateX(0); }
         }
 
@@ -1704,950 +1721,372 @@ export default function CreateNewCollege() {
         }
 
         .animate-fade-in {
-          animation: fadeIn 0.6s ease;
+          animation: fadeIn 0.5s ease;
         }
 
         .animate-slide-in {
-          animation: slideIn 0.5s ease;
+          animation: slideIn 0.4s ease;
         }
 
- /* =========================================================
-   RESPONSIVE DESIGN
-   TABLET + MOBILE
-   DESKTOP STYLES REMAIN UNCHANGED
-   ========================================================= */
-
-
-/* =========================================================
-   TABLET
-   769px - 991px
-   ========================================================= */
-
-@media (min-width: 769px) and (max-width: 991.98px) {
-
-  .erp-container {
-    padding: 1.25rem;
-  }
-
-
-  /* ================= BREADCRUMB ================= */
-
-  .erp-container .breadcrumb,
-  .erp-container nav[aria-label="breadcrumb"] {
-    width: 100%;
-    overflow: hidden;
-  }
-
-  .erp-container .breadcrumb ol {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    white-space: nowrap;
-    scrollbar-width: none;
-    padding: 0.75rem 1rem;
-  }
-
-  .erp-container .breadcrumb ol::-webkit-scrollbar {
-    display: none;
-  }
-
-
-  /* ================= PAGE HEADER ================= */
-
-  .erp-page-header {
-    padding: 1.5rem;
-    margin-bottom: 1.25rem;
-    border-radius: 14px;
-
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1.25rem;
-  }
-
-  .erp-header-content {
-    gap: 1rem;
-  }
-
-  .erp-header-icon {
-    width: 52px;
-    height: 52px;
-    min-width: 52px;
-    font-size: 1.5rem;
-  }
-
-  .erp-header-text {
-    min-width: 0;
-    flex: 1;
-  }
-
-  .erp-page-title {
-    font-size: 1.6rem;
-    line-height: 1.25;
-  }
-
-  .erp-page-subtitle {
-    font-size: 0.92rem;
-    line-height: 1.5;
-    margin-top: 0.4rem;
-  }
-
-  .erp-header-actions {
-    width: 100%;
-    margin-top: 0;
-  }
-
-  .erp-header-actions .erp-btn {
-    width: 100%;
-    min-height: 48px;
-    justify-content: center;
-  }
-
-
-  /* ================= INFO BANNER ================= */
-
-  .info-banner {
-    padding: 1.1rem 1.25rem;
-    margin-bottom: 1.25rem;
-    gap: 0.9rem;
-    align-items: flex-start;
-  }
-
-  .info-icon {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-  }
-
-  .info-content {
-    font-size: 0.9rem;
-    line-height: 1.55;
-  }
-
-
-  /* ================= FORM CARD ================= */
-
-  .erp-form-card {
-    border-radius: 14px;
-  }
-
-  .erp-form-header {
-    padding: 1.5rem;
-  }
-
-  .erp-form-title {
-    gap: 0.8rem;
-  }
-
-  .erp-form-icon {
-    font-size: 1.35rem;
-  }
-
-  .erp-form-title h3 {
-    font-size: 1.35rem;
-    line-height: 1.3;
-  }
-
-  .erp-form-subtitle {
-    font-size: 0.88rem;
-    line-height: 1.5;
-  }
-
-  .erp-form {
-    padding: 0 1.5rem 1.5rem;
-  }
-
-
-  /* ================= FORM SECTIONS ================= */
-
-  .form-section {
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.25rem;
-  }
-
-  .erp-section-title {
-    font-size: 1.15rem;
-    margin-bottom: 1.15rem;
-  }
-
-  .section-description {
-    font-size: 0.88rem;
-    line-height: 1.55;
-  }
-
-  .erp-row {
-    gap: 1rem;
-  }
-
-  .erp-form-group {
-    margin-bottom: 1.25rem;
-  }
-
-
-  /* ================= INPUTS ================= */
-
-  .erp-label {
-    font-size: 0.9rem;
-    margin-bottom: 0.55rem;
-  }
-
-  .erp-input,
-  .erp-textarea {
-    font-size: 0.92rem;
-    padding: 0.8rem 1rem;
-    box-sizing: border-box;
-  }
-
-  .erp-textarea {
-    min-height: 100px;
-  }
-
-  .erp-hint-text {
-    font-size: 0.78rem;
-    line-height: 1.4;
-  }
-
-  .erp-error-text {
-    font-size: 0.78rem;
-    line-height: 1.4;
-  }
-
-
-  /* ================= LOGO ================= */
-
-  .logo-upload-area {
-    padding: 1.15rem;
-  }
-
-  .logo-upload-placeholder {
-    padding: 0.75rem;
-  }
-
-  .logo-upload-placeholder span {
-    font-size: 0.82rem;
-    text-align: center;
-  }
-
-
-  /* ================= PASSWORD ================= */
-
-  .password-strength-meter {
-    padding: 0.9rem;
-  }
-
-  .requirements-list {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.4rem;
-  }
-
-  .requirements-list li {
-    font-size: 0.75rem;
-  }
-
-
-  /* ================= FOOTER ================= */
-
-  .erp-form-footer {
-    padding: 1.5rem;
-    margin-top: 1.5rem;
-    gap: 1rem;
-  }
-
-  .erp-footer-left,
-  .erp-footer-right {
-    gap: 0.75rem;
-  }
-
-  .erp-btn-lg {
-    padding: 0.85rem 1.5rem;
-    font-size: 0.95rem;
-  }
-}
-
-
-/* =========================================================
-   MOBILE
-   0px - 768px
-   ========================================================= */
-
-@media (max-width: 768px) {
-
-  .erp-container {
-    padding: 0.75rem;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    overflow-x: hidden;
-  }
-
-
-  /* ================= BREADCRUMB ================= */
-
-  .erp-container .breadcrumb,
-  .erp-container nav[aria-label="breadcrumb"] {
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
-    margin-bottom: 0.85rem;
-  }
-
-  .erp-container .breadcrumb ol {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-
-    width: 100%;
-    max-width: 100%;
-
-    overflow-x: auto;
-    overflow-y: hidden;
-
-    white-space: nowrap;
-    scrollbar-width: none;
-
-    padding: 0.7rem 0.85rem;
-    box-sizing: border-box;
-  }
-
-  .erp-container .breadcrumb ol::-webkit-scrollbar {
-    display: none;
-  }
-
-
-  /* ================= PAGE HEADER ================= */
-
-  .erp-page-header {
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 14px;
-
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.9rem;
-  }
-
-  .erp-header-content {
-    width: 100%;
-    gap: 0.7rem;
-    align-items: flex-start;
-  }
-
-  .erp-header-icon {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    border-radius: 10px;
-    font-size: 1.1rem;
-  }
-
-  .erp-header-text {
-    min-width: 0;
-    flex: 1;
-  }
-
-  .erp-page-title {
-    font-size: 1.25rem;
-    line-height: 1.25;
-    word-break: normal;
-  }
-
-  .erp-page-subtitle {
-    margin-top: 0.3rem;
-    font-size: 0.75rem;
-    line-height: 1.45;
-    opacity: 0.9;
-  }
-
-  .erp-header-actions {
-    width: 100%;
-    margin-top: 0;
-  }
-
-  .erp-header-actions .erp-btn {
-    width: 100%;
-    min-height: 44px;
-    padding: 0.65rem 0.85rem;
-    justify-content: center;
-    font-size: 0.82rem;
-    border-radius: 9px;
-  }
-
-  .erp-btn-icon {
-    font-size: 0.95rem;
-  }
-
-
-  /* ================= INFO BANNER ================= */
-
-  .info-banner {
-    width: 100%;
-    box-sizing: border-box;
-
-    padding: 0.85rem;
-    margin-bottom: 1rem;
-
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-
-    gap: 0.65rem;
-    text-align: left;
-  }
-
-  .info-icon {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-    font-size: 0.8rem;
-  }
-
-  .info-content {
-    min-width: 0;
-    font-size: 0.75rem;
-    line-height: 1.5;
-  }
-
-
-  /* ================= FORM CARD ================= */
-
-  .erp-form-card {
-    width: 100%;
-    border-radius: 14px;
-    box-sizing: border-box;
-  }
-
-  .erp-form-header {
-    padding: 1rem;
-  }
-
-  .erp-form-title {
-    align-items: flex-start;
-    gap: 0.65rem;
-    margin-bottom: 0.45rem;
-  }
-
-  .erp-form-icon {
-    margin-top: 0.15rem;
-    font-size: 1.15rem;
-    flex-shrink: 0;
-  }
-
-  .erp-form-title h3 {
-    font-size: 1.15rem;
-    line-height: 1.3;
-  }
-
-  .erp-form-subtitle {
-    font-size: 0.75rem;
-    line-height: 1.5;
-  }
-
-  .erp-form {
-    padding: 0 1rem 1rem;
-  }
-
-
-  /* ================= FORM SECTIONS ================= */
-
-  .form-section {
-    margin-bottom: 1.25rem;
-    padding-bottom: 1rem;
-  }
-
-  .erp-section-title {
-    gap: 0.55rem;
-    font-size: 1rem;
-    line-height: 1.35;
-    margin-bottom: 0.9rem;
-    padding-bottom: 0.6rem;
-  }
-
-  .erp-section-icon {
-    font-size: 0.95rem;
-    flex-shrink: 0;
-  }
-
-  .section-description {
-    margin-bottom: 1rem;
-    font-size: 0.76rem;
-    line-height: 1.5;
-  }
-
-  .erp-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .erp-col-6,
-  .erp-col-12 {
-    grid-column: span 12;
-  }
-
-  .erp-form-group {
-    margin-bottom: 1rem;
-  }
-
-
-  /* ================= LABELS ================= */
-
-  .erp-label {
-    gap: 0.4rem;
-    font-size: 0.8rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .erp-label-icon {
-    font-size: 0.82rem;
-  }
-
-
-  /* ================= INPUTS ================= */
-
-  .erp-input,
-  .erp-textarea {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-
-    padding: 0.72rem 0.85rem;
-    font-size: 0.82rem;
-
-    border-radius: 9px;
-  }
-
-  .erp-input {
-    min-height: 44px;
-  }
-
-  .erp-textarea {
-    min-height: 90px;
-  }
-
-  .erp-input:focus,
-  .erp-textarea:focus {
-    transform: none;
-  }
-
-
-  /* ================= HINT / ERROR ================= */
-
-  .erp-hint-text {
-    gap: 0.4rem;
-    padding: 0.45rem 0.6rem;
-    margin-top: 0.4rem;
-
-    font-size: 0.68rem;
-    line-height: 1.4;
-  }
-
-  .erp-hint-icon {
-    font-size: 0.7rem;
-  }
-
-  .erp-error-text {
-    gap: 0.4rem;
-    padding: 0.45rem 0.6rem;
-    margin-top: 0.4rem;
-
-    font-size: 0.68rem;
-    line-height: 1.4;
-  }
-
-  .erp-error-icon {
-    font-size: 0.7rem;
-    flex-shrink: 0;
-  }
-
-
-  /* ================= PASSWORD ================= */
-
-  .password-wrapper .erp-input {
-    padding-right: 2.8rem;
-  }
-
-  .toggle-password {
-    right: 12px;
-    width: 28px;
-    height: 28px;
-    font-size: 1rem;
-  }
-
-  .password-strength-meter {
-    margin-top: 0.75rem;
-    padding: 0.75rem;
-  }
-
-  .strength-info {
-    margin-bottom: 0.7rem;
-  }
-
-  .strength-label,
-  .strength-text {
-    font-size: 0.75rem;
-  }
-
-  .requirements-list {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
-  }
-
-  .requirements-list li {
-    font-size: 0.7rem;
-    padding: 0.3rem 0.4rem;
-  }
-
-
-  /* ================= LOGO UPLOAD ================= */
-
-  .logo-upload-area {
-    padding: 0.8rem;
-    border-radius: 10px;
-  }
-
-  .logo-upload-placeholder {
-    padding: 0.65rem 0.4rem;
-    text-align: center;
-  }
-
-  .logo-upload-icon {
-    font-size: 1.6rem;
-  }
-
-  .logo-upload-placeholder span {
-    font-size: 0.72rem;
-    line-height: 1.4;
-    text-align: center;
-  }
-
-  .logo-upload-hint {
-    font-size: 0.65rem !important;
-  }
-
-  .logo-preview-img {
-    width: 64px;
-    height: 64px;
-  }
-
-  .logo-remove-btn {
-    width: 30px;
-    height: 30px;
-  }
-
-
-  /* ================= FORM FOOTER ================= */
-
-  .erp-form-footer {
-    flex-direction: column;
-    align-items: stretch;
-
-    gap: 0.65rem;
-
-    padding: 1rem;
-    margin-top: 1.25rem;
-
-    border-radius: 0 0 14px 14px;
-  }
-
-  .erp-footer-left,
-  .erp-footer-right {
-    width: 100%;
-    display: flex;
-  }
-
-  .erp-btn {
-    width: 100%;
-    min-height: 44px;
-    justify-content: center;
-
-    padding: 0.7rem 1rem;
-    font-size: 0.82rem;
-  }
-
-  .erp-btn-lg {
-    padding: 0.75rem 1rem;
-    font-size: 0.84rem;
-  }
-
-
-  /* ================= ALERTS ================= */
-
-  .erp-alert {
-    padding: 0.85rem;
-    gap: 0.65rem;
-    align-items: flex-start;
-  }
-
-  .erp-alert-icon {
-    font-size: 1.1rem;
-  }
-
-  .erp-alert-content {
-    font-size: 0.75rem;
-    line-height: 1.5;
-    min-width: 0;
-  }
-
-  .erp-alert-close {
-    right: 0.6rem;
-    font-size: 1.5rem;
-  }
-
-  .success-details {
-    font-size: 0.75rem;
-  }
-
-  .success-actions {
-    gap: 0.6rem;
-  }
-
-  .success-detail-row {
-    gap: 0.6rem;
-  }
-
-  .copy-btn {
-    width: 34px;
-    height: 34px;
-  }
-}
-
-
-/* =========================================================
-   SMALL MOBILE
-   0px - 480px
-   ========================================================= */
-
-@media (max-width: 480px) {
-
-  .erp-container {
-    padding: 0.55rem;
-  }
-
-
-  /* Breadcrumb */
-  .erp-container .breadcrumb ol {
-    padding: 0.6rem 0.7rem;
-  }
-
-
-  /* Header */
-  .erp-page-header {
-    padding: 0.85rem;
-    border-radius: 12px;
-  }
-
-  .erp-header-icon {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    font-size: 1rem;
-  }
-
-  .erp-page-title {
-    font-size: 1.1rem;
-  }
-
-  .erp-page-subtitle {
-    font-size: 0.68rem;
-    line-height: 1.4;
-  }
-
-  .erp-header-actions .erp-btn {
-    min-height: 42px;
-    font-size: 0.76rem;
-  }
-
-
-  /* Info */
-  .info-banner {
-    padding: 0.7rem;
-    gap: 0.55rem;
-  }
-
-  .info-icon {
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-  }
-
-  .info-content {
-    font-size: 0.68rem;
-    line-height: 1.45;
-  }
-
-
-  /* Form */
-  .erp-form-header {
-    padding: 0.85rem;
-  }
-
-  .erp-form {
-    padding: 0 0.85rem 0.85rem;
-  }
-
-  .erp-form-title h3 {
-    font-size: 1.02rem;
-  }
-
-  .erp-form-subtitle {
-    font-size: 0.68rem;
-  }
-
-  .erp-section-title {
-    font-size: 0.92rem;
-  }
-
-  .section-description {
-    font-size: 0.7rem;
-  }
-
-
-  /* Fields */
-  .erp-label {
-    font-size: 0.76rem;
-  }
-
-  .erp-input,
-  .erp-textarea {
-    font-size: 0.78rem;
-    padding: 0.68rem 0.75rem;
-  }
-
-  .erp-input {
-    min-height: 42px;
-  }
-
-  .erp-textarea {
-    min-height: 85px;
-  }
-
-  .erp-hint-text,
-  .erp-error-text {
-    font-size: 0.64rem;
-  }
-
-
-  /* Logo */
-  .logo-upload-area {
-    padding: 0.65rem;
-  }
-
-  .logo-upload-icon {
-    font-size: 1.4rem;
-  }
-
-  .logo-upload-placeholder span {
-    font-size: 0.66rem;
-  }
-
-
-  /* Footer */
-  .erp-form-footer {
-    padding: 0.85rem;
-  }
-
-  .erp-btn,
-  .erp-btn-lg {
-    min-height: 42px;
-    padding: 0.65rem 0.85rem;
-    font-size: 0.76rem;
-  }
-
-
-  /* Password */
-  .password-strength-meter {
-    padding: 0.65rem;
-  }
-
-  .requirements-list li {
-    font-size: 0.66rem;
-  }
-}
-         /* ================= LOGO UPLOAD ================= */
-         .logo-upload-area {
-           position: relative;
-           border: 2px dashed #e9ecef;
-           border-radius: 12px;
-           padding: 1.5rem;
-           background: #f8f9fa;
-           transition: all 0.3s ease;
-           cursor: pointer;
-         }
- 
-         .logo-upload-area:hover {
-           border-color: #0f3a4a;
-           background: rgba(15, 58, 74, 0.02);
-         }
- 
-         .logo-file-input {
-           position: absolute;
-           inset: 0;
-           opacity: 0;
-           cursor: pointer;
-         }
- 
-         .logo-upload-placeholder {
-           display: flex;
-           flex-direction: column;
-           align-items: center;
-           gap: 0.5rem;
-           padding: 1rem;
-           pointer-events: none;
-         }
- 
-         .logo-upload-icon {
-           font-size: 2rem;
-           color: #0f3a4a;
-           opacity: 0.5;
-         }
- 
-         .logo-upload-placeholder span {
-           font-size: 0.9rem;
-           color: #6c757d;
-         }
- 
-         .logo-upload-hint {
-           font-size: 0.8rem !important;
-           color: #adb5bd !important;
-         }
- 
-         .logo-preview-container {
-           position: relative;
-           display: flex;
-           align-items: center;
-           justify-content: center;
-           gap: 1rem;
-           padding: 0.5rem;
-         }
- 
-         .logo-preview-img {
-           width: 80px;
-           height: 80px;
-           object-fit: cover;
-           border-radius: 10px;
-           border: 2px solid #e9ecef;
-         }
- 
-         .logo-remove-btn {
-           background: rgba(220, 53, 69, 0.1);
-           border: 1px solid rgba(220, 53, 69, 0.3);
-           color: #dc3545;
-           width: 32px;
-           height: 32px;
-           border-radius: 50%;
-           display: flex;
-           align-items: center;
-           justify-content: center;
-           cursor: pointer;
-           transition: all 0.2s ease;
-           flex-shrink: 0;
-         }
- 
-         .logo-remove-btn:hover {
-           background: rgba(220, 53, 69, 0.2);
-           border-color: #dc3545;
-           transform: scale(1.1);
-         }
-       `}</style>
+        /* =========================================================
+           RESPONSIVE DESIGN - CNC SECTION CARDS
+           ========================================================= */
+
+        /* TABLET: 769px - 991px */
+        @media (min-width: 769px) and (max-width: 991.98px) {
+          .cnc-section-header {
+            padding: 1.1rem 1.25rem;
+          }
+
+          .cnc-section-icon-wrapper {
+            width: 40px;
+            height: 40px;
+          }
+
+          .cnc-section-icon {
+            font-size: 1.1rem;
+          }
+
+          .cnc-section-title {
+            font-size: 1.05rem;
+          }
+
+          .cnc-section-subtitle {
+            font-size: 0.8rem;
+          }
+
+          .cnc-section-body {
+            padding: 1.25rem;
+          }
+
+          .cnc-row {
+            gap: 1rem;
+          }
+
+          .cnc-form-group {
+            margin-bottom: 1.1rem;
+          }
+
+          .cnc-label {
+            font-size: 0.85rem;
+            margin-bottom: 0.55rem;
+          }
+
+          .cnc-input,
+          .cnc-textarea {
+            font-size: 0.9rem;
+            padding: 0.7rem 0.9rem;
+            min-height: 42px;
+          }
+
+          .cnc-error-text,
+          .cnc-hint-text {
+            font-size: 0.75rem;
+            padding: 0.45rem 0.65rem;
+          }
+
+          .cnc-password-strength-meter {
+            padding: 0.9rem;
+          }
+
+          .cnc-strength-label,
+          .cnc-strength-text {
+            font-size: 0.8rem;
+          }
+
+          .cnc-requirements-list li {
+            font-size: 0.75rem;
+          }
+
+          .cnc-logo-upload-area {
+            padding: 1.15rem;
+          }
+
+          .cnc-logo-preview-img {
+            width: 70px;
+            height: 70px;
+          }
+
+          .cnc-form-footer {
+            padding: 1.25rem;
+            gap: 1rem;
+          }
+
+          .cnc-btn {
+            padding: 0.8rem 1.25rem;
+            font-size: 0.9rem;
+          }
+        }
+
+        /* MOBILE: 0px - 768px */
+        @media (max-width: 768px) {
+          .cnc-section-card {
+            border-radius: 14px;
+            margin-bottom: 1rem;
+          }
+
+          .cnc-section-header {
+            padding: 0.9rem 1rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+          }
+
+          .cnc-section-icon-wrapper {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 8px;
+          }
+
+          .cnc-section-icon {
+            font-size: 1rem;
+          }
+
+          .cnc-section-text {
+            min-width: 0;
+            flex: 1;
+          }
+
+          .cnc-section-title {
+            font-size: 1rem;
+            line-height: 1.3;
+          }
+
+          .cnc-section-subtitle {
+            font-size: 0.75rem;
+            line-height: 1.4;
+            margin-top: 0.15rem;
+          }
+
+          .cnc-section-body {
+            padding: 1rem;
+          }
+
+          .cnc-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+          }
+
+          .cnc-col-6,
+          .cnc-col-4,
+          .cnc-col-12 {
+            grid-column: span 12;
+          }
+
+          .cnc-form-group {
+            margin-bottom: 0.875rem;
+          }
+
+          .cnc-label {
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            margin-bottom: 0.45rem;
+          }
+
+          .cnc-label-icon {
+            font-size: 0.8rem;
+          }
+
+          .cnc-input,
+          .cnc-textarea {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 0.65rem 0.8rem;
+            font-size: 0.82rem;
+            border-radius: 9px;
+            min-height: 42px;
+          }
+
+          .cnc-textarea {
+            min-height: 85px;
+          }
+
+          .cnc-input:focus,
+          .cnc-textarea:focus {
+            transform: none;
+          }
+
+          .cnc-hint-text,
+          .cnc-error-text {
+            gap: 0.35rem;
+            padding: 0.4rem 0.55rem;
+            margin-top: 0.35rem;
+            font-size: 0.66rem;
+            line-height: 1.35;
+          }
+
+          .cnc-hint-icon,
+          .cnc-error-icon {
+            font-size: 0.65rem;
+          }
+
+          .cnc-password-wrapper .cnc-input {
+            padding-right: 2.6rem;
+          }
+
+          .cnc-toggle-password {
+            right: 10px;
+            width: 26px;
+            height: 26px;
+            font-size: 0.9rem;
+          }
+
+          .cnc-password-strength-meter {
+            margin-top: 0.7rem;
+            padding: 0.7rem;
+          }
+
+          .cnc-strength-info {
+            margin-bottom: 0.6rem;
+          }
+
+          .cnc-strength-label,
+          .cnc-strength-text {
+            font-size: 0.7rem;
+          }
+
+          .cnc-requirements-list {
+            grid-template-columns: 1fr;
+            gap: 0.25rem;
+          }
+
+          .cnc-requirements-list li {
+            font-size: 0.66rem;
+            padding: 0.25rem 0.35rem;
+          }
+
+          .cnc-check-icon {
+            font-size: 0.6rem;
+          }
+
+          .cnc-logo-upload-area {
+            padding: 0.75rem;
+            border-radius: 10px;
+          }
+
+          .cnc-logo-upload-placeholder {
+            padding: 0.55rem 0.35rem;
+          }
+
+          .cnc-logo-upload-icon {
+            font-size: 1.4rem;
+          }
+
+          .cnc-logo-upload-placeholder span:first-of-type {
+            font-size: 0.7rem;
+            line-height: 1.35;
+          }
+
+          .cnc-logo-upload-hint {
+            font-size: 0.62rem !important;
+          }
+
+          .cnc-logo-preview-img {
+            width: 56px;
+            height: 56px;
+          }
+
+          .cnc-logo-remove-btn {
+            width: 28px;
+            height: 28px;
+          }
+
+          .cnc-form-footer {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+            padding: 0.875rem;
+            margin-top: 1rem;
+          }
+
+          .cnc-footer-left,
+          .cnc-footer-right {
+            width: 100%;
+            display: flex;
+          }
+
+          .cnc-btn {
+            width: 100%;
+            min-height: 44px;
+            justify-content: center;
+            padding: 0.65rem 0.875rem;
+            font-size: 0.8rem;
+          }
+        }
+
+        /* SMALL MOBILE: 0px - 480px */
+        @media (max-width: 480px) {
+          .cnc-section-header {
+            padding: 0.75rem 0.85rem;
+          }
+
+          .cnc-section-icon-wrapper {
+            width: 32px;
+            height: 32px;
+          }
+
+          .cnc-section-icon {
+            font-size: 0.9rem;
+          }
+
+          .cnc-section-title {
+            font-size: 0.9rem;
+          }
+
+          .cnc-section-subtitle {
+            font-size: 0.68rem;
+          }
+
+          .cnc-section-body {
+            padding: 0.85rem;
+          }
+
+          .cnc-label {
+            font-size: 0.72rem;
+          }
+
+          .cnc-input,
+          .cnc-textarea {
+            font-size: 0.76rem;
+            padding: 0.6rem 0.7rem;
+            min-height: 40px;
+          }
+
+          .cnc-textarea {
+            min-height: 80px;
+          }
+
+          .cnc-hint-text,
+          .cnc-error-text {
+            font-size: 0.62rem;
+          }
+
+          .cnc-btn {
+            min-height: 40px;
+            padding: 0.55rem 0.75rem;
+            font-size: 0.74rem;
+          }
+
+          .cnc-logo-upload-area {
+            padding: 0.6rem;
+          }
+
+          .cnc-logo-upload-icon {
+            font-size: 1.25rem;
+          }
+
+          .cnc-logo-upload-placeholder span:first-of-type {
+            font-size: 0.64rem;
+          }
+
+          .cnc-logo-preview-img {
+            width: 48px;
+            height: 48px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

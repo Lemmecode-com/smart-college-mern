@@ -37,6 +37,10 @@ import {
   FaChalkboardTeacher,
   FaUsers,
   FaQrcode,
+  FaCopy,
+  FaPaperPlane,
+  FaUserTie,
+  FaLink,
 } from "react-icons/fa";
 import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
 import { motion, AnimatePresence } from "framer-motion";
@@ -670,10 +674,11 @@ export default function ViewCollegeDetails() {
             animate="visible"
             style={{
               backgroundColor: "white",
-              borderRadius: "20px",
-              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
+              borderRadius: "16px",
+              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.05)",
               marginBottom: "1.5rem",
               overflow: "hidden",
+              border: "1px solid #DCE6EF",
             }}
           >
             <div
@@ -681,7 +686,7 @@ export default function ViewCollegeDetails() {
                 padding: "1.5rem",
                 display: "flex",
                 flexDirection: "column",
-                alignItems: "center",
+                alignItems: "stretch",
               }}
             >
               <div
@@ -691,7 +696,7 @@ export default function ViewCollegeDetails() {
                   justifyContent: "space-between",
                   width: "100%",
                   flexWrap: "wrap",
-                  gap: "1.5rem",
+                  gap: "1rem",
                 }}
               >
                 <div
@@ -699,37 +704,36 @@ export default function ViewCollegeDetails() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "1.5rem",
+                    gap: "1rem",
                     flex: 1,
+                    minWidth: 0,
                   }}
                 >
-                  <motion.div
-                    variants={pulseVariants}
-                    initial="initial"
-                    animate="pulse"
+                  <div
                     style={{
-                      width: "72px",
-                      height: "72px",
-                      background: gradientColors["header-gradient"],
-                      borderRadius: "16px",
+                      width: "68px",
+                      height: "68px",
+                      background: "#103D4B",
+                      borderRadius: "14px",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      boxShadow: "0 8px 25px rgba(15, 58, 74, 0.4)",
                       flexShrink: 0,
                     }}
                   >
-                    <FaUniversity size={32} style={{ color: "white" }} />
-                  </motion.div>
-                  <div style={{ flex: 1 }}>
+                    <FaUniversity size={28} style={{ color: "white" }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <h1
                       style={{
                         margin: 0,
-                        marginBottom: "0.25rem",
-                        fontSize: "1.75rem",
+                        marginBottom: "0.375rem",
+                        fontSize: "1.625rem",
                         fontWeight: 700,
-                        color: "#0f172a",
-                        lineHeight: 1.2,
+                        color: "#142235",
+                        lineHeight: 1.25,
+                        wordBreak: "break-word",
+                        overflowWrap: "anywhere",
                       }}
                     >
                       {college.name}
@@ -738,63 +742,71 @@ export default function ViewCollegeDetails() {
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "1rem",
+                        gap: "0.75rem",
                         flexWrap: "wrap",
                       }}
                     >
                       <span
                         style={{
-                          backgroundColor: "#e0f2fe",
-                          color: "#0f3a4a",
-                          padding: "0.5rem 1rem",
+                          backgroundColor: "#EAF5FB",
+                          color: "#164E63",
+                          padding: "0.35rem 0.75rem",
                           borderRadius: "9999px",
-                          fontSize: "0.875rem",
+                          fontSize: "0.8125rem",
                           fontWeight: 500,
-                          border: "1px solid rgba(15, 58, 74, 0.2)",
+                          border: "1px solid #C9DFEC",
                         }}
                       >
                         CODE: {college.code}
                       </span>
                       <span
                         style={{
-                          color: "#64748b",
+                          color: "#64748B",
                           display: "flex",
                           alignItems: "center",
                           fontSize: "0.875rem",
                         }}
                       >
-                        <FaCalendarAlt style={{ marginRight: "0.25rem" }} />
+                        <FaCalendarAlt style={{ marginRight: "0.3125rem", fontSize: "0.75rem" }} />
                         Est. {college.establishedYear}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <motion.button
-                  whileHover={{
-                    x: -5,
-                    boxShadow: "0 4px 15px rgba(15, 58, 74, 0.2)",
-                  }}
-                  whileTap={{ scale: 0.98 }}
+                <button
                   onClick={() => navigate(-1)}
                   style={{
-                    background: "linear-gradient(135deg, #0f3a4a, #3db5e6)",
+                    background: "#103D4B",
                     color: "white",
                     border: "none",
-                    padding: "0.75rem 1.5rem",
-                    borderRadius: "0.75rem",
-                    fontSize: "0.95rem",
+                    padding: "0.625rem 1.25rem",
+                    borderRadius: "10px",
+                    fontSize: "0.875rem",
                     fontWeight: 500,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
-                    transition: "all 0.3s ease",
-                    boxShadow: "0 4px 6px rgba(15, 58, 74, 0.1)",
+                    transition: "all 0.18s ease",
+                    boxShadow: "0 2px 6px rgba(16, 61, 75, 0.15)",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    height: "44px",
+                  }}
+                  onMouseOver={(e) => {
+                    e.target.style.backgroundColor = "#0E3746";
+                    e.target.style.boxShadow = "0 4px 12px rgba(16, 61, 75, 0.2)";
+                    e.target.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.backgroundColor = "#103D4B";
+                    e.target.style.boxShadow = "0 2px 6px rgba(16, 61, 75, 0.15)";
+                    e.target.style.transform = "translateY(0)";
                   }}
                 >
-                  <FaArrowLeft /> Back to Colleges
-                </motion.button>
+                  <FaArrowLeft size={14} /> Back to Colleges
+                </button>
               </div>
             </div>
           </motion.div>
@@ -804,59 +816,59 @@ export default function ViewCollegeDetails() {
             <motion.div variants={itemVariants} className="col-12">
               <div
                 className="card border-0 shadow-sm college-information-card"
-                style={{ borderRadius: "18px", overflow: "hidden" }}
+                style={{ borderRadius: "16px", overflow: "hidden" }}
               >
                 <div
                   className="px-4 py-3"
                   style={{
-                    background: "linear-gradient(to right, #e0f2fe, #f0f9ff)",
-                    borderBottom: "1px solid #bae6fd",
+                    background: "#F5F9FC",
+                    borderBottom: "1px solid #DCE6EF",
                   }}
                 >
                   <h2
                     className="mb-0 fw-bold"
-                    style={{ fontSize: "1.25rem", color: "#0f3a4a" }}
+                    style={{ fontSize: "1.125rem", color: "#0E3746" }}
                   >
-                    <FaUniversity className="text-primary me-2" /> College
+                    <FaUniversity className="me-2" style={{ color: "#22B8E6" }} /> College
                     Information
                   </h2>
                 </div>
                 <div className="p-4">
                   <div className="row g-4">
-                    <div className="col-12 col-sm-6 col-lg-3">
+                    <div className="col-12 col-md-6">
                       <InfoItem
                         icon={<FaEnvelope />}
                         label="Official Email"
                         value={college.email}
-                        gradient={gradientColors["from-blue-400 to-cyan-400"]}
+                        supportingText="Primary contact email"
+                        iconColor="#22B8E6"
                       />
                     </div>
-                    <div className="col-12 col-sm-6 col-lg-3">
+                    <div className="col-12 col-md-6">
                       <InfoItem
                         icon={<FaPhone />}
                         label="Contact Number"
                         value={college.contactNumber}
-                        gradient={
-                          gradientColors["from-green-400 to-emerald-400"]
-                        }
+                        supportingText="Main phone line"
+                        iconColor="#16A879"
                       />
                     </div>
-                    <div className="col-12 col-sm-6 col-lg-3">
+                    <div className="col-12 col-md-6">
                       <InfoItem
                         icon={<FaMapMarkerAlt />}
                         label="Address"
                         value={college.address}
-                        gradient={
-                          gradientColors["from-amber-400 to-orange-400"]
-                        }
+                        supportingText="Registered location"
+                        iconColor="#8964E8"
                       />
                     </div>
-                    <div className="col-12 col-sm-6 col-lg-3">
+                    <div className="col-12 col-md-6">
                       <InfoItem
                         icon={<FaCalendarAlt />}
                         label="Established Year"
                         value={college.establishedYear?.toString() || "N/A"}
-                        gradient={gradientColors["from-purple-400 to-pink-400"]}
+                        supportingText="Year of inception"
+                        iconColor="#F59E0B"
                       />
                     </div>
                   </div>
@@ -873,84 +885,72 @@ export default function ViewCollegeDetails() {
                 className="col-12"
               >
                 <div
-                  className="card border-0 shadow-sm mb-4"
-                  style={{ borderRadius: "18px", overflow: "hidden" }}
+                  className="card border-0 shadow-sm"
+                  style={{ borderRadius: "16px", overflow: "hidden" }}
                 >
                   <div
                     className="px-4 py-3"
                     style={{
-                      background: "linear-gradient(to right, #f0f9ff, #ede9fe)",
-                      borderBottom: "1px solid #bae6fd",
+                      background: "#F5F9FC",
+                      borderBottom: "1px solid #DCE6EF",
                     }}
                   >
                     <h2
                       className="mb-0 fw-bold"
-                      style={{ fontSize: "1.25rem", color: "#0f3a4a" }}
+                      style={{ fontSize: "1.125rem", color: "#0E3746" }}
                     >
-                      <FaClipboardList className="text-indigo me-2" /> College
+                      <FaClipboardList className="me-2" style={{ color: "#22B8E6" }} /> College
                       Statistics
                     </h2>
                   </div>
                   <div className="p-2">
-                    <div className="row g-3">
-                      <div className="col-6 col-md-4 col-lg-2">
+                    <div className="row g-2">
+                      <div className="col-12 col-md-6 col-lg-4">
                         <StatCard
                           icon={<FaLayerGroup />}
                           label="Departments"
                           value={stats.totalDepartments}
-                          gradient={gradientColors["from-blue-500 to-cyan-400"]}
-                          delay={0.1}
+                          iconColor="#22B8E6"
                         />
                       </div>
-                      <div className="col-6 col-md-4 col-lg-2">
+                      <div className="col-12 col-md-6 col-lg-4">
                         <StatCard
                           icon={<FaBook />}
                           label="Courses"
                           value={stats.totalCourses}
-                          gradient={
-                            gradientColors["from-indigo-500 to-purple-500"]
-                          }
-                          delay={0.2}
+                          iconColor="#16A879"
                         />
                       </div>
-                      <div className="col-6 col-md-4 col-lg-2">
+                      <div className="col-12 col-md-6 col-lg-4">
                         <StatCard
                           icon={<FaChalkboardTeacher />}
                           label="Teachers"
                           value={stats.totalTeachers}
-                          gradient={
-                            gradientColors["from-amber-500 to-orange-400"]
-                          }
-                          delay={0.3}
+                          iconColor="#8964E8"
                         />
                       </div>
-                      <div className="col-6 col-md-4 col-lg-2">
+                      <div className="col-12 col-md-6 col-lg-4">
                         <StatCard
                           icon={<FaUsers />}
                           label="Total Students"
                           value={stats.totalStudents}
-                          gradient={
-                            gradientColors["from-green-500 to-emerald-400"]
-                          }
-                          delay={0.4}
+                          iconColor="#F59E0B"
                         />
                       </div>
-                      <div className="col-6 col-md-4 col-lg-2">
+                      <div className="col-12 col-md-6 col-lg-4">
                         <StatCard
                           icon={<FaCheckCircle />}
                           label="Approved Students"
                           value={stats.approvedStudents}
-                          gradient={gradientColors["from-teal-500 to-cyan-500"]}
-                          delay={0.5}
+                          iconColor="#0891B2"
                         />
                       </div>
-                      <div className="col-6 col-md-4 col-lg-2">
+                      <div className="col-12 col-md-6 col-lg-4">
                         <StatCard
                           icon={<FaCalendarAlt />}
                           label="Active Timetables"
                           value={stats.totalTimetables}
-                          gradient={gradientColors["from-pink-500 to-rose-400"]}
-                          delay={0.6}
+                          iconColor="#EC4899"
                         />
                       </div>
                     </div>
@@ -967,204 +967,304 @@ export default function ViewCollegeDetails() {
               <div
                 style={{
                   backgroundColor: "white",
-                  borderRadius: "18px",
-                  boxShadow: "0 2px 15px rgba(0, 0, 0, 0.05)",
+                  borderRadius: "16px",
+                  boxShadow: "0 2px 12px rgba(0, 0, 0, 0.05)",
                   height: "100%",
                   overflow: "hidden",
+                  border: "1px solid #DCE6EF",
                 }}
               >
                 <div
                   style={{
                     padding: "1rem 1.5rem",
-                    background: "linear-gradient(to right, #ecfdf5, #f0f9ff)",
-                    borderBottom: "1px solid #bae6fd",
+                    background: "#F5F9FC",
+                    borderBottom: "1px solid #DCE6EF",
                   }}
                 >
                   <h2
                     style={{
                       margin: 0,
-                      fontSize: "1.25rem",
+                      fontSize: "1.125rem",
                       fontWeight: 700,
-                      color: "#0f3a4a",
+                      color: "#0E3746",
                       display: "flex",
                       alignItems: "center",
                       gap: "0.5rem",
                     }}
                   >
-                    <FaQrcode style={{ color: "#0d9488" }} /> Registration
+                    <FaQrcode style={{ color: "#22B8E6" }} /> Registration
                     Portal
                   </h2>
                 </div>
-                <div style={{ padding: "1.5rem" }}>
-                  <div style={{ marginBottom: "1.5rem" }}>
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "0.5rem",
-                        fontWeight: 500,
-                        color: "#334155",
-                        fontSize: "0.875rem",
-                      }}
-                    >
-                      Registration URL
-                    </label>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "0.25rem",
-                        marginBottom: "0.75rem",
-                      }}
-                    >
-                      <input
-                        type="text"
-                        value={frontendRegistrationUrl}
-                        readOnly
+                <div className="vcd-registration-portal" style={{ padding: "1.5rem" }}>
+                  <div
+                    className="vcd-reg-grid"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                      gap: "24px",
+                      width: "100%",
+                    }}
+                  >
+                    {/* Left Column - College Registration Link */}
+                    <div className="vcd-reg-col">
+                      <div
+                        className="vcd-reg-panel"
                         style={{
-                          flex: 1,
-                          padding: "0.75rem 1rem",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "0.75rem 0 0 0.75rem",
-                          backgroundColor: "#f8fafc",
-                          fontSize: "0.95rem",
-                          outline: "none",
-                        }}
-                      />
-                      <button
-                        onClick={async () => {
-                          setCopying(true);
-                          try {
-                            await navigator.clipboard.writeText(
-                              frontendRegistrationUrl,
-                            );
-                            toast.success(
-                              "Registration URL copied to clipboard!",
-                              {
-                                position: "top-right",
-                                autoClose: 2000,
-                              },
-                            );
-                          } catch (err) {
-                            toast.error("Failed to copy URL", {
-                              position: "top-right",
-                              autoClose: 3000,
-                            });
-                            setError("Failed to copy URL");
-                          } finally {
-                            setCopying(false);
-                          }
-                        }}
-                        disabled={copying}
-                        style={{
-                          backgroundColor: copying ? "#9ca3af" : "#3b82f6",
-                          color: "white",
-                          border: "none",
-                          padding: "0 1.5rem",
-                          borderRadius: "0 0.75rem 0.75rem 0",
-                          fontSize: "0.95rem",
-                          fontWeight: 500,
-                          cursor: copying ? "not-allowed" : "pointer",
-                          transition: "all 0.3s ease",
-                        }}
-                        onMouseOver={(e) => {
-                          if (!copying)
-                            e.target.style.backgroundColor = "#2563eb";
-                        }}
-                        onMouseOut={(e) => {
-                          if (!copying)
-                            e.target.style.backgroundColor = "#3b82f6";
+                          backgroundColor: "#F3F6F9",
+                          border: "1px solid #DCE6EF",
+                          borderRadius: "12px",
+                          padding: "1.25rem",
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
                         }}
                       >
-                        {copying ? (
-                          <>
-                            <span
-                              className="spinner"
+                        <div>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", marginBottom: "1rem" }}>
+                            <div
                               style={{
-                                width: "14px",
-                                height: "14px",
-                                border: "2px solid rgba(255,255,255,0.3)",
-                                borderTopColor: "white",
-                                borderRadius: "50%",
-                                animation: "spin 1s linear infinite",
-                                display: "inline-block",
-                                marginRight: "0.5rem",
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "10px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "#22B8E615",
+                                color: "#22B8E6",
+                                flexShrink: 0,
                               }}
-                            />
-                            Copying...
-                          </>
-                        ) : (
-                          "Copy"
-                        )}
-                      </button>
+                            >
+                              <FaLink size={18} style={{ color: "#22B8E6" }} />
+                            </div>
+                            <div>
+                              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 600, color: "#0E3746" }}>
+                                College Registration Link
+                              </h3>
+                              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8125rem", color: "#64748b" }}>
+                                Unique link for student registration
+                              </p>
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: "0.75rem" }}>
+                            <div
+                              className="vcd-url-box"
+                              style={{
+                                backgroundColor: "white",
+                                border: "1px solid #DCE6EF",
+                                borderRadius: "10px",
+                                padding: "0.875rem 1rem",
+                                fontSize: "0.875rem",
+                                color: "#0E3746",
+                                fontFamily: "monospace",
+                                wordBreak: "break-all",
+                                overflowWrap: "break-word",
+                                maxWidth: "100%",
+                                minHeight: "64px",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {frontendRegistrationUrl}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            setCopying(true);
+                            try {
+                              await navigator.clipboard.writeText(frontendRegistrationUrl);
+                              toast.success("Registration URL copied to clipboard!", {
+                                position: "top-right",
+                                autoClose: 2000,
+                              });
+                            } catch (err) {
+                              toast.error("Failed to copy URL", {
+                                position: "top-right",
+                                autoClose: 3000,
+                              });
+                              setError("Failed to copy URL");
+                            } finally {
+                              setCopying(false);
+                            }
+                          }}
+                          disabled={copying}
+                          style={{
+                            width: "100%",
+                            backgroundColor: copying ? "#9ca3af" : "#22B8E6",
+                            color: "white",
+                            border: "none",
+                            padding: "0.75rem 1rem",
+                            borderRadius: "10px",
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            cursor: copying ? "not-allowed" : "pointer",
+                            transition: "all 0.18s ease",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.5rem",
+                          }}
+                          onMouseOver={(e) => {
+                            if (!copying) {
+                              e.target.style.backgroundColor = "#0891B2";
+                              e.target.style.transform = "translateY(-1px)";
+                              e.target.style.boxShadow = "0 2px 8px rgba(34, 184, 230, 0.3)";
+                            }
+                          }}
+                          onMouseOut={(e) => {
+                            if (!copying) {
+                              e.target.style.backgroundColor = "#22B8E6";
+                              e.target.style.transform = "translateY(0)";
+                              e.target.style.boxShadow = "none";
+                            }
+                          }}
+                        >
+                          {copying ? (
+                            <>
+                              <span
+                                className="spinner"
+                                style={{
+                                  width: "14px",
+                                  height: "14px",
+                                  border: "2px solid rgba(255,255,255,0.3)",
+                                  borderTopColor: "white",
+                                  borderRadius: "50%",
+                                  animation: "spin 1s linear infinite",
+                                  display: "inline-block",
+                                }}
+                              />
+                              Copying...
+                            </>
+                          ) : (
+                            <>
+                              <FaCopy size={14} /> Copy Registration Link
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    {/* <a
-                      href={frontendRegistrationUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-block',
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        textDecoration: 'none',
-                        padding: '0.75rem 1.5rem',
-                        borderRadius: '0.75rem',
-                        fontSize: '0.95rem',
-                        fontWeight: 500,
-                        transition: 'all 0.3s ease',
-                        boxShadow: '0 4px 6px rgba(59, 130, 246, 0.3)'
-                      }}
-                      onMouseOver={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 6px 12px rgba(59, 130, 246, 0.4)';
-                      }}
-                      onMouseOut={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 4px 6px rgba(59, 130, 246, 0.3)';
-                      }}
-                    >
-                      Open Registration Portal <span style={{ marginLeft: '0.25rem' }}>↗</span>
-                    </a>
 
-                    {/* Send Email to College Admin Button */}
-                    <button
-                      onClick={() => {
-                        setEmailData({
-                          subject: `Regarding ${college.name} - Smart College Management`,
-                          message: "",
-                        });
-                        setShowEmailModal(true);
-                      }}
-                      style={{
-                        display: "inline-block",
-                        background: "linear-gradient(135deg, #047857, #10b981)",
-                        color: "white",
-                        textDecoration: "none",
-                        padding: "0.75rem 1.5rem",
-                        borderRadius: "0.75rem",
-                        fontSize: "0.95rem",
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        border: "none",
-                        marginLeft: "0.75rem",
-                        transition: "all 0.3s ease",
-                        boxShadow: "0 4px 6px rgba(4, 120, 87, 0.3)",
-                      }}
-                      onMouseOver={(e) => {
-                        e.target.style.transform = "translateY(-2px)";
-                        e.target.style.boxShadow =
-                          "0 6px 12px rgba(4, 120, 87, 0.4)";
-                        e.target.style.background =
-                          "linear-gradient(135deg, #065f46, #059669)";
-                      }}
-                      onMouseOut={(e) => {
-                        e.target.style.transform = "translateY(0)";
-                        e.target.style.boxShadow =
-                          "0 4px 6px rgba(4, 120, 87, 0.3)";
-                        e.target.style.background =
-                          "linear-gradient(135deg, #047857, #10b981)";
-                      }}
-                    >
-                      📧 Send Email to College Admin
-                    </button>
+                    {/* Right Column - College Admin Email */}
+                    <div className="vcd-reg-col">
+                      <div
+                        className="vcd-reg-panel"
+                        style={{
+                          backgroundColor: "#F3F6F9",
+                          border: "1px solid #DCE6EF",
+                          borderRadius: "12px",
+                          padding: "1.25rem",
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", marginBottom: "1rem" }}>
+                            <div
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "10px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                background: "#16A87915",
+                                color: "#16A879",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <FaEnvelope size={18} style={{ color: "#16A879" }} />
+                            </div>
+                            <div>
+                              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 600, color: "#0E3746" }}>
+                                College Admin Email
+                              </h3>
+                              <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8125rem", color: "#64748b" }}>
+                                Send notifications to college administrator
+                              </p>
+                            </div>
+                          </div>
+                          <div
+                            className="vcd-url-box"
+                            style={{
+                              backgroundColor: "white",
+                              border: "1px solid #DCE6EF",
+                              borderRadius: "10px",
+                              padding: "1rem",
+                              marginBottom: "1rem",
+                              minHeight: "64px",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", width: "100%" }}>
+                              <div
+                                style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  borderRadius: "8px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  background: "#16A87915",
+                                  color: "#16A879",
+                                }}
+                              >
+                                <FaUserTie size={16} style={{ color: "#16A879" }} />
+                              </div>
+                              <div>
+                                <p style={{ margin: 0, fontSize: "0.8125rem", color: "#64748b" }}>
+                                  Recipient
+                                </p>
+                                <p style={{ margin: "0.125rem 0 0 0", fontSize: "0.875rem", fontWeight: 500, color: "#0E3746" }}>
+                                  {college.adminEmail || "admin@college.edu"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setEmailData({
+                              subject: `Regarding ${college.name} - Smart College Management`,
+                              message: "",
+                            });
+                            setShowEmailModal(true);
+                          }}
+                          style={{
+                            width: "100%",
+                            backgroundColor: "#16A879",
+                            color: "white",
+                            border: "none",
+                            padding: "0.75rem 1rem",
+                            borderRadius: "10px",
+                            fontSize: "0.875rem",
+                            fontWeight: 500,
+                            cursor: "pointer",
+                            transition: "all 0.18s ease",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.5rem",
+                          }}
+                          onMouseOver={(e) => {
+                            e.target.style.backgroundColor = "#138F6B";
+                            e.target.style.transform = "translateY(-1px)";
+                            e.target.style.boxShadow = "0 2px 8px rgba(22, 168, 121, 0.3)";
+                          }}
+                          onMouseOut={(e) => {
+                            e.target.style.backgroundColor = "#16A879";
+                            e.target.style.transform = "translateY(0)";
+                            e.target.style.boxShadow = "none";
+                          }}
+                        >
+                          <FaPaperPlane size={14} /> Send Email to College Admin
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1422,86 +1522,94 @@ export default function ViewCollegeDetails() {
 }
 
 // Enhanced InfoItem Component with Animations and Text Wrapping
-const InfoItem = ({ icon, label, value, gradient }) => {
+const InfoItem = ({ icon, label, value, supportingText, iconColor }) => {
   return (
     <motion.div
-      whileHover={{ y: -5, boxShadow: "0 10px 25px rgba(0,0,0,0.08)" }}
-      transition={{ type: "spring", damping: 10 }}
-      className="info-item-container h-100"
+      whileHover={{ y: -2, boxShadow: "0 6px 16px rgba(0,0,0,0.06)" }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="info-item-container"
       style={{
-        padding: "1rem",
-        borderRadius: "16px",
-        backgroundColor: "white",
+        padding: "0.875rem",
+        borderRadius: "12px",
+        backgroundColor: "#F3F6F9",
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-start",
-        border: "1px solid #eaeaea",
-        height: "100%",
+        border: "1px solid #DCE6EF",
         overflow: "hidden",
         wordWrap: "break-word",
         overflowWrap: "break-word",
       }}
     >
-      <div
-        style={{
-          marginRight: "1rem",
-          padding: "0.75rem",
-          borderRadius: "12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: "48px",
-          minHeight: "48px",
-          background: gradient,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          flexShrink: 0,
-        }}
-      >
-        {React.cloneElement(icon, { size: 20, style: { color: "white" } })}
-      </div>
-      <div style={{ flex: 1, minWidth: 0, overflow: "hidden", width: "100%" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem" }}>
         <small
           style={{
             display: "block",
-            marginBottom: "0.25rem",
             color: "#64748b",
             fontWeight: 500,
             fontSize: "0.75rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.03em",
+            lineHeight: 1.3,
           }}
         >
           {label}
         </small>
         <div
+          style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: `${iconColor}15`,
+            color: iconColor,
+            flexShrink: 0,
+          }}
+        >
+          {React.cloneElement(icon, { size: 18, style: { color: iconColor } })}
+        </div>
+      </div>
+      <div style={{ marginTop: "0.5rem" }}>
+        <div
           className="info-item-value text-wrap-break"
           style={{
             fontWeight: 600,
-            color: "#0f172a",
-            fontSize: "0.95rem",
-            lineHeight: "1.5",
+            color: "#0E3746",
+            fontSize: "1.125rem",
+            lineHeight: "1.4",
             wordBreak: "break-word",
             overflowWrap: "break-word",
             whiteSpace: "normal",
             maxWidth: "100%",
+            marginBottom: "0.25rem",
           }}
         >
           {value || "N/A"}
         </div>
+        {supportingText && (
+          <small
+            style={{
+              display: "block",
+              color: "#94A3B8",
+              fontWeight: 400,
+              fontSize: "0.75rem",
+              lineHeight: 1.4,
+            }}
+          >
+            {supportingText}
+          </small>
+        )}
       </div>
     </motion.div>
   );
 };
 
 // Enhanced StatCard Component with Animations
-const StatCard = ({ icon, label, value, gradient, delay }) => {
+const StatCard = ({ icon, label, value, iconColor }) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: delay || 0, type: "spring", damping: 15 }}
-      whileHover={{ y: -8, boxShadow: "0 15px 35px rgba(0,0,0,0.12)" }}
-      className="h-100"
+    <div
       style={{
-        padding: "0.5rem",
         cursor: "default",
         height: "100%",
       }}
@@ -1509,45 +1617,54 @@ const StatCard = ({ icon, label, value, gradient, delay }) => {
       <div
         style={{
           backgroundColor: "white",
-          borderRadius: "16px",
+          borderRadius: "14px",
           height: "100%",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          border: "1px solid #DCE6EF",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
+          transition: "border-color 150ms ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = iconColor;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "#DCE6EF";
         }}
       >
         <div
           style={{
-            padding: "1rem",
+            padding: "0.875rem",
             display: "flex",
-            alignItems: "center",
-            flex: 1,
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: "0.375rem",
           }}
         >
           <div
             style={{
-              marginRight: "1rem",
-              padding: "0.75rem",
-              borderRadius: "12px",
+              padding: "0.5rem",
+              borderRadius: "10px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              minWidth: "48px",
-              minHeight: "48px",
-              background: gradient,
-              boxShadow: "0 4px 15px rgba(0,0,0,0.15)",
+              minWidth: "38px",
+              minHeight: "38px",
+              background: `${iconColor}15`,
+              color: iconColor,
               flexShrink: 0,
             }}
           >
-            {React.cloneElement(icon, { size: 20, style: { color: "white" } })}
+            {React.cloneElement(icon, { size: 18, style: { color: iconColor } })}
           </div>
-          <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0rem" }}>
             <div
               style={{
                 fontWeight: 700,
-                color: "#0f172a",
-                fontSize: "1.5rem",
+                color: "#0E3746",
+                fontSize: "1.625rem",
+                lineHeight: 1.1,
               }}
             >
               {value}
@@ -1556,7 +1673,8 @@ const StatCard = ({ icon, label, value, gradient, delay }) => {
               style={{
                 color: "#64748b",
                 fontWeight: 500,
-                fontSize: "0.75rem",
+                fontSize: "0.8125rem",
+                lineHeight: 1.2,
               }}
             >
               {label}
@@ -1564,6 +1682,6 @@ const StatCard = ({ icon, label, value, gradient, delay }) => {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };

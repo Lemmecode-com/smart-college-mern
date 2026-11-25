@@ -419,13 +419,13 @@ export default function SuperAdminDashboard() {
 
       {/* STATS GRID */}
       <div
-        className="stats-grid animate-fade-in"
+        className="kpi-section stats-grid animate-fade-in"
         role="region"
         aria-label="Dashboard statistics"
       >
         {/* TOTAL COLLEGES */}
         <div className="stat-card stat-card-colleges">
-          <div className="stat-card-header">
+          <div className="stat-header">
             <div
               className="stat-icon-wrapper stat-icon-colleges"
               aria-hidden="true"
@@ -434,22 +434,15 @@ export default function SuperAdminDashboard() {
             </div>
             <div className="stat-title">Total Colleges</div>
           </div>
-          <div className="stat-card-body">
-            <div className="stat-value">
-              {stats.totalColleges?.toLocaleString() || "0"}
-            </div>
+          <div className="stat-value">
+            {stats.totalColleges?.toLocaleString() || "0"}
           </div>
-          <div className="stat-card-footer">
-            <div className="stat-trend">
-              <FaBuilding className="trend-icon" aria-hidden="true" />
-              <span>Registered institutions</span>
-            </div>
-          </div>
+          <div className="stat-description">Registered institutions</div>
         </div>
 
         {/* TOTAL STUDENTS */}
         <div className="stat-card stat-card-students">
-          <div className="stat-card-header">
+          <div className="stat-header">
             <div
               className="stat-icon-wrapper stat-icon-students"
               aria-hidden="true"
@@ -458,22 +451,15 @@ export default function SuperAdminDashboard() {
             </div>
             <div className="stat-title">Total Students</div>
           </div>
-          <div className="stat-card-body">
-            <div className="stat-value">
-              {stats.totalStudents?.toLocaleString() || "0"}
-            </div>
+          <div className="stat-value">
+            {stats.totalStudents?.toLocaleString() || "0"}
           </div>
-          <div className="stat-card-footer">
-            <div className="stat-trend stat-trend-success">
-              <FaGraduationCap className="trend-icon" aria-hidden="true" />
-              <span>Across all colleges</span>
-            </div>
-          </div>
+          <div className="stat-description">Across all colleges</div>
         </div>
 
         {/* TOTAL TEACHERS */}
         <div className="stat-card stat-card-teachers">
-          <div className="stat-card-header">
+          <div className="stat-header">
             <div
               className="stat-icon-wrapper stat-icon-teachers"
               aria-hidden="true"
@@ -482,17 +468,10 @@ export default function SuperAdminDashboard() {
             </div>
             <div className="stat-title">Total Teachers</div>
           </div>
-          <div className="stat-card-body">
-            <div className="stat-value">
-              {stats.totalTeachers?.toLocaleString() || "0"}
-            </div>
+          <div className="stat-value">
+            {stats.totalTeachers?.toLocaleString() || "0"}
           </div>
-          <div className="stat-card-footer">
-            <div className="stat-trend stat-trend-success">
-              <FaUserGraduate className="trend-icon" aria-hidden="true" />
-              <span>Faculty members</span>
-            </div>
-          </div>
+          <div className="stat-description">Faculty members</div>
         </div>
 
         {/* COLLEGE ENQUIRIES */}
@@ -1254,8 +1233,8 @@ export default function SuperAdminDashboard() {
           color: var(--warning);
         }
 
-        /* ================= STATS GRID ================= */
-        .stats-grid {
+        /* ================= KPI STATISTICS SECTION ================= */
+        .kpi-section.stats-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: var(--spacing-md);
@@ -1264,124 +1243,214 @@ export default function SuperAdminDashboard() {
           overflow: visible;
         }
 
-        .stat-card {
-          background: var(--card-gradient);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-md);
-          overflow: hidden;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        .kpi-section .stat-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+          border: 1px solid #E2EAF0;
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
-          border: 1px solid var(--border-light);
           position: relative;
           width: 100%;
+          min-height: 150px;
+          padding: 1.125rem 1.25rem;
+          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
         }
 
-        .stat-card:hover {
+        .kpi-section .stat-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-          border-color: var(--sidebar-accent);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+          border-color: #D0DBE5;
         }
 
-        .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stat-card:nth-child(2) { animation-delay: 0.15s; }
-        .stat-card:nth-child(3) { animation-delay: 0.2s; }
+        .kpi-section .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .kpi-section .stat-card:nth-child(2) { animation-delay: 0.15s; }
+        .kpi-section .stat-card:nth-child(3) { animation-delay: 0.2s; }
 
-        .stat-card-header {
-          padding: 0.85rem var(--spacing-md) 0.6rem;
+        .kpi-section .stat-header {
           display: flex;
           align-items: center;
-          gap: var(--spacing-sm);
-          background: transparent;
-          flex-shrink: 0;
+          gap: 0.75rem;
+          margin-bottom: 0.75rem;
         }
 
-        .stat-icon-wrapper {
-          width: 38px;
-          height: 38px;
-          border-radius: var(--radius-sm);
+        .kpi-section .stat-icon-wrapper {
+          width: 34px;
+          height: 34px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
           font-size: 1rem;
-          transition: transform var(--transition-base);
-          overflow: hidden;
         }
 
-        .stat-card:hover .stat-icon-wrapper {
-          transform: scale(1.05);
+        .kpi-section .stat-icon-wrapper.stat-icon-colleges {
+          background: rgba(25, 169, 220, 0.12);
+          color: #19A9DC;
         }
 
-        .stat-icon-wrapper.stat-icon-colleges {
-          background: linear-gradient(135deg, rgba(15, 58, 74, 0.1) 0%, rgba(12, 45, 58, 0.15) 100%);
-          color: var(--sidebar-primary);
-          box-shadow: 0 2px 6px rgba(15, 58, 74, 0.2);
+        .kpi-section .stat-icon-wrapper.stat-icon-students {
+          background: rgba(137, 100, 232, 0.12);
+          color: #8964E8;
         }
 
-        .stat-icon-wrapper.stat-icon-students {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, rgba(79, 195, 247, 0.15) 100%);
-          color: var(--sidebar-accent);
-          box-shadow: 0 2px 6px rgba(61, 181, 230, 0.2);
+        .kpi-section .stat-icon-wrapper.stat-icon-teachers {
+          background: rgba(22, 168, 121, 0.12);
+          color: #16A879;
         }
 
-        .stat-icon-wrapper.stat-icon-teachers {
-          background: linear-gradient(135deg, rgba(12, 45, 58, 0.1) 0%, rgba(24, 73, 92, 0.15) 100%);
-          color: var(--sidebar-primary);
-          box-shadow: 0 2px 6px rgba(12, 45, 58, 0.2);
-        }
-
-        .stat-icon {
+        .kpi-section .stat-icon {
           font-size: 1.1rem;
         }
 
-        .stat-title {
+        .kpi-section .stat-title {
           font-weight: 500;
-          color: var(--text-muted);
-          font-size: 0.78rem;
-          letter-spacing: 0.01em;
-          flex: 1;
-          text-transform: uppercase;
-        }
-
-        .stat-card-body {
-          padding: 0 var(--spacing-md) var(--spacing-md);
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
-
-        .stat-value {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: var(--sidebar-primary);
-          line-height: 1.1;
-          letter-spacing: -0.03em;
-          text-align: center;
-        }
-
-        .stat-card-footer {
-          border-top: 1px solid var(--border-light);
-          padding: 0.45rem var(--spacing-md) 0.6rem;
-        }
-
-        .stat-trend {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          font-size: 0.78rem;
-          font-weight: 500;
-          color: var(--text-muted);
-        }
-
-        .stat-trend-success {
-          color: var(--success);
-        }
-
-        .trend-icon {
+          color: #4A5A6A;
           font-size: 0.75rem;
+          letter-spacing: 0.01em;
+          text-transform: uppercase;
+          line-height: 1.3;
+        }
+
+        .kpi-section .stat-value {
+          font-size: 2rem;
+          font-weight: 600;
+          color: #0E3746;
+          line-height: 1.1;
+          letter-spacing: -0.02em;
+          margin-bottom: 0.375rem;
+        }
+
+        .kpi-section .stat-description {
+          font-size: 0.7rem;
+          font-weight: 400;
+          color: #8493A5;
+          line-height: 1.4;
+        }
+
+        /* Tablet: 2 columns */
+        @media (max-width: 991.98px) {
+          .kpi-section.stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+          }
+
+          .kpi-section .stat-card {
+            min-height: 140px;
+            padding: 1rem 1rem;
+          }
+
+          .kpi-section .stat-header {
+            gap: 0.625rem;
+            margin-bottom: 0.625rem;
+          }
+
+          .kpi-section .stat-icon-wrapper {
+            width: 32px;
+            height: 32px;
+            font-size: 0.95rem;
+          }
+
+          .kpi-section .stat-icon {
+            font-size: 1.05rem;
+          }
+
+          .kpi-section .stat-title {
+            font-size: 0.7rem;
+          }
+
+          .kpi-section .stat-value {
+            font-size: 1.875rem;
+          }
+
+          .kpi-section .stat-description {
+            font-size: 0.65rem;
+          }
+        }
+
+        /* Mobile: 1 column */
+        @media (max-width: 767.98px) {
+          .kpi-section.stats-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+          }
+
+          .kpi-section .stat-card {
+            min-height: 135px;
+            padding: 1rem 1rem;
+          }
+
+          .kpi-section .stat-header {
+            gap: 0.625rem;
+            margin-bottom: 0.5rem;
+          }
+
+          .kpi-section .stat-icon-wrapper {
+            width: 30px;
+            height: 30px;
+            font-size: 0.9rem;
+          }
+
+          .kpi-section .stat-icon {
+            font-size: 1rem;
+          }
+
+          .kpi-section .stat-title {
+            font-size: 0.68rem;
+          }
+
+          .kpi-section .stat-value {
+            font-size: 1.75rem;
+          }
+
+          .kpi-section .stat-description {
+            font-size: 0.65rem;
+          }
+        }
+            font-size: 0.8rem;
+          }
+
+          .kpi-section .stat-description {
+            font-size: 0.68rem;
+          }
+        }
+
+        /* Mobile: 1 column */
+        @media (max-width: 767.98px) {
+          .kpi-section.stats-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+          }
+
+          .kpi-section .stat-card {
+            min-height: 150px;
+            padding: 1rem 0.875rem;
+          }
+
+          .kpi-section .stat-icon-wrapper {
+            width: 38px;
+            height: 38px;
+            font-size: 1rem;
+            margin-bottom: 0.625rem;
+          }
+
+          .kpi-section .stat-icon {
+            font-size: 1.1rem;
+          }
+
+          .kpi-section .stat-value {
+            font-size: 2rem;
+          }
+
+          .kpi-section .stat-title {
+            font-size: 0.78rem;
+          }
+
+          .kpi-section .stat-description {
+            font-size: 0.65rem;
+          }
         }
 
         /* ================= COLLEGES SECTION ================= */
