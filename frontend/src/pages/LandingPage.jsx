@@ -5,8 +5,9 @@ import {
   useTransform,
   AnimatePresence,
 } from "framer-motion";
-import { Container, Row, Col, Button, Form, Nav } from "react-bootstrap";
+import { Container, Row, Col, Button, Form, Nav, Alert } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import "animate.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import api from "../api/axios";
@@ -320,6 +321,60 @@ export default function LandingPage() {
   const [statsLoading, setStatsLoading] = useState(true);
   const { scrollYProgress } = useScroll();
   const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
+  // Contact Us form state
+  const [contactForm, setContactForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    institutionName: "",
+    role: "admin",
+    message: "",
+  });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactSuccess, setContactSuccess] = useState(null);
+  const [contactError, setContactError] = useState("");
+
+  const handleContactChange = (e) => {
+    const { name, value } = e.target;
+    setContactForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setContactSubmitting(true);
+    setContactError("");
+    setContactSuccess(null);
+
+    try {
+      const res = await api.post("/inquiries", contactForm);
+      const inquiryNumber = res.data?.inquiryNumber || res.data?.data?.inquiryNumber || "";
+      setContactSuccess({
+        inquiryNumber,
+        message: res.data?.message || "Thank you for contacting us! Your enquiry has been submitted successfully.",
+      });
+      setContactForm({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        institutionName: "",
+        role: "admin",
+        message: "",
+      });
+      toast.success(res.data?.message || "Enquiry submitted successfully!");
+    } catch (err) {
+      const errorMsg =
+        err.response?.data?.message ||
+        err.response?.data?.error?.message ||
+        "Failed to submit enquiry. Please try again.";
+      setContactError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
 
   // Fetch public stats from backend
   useEffect(() => {
@@ -8409,7 +8464,51 @@ className={`nav-link-landing ${
                     Fill out the form below and our team will get back to you.
                   </p>
 
-                  <Form id="contactForm">
+                  {contactSuccess && (
+                    <Alert
+                      variant="success"
+                      className="mb-4 p-3 border-0 shadow-sm"
+                      style={{
+                        borderRadius: "12px",
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                      }}
+                    >
+                      <div className="d-flex align-items-start gap-3">
+                        <i className="fas fa-check-circle text-success fs-3 mt-1"></i>
+                        <div>
+                          <h5 className="text-success mb-1 fw-bold">
+                            Enquiry Submitted Successfully!
+                          </h5>
+                          <p className="mb-2 text-dark" style={{ fontSize: "0.95rem" }}>
+                            Thank you for reaching out. We have received your enquiry.
+                          </p>
+                          <div className="p-2 px-3 rounded bg-white border d-inline-block">
+                            <span className="text-muted small">Your Reference Number: </span>
+                            <strong className="text-primary font-monospace fs-6">
+                              {contactSuccess.inquiryNumber}
+                            </strong>
+                          </div>
+                          <p className="mb-0 mt-2 text-muted small">
+                            Please save this reference number for future communication. Our team will contact you shortly.
+                          </p>
+                        </div>
+                      </div>
+                    </Alert>
+                  )}
+
+                  {contactError && (
+                    <Alert
+                      variant="danger"
+                      className="mb-4"
+                      dismissible
+                      onClose={() => setContactError("")}
+                    >
+                      {contactError}
+                    </Alert>
+                  )}
+
+                  <Form id="contactForm" onSubmit={handleContactSubmit}>
                     <Row className="g-4">
                       <Col xs={12} md={6}>
                         <label className="form-label-landing">
@@ -8418,8 +8517,11 @@ className={`nav-link-landing ${
 
                         <Form.Control
                           type="text"
+                          name="firstName"
                           className="form-control-landing"
                           placeholder="John"
+                          value={contactForm.firstName}
+                          onChange={handleContactChange}
                           required
                           minLength={2}
                           pattern="[A-Za-z\s]+"
@@ -8433,8 +8535,11 @@ className={`nav-link-landing ${
 
                         <Form.Control
                           type="text"
+                          name="lastName"
                           className="form-control-landing"
                           placeholder="Doe"
+                          value={contactForm.lastName}
+                          onChange={handleContactChange}
                           required
                           minLength={2}
                           pattern="[A-Za-z\s]+"
@@ -8448,8 +8553,11 @@ className={`nav-link-landing ${
 
                         <Form.Control
                           type="email"
+                          name="email"
                           className="form-control-landing"
                           placeholder="john@example.com"
+                          value={contactForm.email}
+                          onChange={handleContactChange}
                           required
                         />
                       </Col>
@@ -8470,10 +8578,11 @@ className={`nav-link-landing ${
 
                         <Form.Control
                           type="tel"
+                          name="phone"
                           className="form-control-landing"
                           placeholder="+91 00000-00000"
-                          pattern="[+]?[0-9\s()\-]+"
-                          minLength={10}
+                          value={contactForm.phone}
+                          onChange={handleContactChange}
                         />
                       </Col>
 
@@ -8485,8 +8594,11 @@ className={`nav-link-landing ${
 
                         <Form.Control
                           type="text"
+                          name="institutionName"
                           className="form-control-landing"
                           placeholder="Your institution name"
+                          value={contactForm.institutionName}
+                          onChange={handleContactChange}
                           required
                           minLength={3}
                         />
@@ -8498,17 +8610,17 @@ className={`nav-link-landing ${
                         </label>
 
                         <Form.Select
+                          name="role"
                           className="form-select-landing"
+                          value={contactForm.role}
+                          onChange={handleContactChange}
                           required
                         >
-                          <option value="" disabled>
-                            Select your role
-                          </option>
-                          <option value="principal">Principal</option>
                           <option value="admin">Administrator</option>
+                          <option value="principal">Principal</option>
+                          <option value="hod">HOD</option>
                           <option value="teacher">Teacher</option>
-                          <option value="student">Student</option>
-                          <option value="parent">Parent</option>
+                          <option value="trustee">Trustee</option>
                           <option value="other">Other</option>
                         </Form.Select>
                       </Col>
@@ -8521,8 +8633,11 @@ className={`nav-link-landing ${
                         <Form.Control
                           as="textarea"
                           rows={5}
+                          name="message"
                           className="form-control-landing"
                           placeholder="Tell us how we can help you..."
+                          value={contactForm.message}
+                          onChange={handleContactChange}
                           required
                           minLength={10}
                         />
@@ -8533,9 +8648,23 @@ className={`nav-link-landing ${
                           variant={null}
                           type="submit"
                           className="btn-contact-submit"
+                          disabled={contactSubmitting}
                         >
-                          <span>Send Message</span>
-                          <i className="fas fa-arrow-right"></i>
+                          {contactSubmitting ? (
+                            <>
+                              <span
+                                className="spinner-border spinner-border-sm me-2"
+                                role="status"
+                                aria-hidden="true"
+                              />
+                              <span>Submitting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Send Message</span>
+                              <i className="fas fa-arrow-right ms-2"></i>
+                            </>
+                          )}
                         </Button>
                       </Col>
                     </Row>

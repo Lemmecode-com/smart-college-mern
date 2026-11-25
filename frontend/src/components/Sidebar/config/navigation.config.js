@@ -49,6 +49,7 @@ import {
   FaArrowUp,
   FaEye,
   FaClipboardCheck,
+  FaEnvelopeOpenText,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -99,6 +100,20 @@ export const navigationConfig = {
             path: "/admin/security-audit",
             icon: FaCheckCircle,
             label: "Security Audit",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "super-inquiries",
+        title: "Enquiries & Leads",
+        icon: FaEnvelopeOpenText,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/super-admin/enquiries",
+            icon: FaEnvelopeOpenText,
+            label: "All Enquiries",
             exact: true,
           },
         ],

@@ -96,6 +96,12 @@ const SuperAdminReports = lazy(
 const SecurityAudit = lazy(
   () => import("./pages/dashboard/Super-Admin/SecurityAudit"),
 );
+const SuperAdminInquiries = lazy(
+  () => import("./pages/dashboard/Super-Admin/SuperAdminInquiries"),
+);
+const ViewEnquiry = lazy(
+  () => import("./pages/dashboard/Super-Admin/ViewEnquiry"),
+);
 const PlatformSupportConfig = lazy(
   () => import("./pages/dashboard/Super-Admin/PlatformSupportConfig"),
 );
@@ -718,6 +724,42 @@ function AppContent({
                 element={
                   <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
                     <SuperAdminReports />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/super-admin/enquiries"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <SuperAdminInquiries />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/super-admin/inquiries"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <SuperAdminInquiries />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/super-admin/enquiry/:id"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <ViewEnquiry />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/super-admin/inquiry/:id"
+                element={
+                  <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                    <ViewEnquiry />
                   </ProtectedRoute>
                 }
               />

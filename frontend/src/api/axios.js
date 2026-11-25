@@ -90,10 +90,12 @@ api.interceptors.response.use(
           response.data = data[keys[0]];
         } else {
           // Keep the object structure for single object responses
+          // Preserve data.message if the entity itself contains a message property (e.g. Inquiry, Notification)
           response.data = {
             ...data,
             success,
-            message,
+            message: data.message !== undefined ? data.message : message,
+            apiMessage: message,
             pagination,
             error,
           };

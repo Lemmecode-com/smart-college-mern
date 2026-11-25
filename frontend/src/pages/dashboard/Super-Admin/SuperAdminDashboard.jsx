@@ -33,6 +33,8 @@ import {
   FaFilter,
   FaClock,
   FaTimes,
+  FaEnvelopeOpenText,
+  FaInbox,
 } from "react-icons/fa";
 
 // Constants
@@ -133,6 +135,8 @@ export default function SuperAdminDashboard() {
         totalColleges: 0,
         totalStudents: 0,
         totalTeachers: 0,
+        totalInquiries: 0,
+        newInquiries: 0,
         collegeGrowth: 0,
         studentGrowth: 0,
         teacherGrowth: 0,
@@ -141,6 +145,7 @@ export default function SuperAdminDashboard() {
   );
 
   const colleges = useMemo(() => data?.colleges || [], [data]);
+  const recentInquiries = useMemo(() => data?.recentInquiries || [], [data]);
   const collegeCount = colleges.length;
 
   // Filtered colleges
@@ -478,6 +483,48 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* COLLEGE ENQUIRIES */}
+        <div
+          className="stat-card stat-card-inquiries"
+          style={{ cursor: "pointer" }}
+          onClick={() => navigate("/super-admin/enquiries")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/super-admin/enquiries");
+            }
+          }}
+        >
+          <div className="stat-card-header">
+            <div
+              className="stat-icon-wrapper stat-icon-inquiries"
+              style={{ backgroundColor: "#eff6ff", color: "#2563eb" }}
+              aria-hidden="true"
+            >
+              <FaEnvelopeOpenText className="stat-icon" />
+            </div>
+            <div className="stat-title">College Enquiries</div>
+          </div>
+          <div className="stat-card-body">
+            <div className="stat-value">
+              {stats.totalInquiries?.toLocaleString() || "0"}
+            </div>
+          </div>
+          <div className="stat-card-footer">
+            <div className="stat-trend">
+              {stats.newInquiries > 0 ? (
+                <span className="badge bg-primary text-white" style={{ fontSize: "0.75rem", padding: "4px 8px", borderRadius: "12px" }}>
+                  {stats.newInquiries} New
+                </span>
+              ) : (
+                <span className="text-muted" style={{ fontSize: "0.8rem" }}>Landing Page Enquiries</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* COLLEGES SECTION */}
@@ -593,6 +640,99 @@ export default function SuperAdminDashboard() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* RECENT ENQUIRIES SECTION */}
+      <div
+        className="erp-card animate-fade-in mb-4"
+        role="region"
+        aria-label="Recent college enquiries"
+      >
+        <div className="erp-card-header d-flex justify-content-between align-items-center">
+          <h3 className="mb-0">
+            <FaEnvelopeOpenText className="erp-card-icon me-2" aria-hidden="true" />
+            Recent Enquiries ({recentInquiries.length})
+          </h3>
+          <button
+            className="view-more-btn"
+            onClick={() => navigate("/super-admin/enquiries")}
+            aria-label="View all enquiries"
+          >
+            View All Enquiries
+            <FaChevronRight className="view-more-icon" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="erp-card-body p-0" style={{ overflowX: "auto" }}>
+          {recentInquiries.length === 0 ? (
+            <div className="empty-state py-4 text-center">
+              <div className="empty-icon text-muted mb-2" aria-hidden="true">
+                <FaInbox size={32} />
+              </div>
+              <p className="text-muted mb-0">No enquiries received yet.</p>
+            </div>
+          ) : (
+            <table className="table table-hover align-middle mb-0" style={{ minWidth: "650px" }}>
+              <thead className="table-light">
+                <tr>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Ref No.</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Institution</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Contact Person</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Role</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Status</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentInquiries.map((inq) => (
+                  <tr
+                    key={inq._id || inq.inquiryNumber}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => navigate(`/super-admin/enquiry/${inq._id}`)}
+                    title="Click to view enquiry details"
+                  >
+                    <td>
+                      <span className="badge bg-light text-dark font-monospace border" style={{ fontSize: "0.8rem" }}>
+                        {inq.inquiryNumber}
+                      </span>
+                    </td>
+                    <td className="fw-semibold">{inq.institutionName}</td>
+                    <td>
+                      <div>{inq.firstName} {inq.lastName}</div>
+                      <div className="text-muted small">{inq.email}</div>
+                    </td>
+                    <td>
+                      <span className="badge bg-secondary text-capitalize" style={{ fontSize: "0.75rem" }}>
+                        {inq.role}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          inq.status === "NEW"
+                            ? "bg-warning text-dark"
+                            : inq.status === "CONTACTED"
+                            ? "bg-info text-dark"
+                            : "bg-success"
+                        }`}
+                        style={{ fontSize: "0.75rem" }}
+                      >
+                        {inq.status}
+                      </span>
+                    </td>
+                    <td className="text-muted small">
+                      {new Date(inq.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>

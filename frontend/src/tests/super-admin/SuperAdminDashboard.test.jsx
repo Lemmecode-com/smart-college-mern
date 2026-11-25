@@ -140,4 +140,42 @@ describe("SuperAdminDashboard (#580) - Toast import and error handling", () => {
     const loading = container.querySelector('[data-testid="loading"]');
     expect(loading).toBeNull();
   });
+
+  it("renders enquiries stat card and recent enquiries widget (#584)", async () => {
+    const mockData = {
+      stats: {
+        totalColleges: 5,
+        totalStudents: 100,
+        totalTeachers: 20,
+        totalInquiries: 12,
+        newInquiries: 3,
+      },
+      colleges: [],
+      recentInquiries: [
+        {
+          _id: "inq1",
+          inquiryNumber: "ENQ-202611-0001",
+          institutionName: "MIT Pune",
+          firstName: "John",
+          lastName: "Doe",
+          email: "john@mit.edu",
+          role: "principal",
+          status: "NEW",
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    };
+    api.get.mockResolvedValueOnce({ data: mockData });
+
+    await act(async () => {
+      root.render(<SuperAdminDashboard />);
+    });
+
+    expect(container.textContent).toContain("College Enquiries");
+    expect(container.textContent).toContain("12");
+    expect(container.textContent).toContain("3 New");
+    expect(container.textContent).toContain("Recent Enquiries (1)");
+    expect(container.textContent).toContain("ENQ-202611-0001");
+    expect(container.textContent).toContain("MIT Pune");
+  });
 });

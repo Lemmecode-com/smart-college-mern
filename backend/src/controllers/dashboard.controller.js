@@ -10,6 +10,7 @@ const Timetable = require("../models/timetable.model");
 const TimetableSlot = require("../models/timetableSlot.model");
 const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
+const Inquiry = require("../models/inquiry.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { getNotificationVisibilityQuery } = require("../services/notificationVisibility.service");
@@ -621,10 +622,13 @@ exports.collegeAdminDashboard = async (req, res, next) => {
  */
 exports.superAdminDashboard = async (req, res, next) => {
   try {
-    const [colleges, students, teachers] = await Promise.all([
+    const [colleges, students, teachers, totalInquiries, newInquiries, recentInquiries] = await Promise.all([
       College.find().select("name status"),
       Student.countDocuments(),
       Teacher.countDocuments(),
+      Inquiry.countDocuments(),
+      Inquiry.countDocuments({ status: "NEW" }),
+      Inquiry.find().sort({ createdAt: -1 }).limit(5).lean(),
     ]);
 
     ApiResponse.success(
@@ -634,8 +638,11 @@ exports.superAdminDashboard = async (req, res, next) => {
           totalColleges: colleges.length,
           totalStudents: students,
           totalTeachers: teachers,
+          totalInquiries,
+          newInquiries,
         },
         colleges,
+        recentInquiries,
       },
       "Super admin dashboard data fetched successfully",
     );

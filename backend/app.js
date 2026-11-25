@@ -229,6 +229,9 @@ app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 /* ================= DOCUMENTS ================= */
 app.use("/api/documents", require("./src/routes/document.routes"));
 
+/* ================= INQUIRIES (Landing Page & Super Admin) ================= */
+app.use("/api/inquiries", require("./src/routes/inquiry.routes"));
+
 /* ================= GENERAL SETTINGS ================= */
 app.use("/api/general-settings", require("./src/routes/generalSettings.routes"));
 
