@@ -64,7 +64,7 @@ exports.createCollege = async (req, res, next) => {
     }
 
     // 2️⃣ Generate Registration URL + QR FIRST
-    const { registrationUrl, registrationQr } =
+    const { registrationUrl, registrationQr, qrDataUrl } =
       await generateCollegeQR(collegeCode);
 
     // 3️⃣ Upload logo to storage if provided
@@ -217,7 +217,7 @@ NOVAA (SUPERADMIN)`,
         name: college.name,
         code: college.code,
         registrationUrl,
-        registrationQr,
+        registrationQr: qrDataUrl || registrationQr,
         sourceInquiryId: college.sourceInquiryId,
       },
       collegeAdmin: {

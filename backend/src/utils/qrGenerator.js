@@ -8,6 +8,14 @@ exports.generateCollegeQR = async (collegeCode, collegeId = null) => {
   const registrationUrl = buildFrontendUrl(`/register/${collegeCode}`);
 
   const qrBuffer = await QRCode.toBuffer(registrationUrl);
+  const qrDataUrl = await QRCode.toDataURL(registrationUrl, {
+    width: 300,
+    margin: 2,
+    color: {
+      dark: "#000000",
+      light: "#ffffff",
+    },
+  });
 
   const storageService = getStorageProvider().getAdapter();
   const uploadResult = await storageService.uploadFile(
@@ -45,6 +53,7 @@ exports.generateCollegeQR = async (collegeCode, collegeId = null) => {
   return {
     registrationUrl,
     registrationQr: uploadResult.storagePath,
+    qrDataUrl,
     qrDocumentId,
   };
 };

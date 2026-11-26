@@ -32,6 +32,8 @@ import {
   FaCopy,
   FaImage,
   FaUpload,
+  FaDownload,
+  FaQrcode,
 } from "react-icons/fa";
 
 /* ================= CONSTANTS ================= */
@@ -123,6 +125,7 @@ export default function CreateNewCollege() {
   }, [prefillName, prefillEmail, prefillContact]);
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showSuccessPassword, setShowSuccessPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null);
@@ -301,7 +304,12 @@ export default function CreateNewCollege() {
 
       const res = await api.post("/master/create/college", payload);
 
-      setSuccess(res.data);
+      const submittedPassword = formData.adminPassword;
+      setSuccess({
+        ...res.data,
+        createdPassword: submittedPassword,
+      });
+      setShowSuccessPassword(false);
       setFormData({
         collegeName: "",
         collegeCode: "",
@@ -361,6 +369,26 @@ export default function CreateNewCollege() {
     }
   };
 
+  const handleCopyAllCredentials = () => {
+    if (!success) return;
+    const collegeName = success.college?.name || "College";
+    const collegeCode = success.college?.code || "";
+    const adminEmail = success.collegeAdmin?.email || "";
+    const password = success.createdPassword || "";
+    const loginUrl = `${window.location.origin}/login`;
+
+    const text = `🎓 *NOVAA ERP - College Administrator Credentials*\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `Institution: ${collegeName} (${collegeCode})\n` +
+      `Portal Login: ${loginUrl}\n` +
+      `Admin Email: ${adminEmail}\n` +
+      `Temporary Password: ${password}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `⚠️ *Important:* You must change your password upon your first login.`;
+
+    handleCopyToClipboard(text, "all-credentials");
+  };
+
   const handleResetForm = () => {
     setFormData({
       collegeName: "",
@@ -377,6 +405,7 @@ export default function CreateNewCollege() {
     setTouched({});
     setError("");
     setSuccess(null);
+    setShowSuccessPassword(false);
     setLogoPreview(null);
     setLogoError("");
   };
@@ -522,53 +551,194 @@ export default function CreateNewCollege() {
             <FaCheckCircle className="pulse" />
           </div>
           <div className="erp-alert-content">
-            <strong>Success!</strong> {success.message}
+            <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <strong style={{ fontSize: "1.05rem" }}>Success! {success.message}</strong>
+              {success.college?.code && (
+                <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                  Code: {success.college.code}
+                </span>
+              )}
+            </div>
+
+            {/* Email Delivery Feedback */}
+            {success.emailSent !== undefined && (
+              <div
+                className={`email-delivery-banner ${
+                  success.emailSent ? "email-delivery-success" : "email-delivery-warning"
+                }`}
+              >
+                {success.emailSent ? (
+                  <>
+                    <FaCheckCircle className="me-2 text-success flex-shrink-0" />
+                    <span>
+                      Welcome email with login credentials sent to{" "}
+                      <strong>{success.collegeAdmin?.email}</strong>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <FaExclamationTriangle className="me-2 text-warning flex-shrink-0" />
+                    <span>
+                      Email could not be delivered automatically{" "}
+                      {success.emailError ? `(${success.emailError})` : ""}. Please copy & share credentials manually.
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="success-details">
               <div className="success-detail-row">
                 <span>
-                  <strong>College Name:</strong>{" "}
-                  {success.college?.name || "N/A"}
+                  <strong>College Name:</strong> {success.college?.name || "N/A"}
                 </span>
                 <span>
-                  <strong>College Code:</strong>{" "}
-                  {success.college?.code || "N/A"}
+                  <strong>College Code:</strong> {success.college?.code || "N/A"}
                 </span>
               </div>
+
               <div className="success-detail-row">
                 <span>
-                  <strong>Admin Email:</strong>{" "}
-                  {success.collegeAdmin?.email || "N/A"}
+                  <strong>Admin Email:</strong> {success.collegeAdmin?.email || "N/A"}
                 </span>
                 <button
+                  type="button"
                   className="copy-btn"
                   onClick={() =>
                     handleCopyToClipboard(success.collegeAdmin?.email, "email")
                   }
+                  title="Copy admin email"
                   aria-label="Copy email"
                 >
                   {copiedField === "email" ? <FaCheck /> : <FaCopy />}
                 </button>
               </div>
+
               <div className="success-detail-row">
-                <span>
+                <span className="d-flex align-items-center gap-2">
                   <strong>Admin Password:</strong>{" "}
-                  <span className="password-mask">••••••••</span>
+                  <span className="password-mask font-monospace">
+                    {showSuccessPassword
+                      ? success.createdPassword || "••••••••"
+                      : "••••••••"}
+                  </span>
                 </span>
+                <div className="d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="copy-btn view-btn"
+                    onClick={() => setShowSuccessPassword((prev) => !prev)}
+                    title={showSuccessPassword ? "Hide password" : "Show password"}
+                    aria-label={showSuccessPassword ? "Hide password" : "Show password"}
+                  >
+                    {showSuccessPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                  <button
+                    type="button"
+                    className="copy-btn"
+                    onClick={() =>
+                      handleCopyToClipboard(
+                        success.createdPassword || "",
+                        "password"
+                      )
+                    }
+                    title="Copy password"
+                    aria-label="Copy password"
+                  >
+                    {copiedField === "password" ? <FaCheck /> : <FaCopy />}
+                  </button>
+                </div>
+              </div>
+
+              {/* One-Click Copy All Credentials */}
+              <div className="mt-3 pt-2 d-flex justify-content-end">
                 <button
-                  className="copy-btn"
-                  onClick={() =>
-                    handleCopyToClipboard(
-                      formData.adminPassword || "",
-                      "password",
-                    )
-                  }
-                  aria-label="Copy password"
+                  type="button"
+                  className="copy-all-btn"
+                  onClick={handleCopyAllCredentials}
+                  title="Copy formatted credentials for WhatsApp/Email"
                 >
-                  {copiedField === "password" ? <FaCheck /> : <FaCopy />}
+                  {copiedField === "all-credentials" ? (
+                    <>
+                      <FaCheck className="me-1 text-success" />
+                      <span>Copied All Details!</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaCopy className="me-1" />
+                      <span>Copy All Credentials (WhatsApp / Email Format)</span>
+                    </>
+                  )}
                 </button>
               </div>
+
+              {/* QR Code preview if available */}
+              {success.college?.registrationQr && (
+                <div className="qr-preview-row mt-3 p-3 rounded d-flex align-items-center justify-content-between flex-wrap gap-3">
+                  <div className="d-flex align-items-center gap-3">
+                    <img
+                      src={success.college.registrationQr}
+                      alt="Student Admission QR Code"
+                      style={{
+                        width: "68px",
+                        height: "68px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        padding: "3px",
+                      }}
+                    />
+                    <div>
+                      <div className="fw-semibold text-dark" style={{ fontSize: "0.9rem" }}>
+                        Student Admission QR Code
+                      </div>
+                      <div className="text-muted small">
+                        Direct link:{" "}
+                        <span className="font-monospace text-primary">
+                          {success.college.registrationUrl || `/register/${success.college.code}`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    {success.college.registrationUrl && (
+                      <button
+                        type="button"
+                        className="btn-copy-link"
+                        onClick={() =>
+                          handleCopyToClipboard(success.college.registrationUrl, "reg-url")
+                        }
+                        title="Copy student registration link"
+                      >
+                        {copiedField === "reg-url" ? (
+                          <>
+                            <FaCheck className="me-1 text-success" />
+                            <span>Copied Link!</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaCopy className="me-1" />
+                            <span>Copy Link</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <a
+                      href={success.college.registrationQr}
+                      download={`${success.college?.code || "college"}-admission-qr.png`}
+                      className="qr-download-link"
+                      title="Download printable QR Code"
+                    >
+                      <FaDownload className="me-1" />
+                      <span>Download QR</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
               <div className="success-actions">
                 <button
+                  type="button"
                   className="erp-btn erp-btn-primary"
                   onClick={() => navigate("/super-admin/colleges-list")}
                 >
@@ -577,6 +747,7 @@ export default function CreateNewCollege() {
                 </button>
                 {onboardingInquiryId && (
                   <button
+                    type="button"
                     className="erp-btn erp-btn-secondary"
                     onClick={() => navigate(`/super-admin/enquiry/${onboardingInquiryId}`)}
                   >
@@ -585,6 +756,7 @@ export default function CreateNewCollege() {
                   </button>
                 )}
                 <button
+                  type="button"
                   className="erp-btn erp-btn-secondary"
                   onClick={handleResetForm}
                 >
@@ -1204,6 +1376,29 @@ export default function CreateNewCollege() {
           border-bottom: 1px solid rgba(76, 175, 80, 0.15);
         }
 
+        /* EMAIL DELIVERY BANNER */
+        .email-delivery-banner {
+          display: flex;
+          align-items: center;
+          margin-top: 0.85rem;
+          padding: 0.65rem 1rem;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          line-height: 1.4;
+        }
+
+        .email-delivery-success {
+          background: #ecfdf5;
+          border: 1px solid #a7f3d0;
+          color: #065f46;
+        }
+
+        .email-delivery-warning {
+          background: #fffbeb;
+          border: 1px solid #fde68a;
+          color: #92400e;
+        }
+
         .copy-btn {
           background: rgba(76, 175, 80, 0.1);
           border: 1px solid rgba(76, 175, 80, 0.3);
@@ -1225,12 +1420,141 @@ export default function CreateNewCollege() {
           transform: scale(1.05);
         }
 
+        .view-btn {
+          background: rgba(2, 132, 199, 0.1);
+          border: 1px solid rgba(2, 132, 199, 0.3);
+          color: #0284c7;
+        }
+
+        .view-btn:hover {
+          background: rgba(2, 132, 199, 0.2);
+          border-color: #0284c7;
+          color: #0369a1;
+        }
+
+        /* COPY ALL CREDENTIALS BUTTON */
+        .copy-all-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: #f0fdf4;
+          border: 1px solid #86efac;
+          color: #166534;
+          padding: 0.5rem 1rem;
+          border-radius: 8px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .copy-all-btn:hover {
+          background: #dcfce7;
+          border-color: #4ade80;
+          color: #14532d;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(22, 101, 52, 0.1);
+        }
+
+        /* QR PREVIEW ROW */
+        .qr-preview-row {
+          background: rgba(255, 255, 255, 0.65);
+          border: 1px solid rgba(76, 175, 80, 0.25);
+        }
+
+        .btn-copy-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #0369a1;
+          background: #f0f9ff;
+          border: 1px solid #bae6fd;
+          padding: 0.4rem 0.85rem;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-copy-link:hover {
+          background: #e0f2fe;
+          border-color: #7dd3fc;
+          color: #0284c7;
+          transform: translateY(-1px);
+        }
+
+        .qr-download-link {
+          display: inline-flex;
+          align-items: center;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #0f3a4a;
+          background: #ffffff;
+          border: 1px solid #cbd5e1;
+          padding: 0.4rem 0.85rem;
+          border-radius: 6px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+
+        .qr-download-link:hover {
+          background: #f8fafc;
+          border-color: #94a3b8;
+          color: #0c2d3a;
+          transform: translateY(-1px);
+        }
+
+        /* MODERN SUCCESS ACTION BUTTONS */
         .success-actions {
           display: flex;
-          gap: 1rem;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.85rem;
           margin-top: 1.5rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid rgba(76, 175, 80, 0.3);
+          padding-top: 1.25rem;
+          border-top: 1px solid rgba(76, 175, 80, 0.25);
+        }
+
+        .success-actions .erp-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 0.65rem 1.35rem;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+        }
+
+        .success-actions .erp-btn-primary {
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
+          color: #ffffff;
+          border: 1px solid #0c2d3a;
+          box-shadow: 0 2px 6px rgba(12, 45, 58, 0.2);
+        }
+
+        .success-actions .erp-btn-primary:hover {
+          background: linear-gradient(135deg, #164e63 0%, #0f3a4a 100%);
+          color: #ffffff;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(12, 45, 58, 0.28);
+        }
+
+        .success-actions .erp-btn-secondary {
+          background: #ffffff;
+          color: #334155;
+          border: 1px solid #cbd5e1;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .success-actions .erp-btn-secondary:hover {
+          background: #f8fafc;
+          border-color: #94a3b8;
+          color: #0f172a;
+          transform: translateY(-1px);
         }
 
         .password-mask {
