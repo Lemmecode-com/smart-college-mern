@@ -36,10 +36,11 @@ vi.mock("../../components/Loading", () => ({
 }));
 
 vi.mock("../../components/ApiError", () => ({
-  default: ({ message, onRetry }) => (
+  default: ({ message, onRetry, onGoBack }) => (
     <div data-testid="api-error">
       <span>{message}</span>
       <button onClick={onRetry}>Retry</button>
+      <button onClick={onGoBack}>Go Back</button>
     </div>
   ),
 }));
@@ -93,7 +94,154 @@ describe("ViewEnquiry Page", () => {
     expect(container.textContent).toContain("ENQ-202611-9999");
     expect(container.textContent).toContain("Sunil Kulkarni");
     expect(container.textContent).toContain("sunil@mitaoe.ac.in");
+    expect(container.textContent).toContain("+91 9123456780");
     expect(container.textContent).toContain("We need full ERP setup for our college");
     expect(container.textContent).toContain("NEW");
+  });
+
+  it("renders stepper and displays next-step action 'Mark as Contacted' when status is NEW", async () => {
+    const mockInquiry = {
+      _id: "inq_test_123",
+      inquiryNumber: "ENQ-202611-9999",
+      institutionName: "MIT Academy of Engineering",
+      firstName: "Sunil",
+      lastName: "Kulkarni",
+      email: "sunil@mitaoe.ac.in",
+      phone: "+91 9123456780",
+      role: "principal",
+      message: "We need full ERP setup.",
+      status: "NEW",
+      createdAt: new Date().toISOString(),
+    };
+
+    api.get.mockResolvedValueOnce({ data: mockInquiry });
+
+    await act(async () => {
+      root.render(<ViewEnquiry />);
+    });
+
+    expect(container.textContent).toContain("New Lead");
+    expect(container.textContent).toContain("Contacted");
+    expect(container.textContent).toContain("Closed");
+    expect(container.textContent).toContain("Mark as Contacted");
+    expect(container.textContent).not.toContain("Mark as Closed");
+    expect(container.textContent).not.toContain("Reopen Enquiry");
+  });
+
+  it("displays next-step action 'Mark as Closed' when status is CONTACTED", async () => {
+    const mockInquiry = {
+      _id: "inq_test_123",
+      inquiryNumber: "ENQ-202611-9999",
+      institutionName: "MIT Academy of Engineering",
+      firstName: "Sunil",
+      lastName: "Kulkarni",
+      email: "sunil@mitaoe.ac.in",
+      phone: "+91 9123456780",
+      role: "principal",
+      message: "We need full ERP setup.",
+      status: "CONTACTED",
+      createdAt: new Date().toISOString(),
+    };
+
+    api.get.mockResolvedValueOnce({ data: mockInquiry });
+
+    await act(async () => {
+      root.render(<ViewEnquiry />);
+    });
+
+    expect(container.textContent).toContain("Mark as Closed");
+    expect(container.textContent).not.toContain("Mark as Contacted");
+  });
+
+  it("displays next-step action 'Reopen Enquiry' when status is CLOSED", async () => {
+    const mockInquiry = {
+      _id: "inq_test_123",
+      inquiryNumber: "ENQ-202611-9999",
+      institutionName: "MIT Academy of Engineering",
+      firstName: "Sunil",
+      lastName: "Kulkarni",
+      email: "sunil@mitaoe.ac.in",
+      phone: "+91 9123456780",
+      role: "principal",
+      message: "We need full ERP setup.",
+      status: "CLOSED",
+      createdAt: new Date().toISOString(),
+    };
+
+    api.get.mockResolvedValueOnce({ data: mockInquiry });
+
+    await act(async () => {
+      root.render(<ViewEnquiry />);
+    });
+
+    expect(container.textContent).toContain("Reopen Enquiry");
+    expect(container.textContent).not.toContain("Mark as Contacted");
+    expect(container.textContent).not.toContain("Mark as Closed");
+  });
+
+  it("navigates to /super-admin/create-college with prefill state when Onboard College is clicked", async () => {
+    const mockInquiry = {
+      _id: "inq_test_123",
+      inquiryNumber: "ENQ-202611-9999",
+      institutionName: "MIT Academy of Engineering",
+      firstName: "Sunil",
+      lastName: "Kulkarni",
+      email: "sunil@mitaoe.ac.in",
+      phone: "+91 9123456780",
+      role: "principal",
+      message: "We need full ERP setup.",
+      status: "NEW",
+      createdAt: new Date().toISOString(),
+    };
+
+    api.get.mockResolvedValueOnce({ data: mockInquiry });
+
+    await act(async () => {
+      root.render(<ViewEnquiry />);
+    });
+
+    // Find Onboard College button
+    const onboardBtn = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent.includes("Onboard College")
+    );
+    expect(onboardBtn).toBeDefined();
+
+    await act(async () => {
+      onboardBtn.click();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith("/super-admin/create-college", {
+      state: {
+        prefillName: "MIT Academy of Engineering",
+        prefillEmail: "sunil@mitaoe.ac.in",
+        prefillContact: "+91 9123456780",
+      },
+    });
+  });
+
+  it("renders 'Not provided' and disables call button when phone is missing", async () => {
+    const mockInquiry = {
+      _id: "inq_test_123",
+      inquiryNumber: "ENQ-202611-9999",
+      institutionName: "MIT Academy of Engineering",
+      firstName: "Sunil",
+      lastName: "Kulkarni",
+      email: "sunil@mitaoe.ac.in",
+      phone: "",
+      role: "principal",
+      message: "We need full ERP setup.",
+      status: "NEW",
+      createdAt: new Date().toISOString(),
+    };
+
+    api.get.mockResolvedValueOnce({ data: mockInquiry });
+
+    await act(async () => {
+      root.render(<ViewEnquiry />);
+    });
+
+    expect(container.textContent).toContain("Not provided");
+    const disabledCall = container.querySelector(".sa-comm-disabled");
+    expect(disabledCall).not.toBeNull();
   });
 });

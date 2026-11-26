@@ -295,45 +295,11 @@ export default function SuperAdminInquiries() {
         .sa-header-band {
           background: linear-gradient(135deg, var(--sa-teal-base) 0%, var(--sa-teal-dark) 100%);
           color: var(--sa-teal-text);
-          padding: 1.25rem 2rem 1.75rem 2rem;
-          border-bottom: 1px solid var(--sa-teal-border);
+          padding: 1.25rem 1.75rem;
+          border-radius: var(--sa-card-radius);
+          border: 1px solid var(--sa-teal-border);
           box-shadow: 0 4px 16px rgba(12, 45, 58, 0.18);
           margin-bottom: 1.5rem;
-        }
-
-        .sa-header-band .erp-breadcrumb {
-          margin-bottom: 0.75rem !important;
-        }
-
-        .sa-header-band .erp-breadcrumb-list {
-          background: transparent !important;
-          border: none !important;
-          padding: 0 !important;
-          min-height: auto !important;
-          box-shadow: none !important;
-        }
-
-        .sa-header-band .erp-breadcrumb-link {
-          color: var(--sa-teal-accent-light) !important;
-          font-size: 0.85rem !important;
-          font-weight: 500;
-          text-decoration: none;
-        }
-
-        .sa-header-band .erp-breadcrumb-link:hover {
-          color: #ffffff !important;
-          text-decoration: underline !important;
-        }
-
-        .sa-header-band .erp-breadcrumb-current {
-          color: var(--sa-teal-text) !important;
-          font-size: 0.85rem !important;
-          font-weight: 600;
-        }
-
-        .sa-header-band .erp-breadcrumb-separator {
-          color: var(--sa-teal-text-muted) !important;
-          margin: 0 0.4rem;
         }
 
         .sa-title-row {
@@ -918,17 +884,17 @@ export default function SuperAdminInquiries() {
         }
       `}</style>
 
-      {/* HEADER BAND */}
-      <div className="sa-header-band">
-        <div className="container-fluid px-0">
-          <Breadcrumb
-            variant="inline"
-            items={[
-              { label: "Dashboard", path: "/super-admin/dashboard" },
-              { label: "Enquiries & Leads" },
-            ]}
-          />
+      <div className="container-fluid px-3 px-md-4 pt-3">
+        {/* ================= BREADCRUMB (OUT OF HEADER, AT TOP) ================= */}
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/super-admin/dashboard" },
+            { label: "Enquiries & Leads" },
+          ]}
+        />
 
+        {/* HEADER BAND */}
+        <div className="sa-header-band">
           <div className="sa-title-row">
             <div>
               <h1 className="sa-page-title">
@@ -957,9 +923,7 @@ export default function SuperAdminInquiries() {
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="container-fluid px-3 px-md-4">
         {/* STAT CARDS GRID */}
         <div className="row g-3 mb-4">
           {/* Total Enquiries */}
