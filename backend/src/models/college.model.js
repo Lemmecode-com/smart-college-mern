@@ -111,6 +111,12 @@ const collegeSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  sourceInquiryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Inquiry",
+    default: null,
+    index: true,
+  },
 
   subscription: {
     plan: {

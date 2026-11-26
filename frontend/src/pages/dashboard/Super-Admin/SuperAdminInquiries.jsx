@@ -257,6 +257,13 @@ export default function SuperAdminInquiries() {
             CLOSED
           </span>
         );
+      case "CONVERTED":
+        return (
+          <span className="sa-badge sa-badge-converted">
+            <span className="sa-badge-dot sa-badge-dot-converted" />
+            CONVERTED
+          </span>
+        );
       default:
         return <span className="sa-badge sa-badge-default">{status}</span>;
     }
@@ -623,6 +630,12 @@ export default function SuperAdminInquiries() {
         }
         .sa-badge-dot-closed { background: #10b981; }
 
+        .sa-badge-converted {
+          background: #ecfdf5;
+          color: #047857;
+        }
+        .sa-badge-dot-converted { background: #10b981; }
+
         .sa-badge-default {
           background: #f1f5f9;
           color: #475569;
@@ -692,6 +705,8 @@ export default function SuperAdminInquiries() {
           color: #334155;
           cursor: pointer;
           transition: all 0.15s ease;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
 
         .sa-ref-chip:hover {
@@ -1242,16 +1257,15 @@ export default function SuperAdminInquiries() {
             {loading ? (
               <div className="p-4">
                 {/* SKELETON TABLE */}
-                <table className="sa-table" style={{ minWidth: "860px" }}>
+                <table className="sa-table" style={{ minWidth: "700px" }}>
                   <thead>
                     <tr>
-                      <th style={{ width: "170px" }}>Ref No.</th>
+                      <th style={{ width: "160px" }}>Ref No.</th>
                       <th>Institution & Message</th>
                       <th>Contact Person</th>
-                      <th style={{ width: "110px" }}>Role</th>
-                      <th style={{ width: "130px" }}>Status</th>
-                      <th style={{ width: "120px" }}>Received</th>
-                      <th style={{ width: "160px" }} className="text-end">Actions</th>
+                      <th style={{ width: "100px" }}>Role</th>
+                      <th style={{ width: "120px" }}>Status</th>
+                      <th style={{ width: "90px" }} className="text-end">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1274,11 +1288,8 @@ export default function SuperAdminInquiries() {
                         <td>
                           <span className="sa-skeleton" style={{ width: "85px", height: "22px" }} />
                         </td>
-                        <td>
-                          <span className="sa-skeleton" style={{ width: "80px", height: "14px" }} />
-                        </td>
                         <td className="text-end">
-                          <span className="sa-skeleton" style={{ width: "90px", height: "28px" }} />
+                          <span className="sa-skeleton" style={{ width: "70px", height: "28px" }} />
                         </td>
                       </tr>
                     ))}
@@ -1327,16 +1338,15 @@ export default function SuperAdminInquiries() {
                 )}
               </div>
             ) : (
-              <table className="sa-table" style={{ minWidth: "860px" }}>
+              <table className="sa-table" style={{ minWidth: "700px" }}>
                 <thead>
                   <tr>
-                    <th style={{ width: "170px" }}>Ref No.</th>
+                    <th style={{ width: "160px" }}>Ref No.</th>
                     <th>Institution & Message</th>
                     <th>Contact Person</th>
-                    <th style={{ width: "110px" }}>Role</th>
-                    <th style={{ width: "130px" }}>Status</th>
-                    <th style={{ width: "120px" }}>Received</th>
-                    <th style={{ width: "160px" }} className="text-end">Actions</th>
+                    <th style={{ width: "100px" }}>Role</th>
+                    <th style={{ width: "120px" }}>Status</th>
+                    <th style={{ width: "90px" }} className="text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1496,85 +1506,19 @@ export default function SuperAdminInquiries() {
                       {/* Status (desktop) */}
                       <td className="d-none d-md-table-cell">{getStatusBadge(inq.status)}</td>
 
-                      {/* Received Date with relative time */}
-                      <td className="text-muted small">
-                        <OverlayTrigger
-                          placement="top"
-                          overlay={
-                            <Tooltip id={`tip-dt-${inq._id}`}>
-                              {new Date(inq.createdAt).toLocaleString("en-IN", {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              })}
-                            </Tooltip>
-                          }
-                        >
-                          <div>
-                            <div className="text-dark fw-medium">
-                              {new Date(inq.createdAt).toLocaleDateString("en-IN", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </div>
-                            <div style={{ fontSize: "0.725rem", color: "#94a3b8" }}>
-                              {getRelativeTime(inq.createdAt)}
-                            </div>
-                          </div>
-                        </OverlayTrigger>
-                      </td>
-
                       {/* Actions */}
                       <td className="text-end mobile-actions-cell">
-                        <div className="d-inline-flex align-items-center gap-1 justify-content-end">
-                          <Button
-                            variant="light"
-                            size="sm"
-                            className="sa-action-btn sa-action-btn-view"
-                            title="View Enquiry Details"
-                            aria-label={`View details for ${inq.institutionName}`}
-                            onClick={() => navigate(`/super-admin/enquiry/${inq._id}`)}
-                          >
-                            <FaEye />
-                          </Button>
-
-                          {inq.status === "NEW" && (
-                            <Button
-                              variant="outline-primary"
-                              size="sm"
-                              className="sa-action-btn"
-                              title="Mark as Contacted"
-                              disabled={updatingStatusId === inq._id}
-                              onClick={() => handleStatusChange(inq._id, "CONTACTED")}
-                            >
-                              <FaExchangeAlt />
-                              <span>{updatingStatusId === inq._id ? "..." : "Contacted"}</span>
-                            </Button>
-                          )}
-
-                          {inq.status === "CONTACTED" && (
-                            <Button
-                              variant="outline-success"
-                              size="sm"
-                              className="sa-action-btn"
-                              title="Mark as Closed"
-                              disabled={updatingStatusId === inq._id}
-                              onClick={() => handleStatusChange(inq._id, "CLOSED")}
-                            >
-                              <FaCheckCircle />
-                              <span>{updatingStatusId === inq._id ? "..." : "Close"}</span>
-                            </Button>
-                          )}
-
-                          {inq.status === "CLOSED" && (
-                            <span
-                              className="text-muted small fst-italic px-2"
-                              title="Enquiry is closed"
-                            >
-                              Closed
-                            </span>
-                          )}
-                        </div>
+                        <Button
+                          variant="light"
+                          size="sm"
+                          className="sa-action-btn sa-action-btn-view"
+                          title="View Enquiry Details"
+                          aria-label={`View details for ${inq.institutionName}`}
+                          onClick={() => navigate(`/super-admin/enquiry/${inq._id}`)}
+                        >
+                          <FaEye className="me-1" />
+                          <span>View</span>
+                        </Button>
                       </td>
                     </tr>
                   ))}

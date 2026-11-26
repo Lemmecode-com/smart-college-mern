@@ -56,9 +56,19 @@ const inquirySchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["NEW", "CONTACTED", "CLOSED"],
+      enum: ["NEW", "CONTACTED", "CLOSED", "CONVERTED"],
       default: "NEW",
       index: true,
+    },
+    convertedCollegeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "College",
+      default: null,
+      index: true,
+    },
+    convertedAt: {
+      type: Date,
+      default: null,
     },
   },
   {
@@ -73,22 +83,34 @@ inquirySchema.pre("save", async function () {
     const month = String(now.getMonth() + 1).padStart(2, "0");
     const prefix = `ENQ-${year}${month}-`;
 
-    const lastInquiry = await this.constructor
-      .findOne({ inquiryNumber: new RegExp(`^(ENQ|INQ)-${year}${month}-`) })
-      .sort({ inquiryNumber: -1 })
+    // Fetch all existing inquiry numbers for current month to find the true numerical max sequence
+    // (Note: Lexicographical sort fails because 'INQ-' > 'ENQ-' in ASCII)
+    const existingInquiries = await this.constructor
+      .find({ inquiryNumber: new RegExp(`^(ENQ|INQ)-${year}${month}-(\\d+)`) })
       .select("inquiryNumber")
       .lean();
 
-    let seq = 1;
-    if (lastInquiry && lastInquiry.inquiryNumber) {
-      const parts = lastInquiry.inquiryNumber.split("-");
-      const parsedSeq = parseInt(parts[2], 10);
-      if (!isNaN(parsedSeq)) {
-        seq = parsedSeq + 1;
+    let maxSeq = 0;
+    for (const inq of existingInquiries) {
+      if (inq.inquiryNumber) {
+        const parts = inq.inquiryNumber.split("-");
+        const num = parseInt(parts[2], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
       }
     }
 
-    this.inquiryNumber = `${prefix}${String(seq).padStart(4, "0")}`;
+    let seq = maxSeq + 1;
+    let candidateNumber = `${prefix}${String(seq).padStart(4, "0")}`;
+
+    // Guarantee uniqueness in case of race condition or existing keys
+    while (await this.constructor.exists({ inquiryNumber: candidateNumber })) {
+      seq += 1;
+      candidateNumber = `${prefix}${String(seq).padStart(4, "0")}`;
+    }
+
+    this.inquiryNumber = candidateNumber;
   }
 });
 

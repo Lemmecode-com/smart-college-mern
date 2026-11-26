@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect, useCallback } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -79,6 +79,12 @@ const MESSAGES = {
 export default function CreateNewCollege() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const onboardingInquiryId = location.state?.inquiryId || null;
+  const prefillName = location.state?.prefillName || "";
+  const prefillEmail = location.state?.prefillEmail || "";
+  const prefillContact = location.state?.prefillContact || "";
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -93,10 +99,10 @@ export default function CreateNewCollege() {
 
   /* ================= FORM STATE ================= */
   const [formData, setFormData] = useState({
-    collegeName: "",
+    collegeName: prefillName || "",
     collegeCode: "",
-    collegeEmail: "",
-    contactNumber: "",
+    collegeEmail: prefillEmail || "",
+    contactNumber: prefillContact || "",
     address: "",
     establishedYear: "",
     adminName: "",
@@ -104,6 +110,17 @@ export default function CreateNewCollege() {
     adminPassword: "",
     logo: null,
   });
+
+  useEffect(() => {
+    if (prefillName || prefillEmail || prefillContact) {
+      setFormData((prev) => ({
+        ...prev,
+        collegeName: prev.collegeName || prefillName || "",
+        collegeEmail: prev.collegeEmail || prefillEmail || "",
+        contactNumber: prev.contactNumber || prefillContact || "",
+      }));
+    }
+  }, [prefillName, prefillEmail, prefillContact]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -275,6 +292,9 @@ export default function CreateNewCollege() {
       payload.append("adminName", formData.adminName);
       payload.append("adminEmail", formData.adminEmail);
       payload.append("adminPassword", formData.adminPassword);
+      if (onboardingInquiryId) {
+        payload.append("inquiryId", onboardingInquiryId);
+      }
       if (formData.logo) {
         payload.append("logo", formData.logo);
       }
@@ -555,6 +575,15 @@ export default function CreateNewCollege() {
                   <FaCheckCircle className="erp-btn-icon" />
                   <span>Go to Colleges List</span>
                 </button>
+                {onboardingInquiryId && (
+                  <button
+                    className="erp-btn erp-btn-secondary"
+                    onClick={() => navigate(`/super-admin/enquiry/${onboardingInquiryId}`)}
+                  >
+                    <FaArrowLeft className="erp-btn-icon" />
+                    <span>Return to Enquiry</span>
+                  </button>
+                )}
                 <button
                   className="erp-btn erp-btn-secondary"
                   onClick={handleResetForm}
@@ -564,6 +593,25 @@ export default function CreateNewCollege() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* LEAD ONBOARDING BANNER */}
+      {onboardingInquiryId && (
+        <div
+          className="d-flex align-items-center gap-2 mb-4 p-3 animate-fade-in"
+          style={{
+            borderRadius: "10px",
+            border: "1px solid #bae6fd",
+            background: "#f0f9ff",
+            color: "#0369a1",
+            fontSize: "0.875rem",
+          }}
+        >
+          <FaInfoCircle className="flex-shrink-0" style={{ fontSize: "1.2rem", color: "#0284c7" }} />
+          <div>
+            <strong>Onboarding Lead:</strong> Pre-filled from enquiry <strong>{prefillName}</strong>. This lead will automatically be marked as <strong>CONVERTED</strong> upon college creation.
           </div>
         </div>
       )}

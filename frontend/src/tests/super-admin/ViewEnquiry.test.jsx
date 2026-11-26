@@ -212,11 +212,53 @@ describe("ViewEnquiry Page", () => {
 
     expect(mockNavigate).toHaveBeenCalledWith("/super-admin/create-college", {
       state: {
+        inquiryId: "inq_test_123",
         prefillName: "MIT Academy of Engineering",
         prefillEmail: "sunil@mitaoe.ac.in",
         prefillContact: "+91 9123456780",
       },
     });
+  });
+
+  it("renders 'College Onboarded' card and 'View College' button when enquiry is converted", async () => {
+    const mockInquiry = {
+      _id: "inq_test_123",
+      inquiryNumber: "ENQ-202611-9999",
+      institutionName: "MIT Academy of Engineering",
+      firstName: "Sunil",
+      lastName: "Kulkarni",
+      email: "sunil@mitaoe.ac.in",
+      phone: "+91 9123456780",
+      role: "principal",
+      message: "We need full ERP setup.",
+      status: "CONVERTED",
+      convertedCollegeId: {
+        _id: "college_789",
+        name: "MIT Academy of Engineering",
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    api.get.mockResolvedValueOnce({ data: mockInquiry });
+
+    await act(async () => {
+      root.render(<ViewEnquiry />);
+    });
+
+    expect(container.textContent).toContain("CONVERTED");
+    expect(container.textContent).toContain("College Onboarded");
+    expect(container.textContent).toContain("View Registered College");
+
+    const viewCollegeBtn = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent.includes("View Registered College")
+    );
+    expect(viewCollegeBtn).toBeDefined();
+
+    await act(async () => {
+      viewCollegeBtn.click();
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith("/super-admin/college/college_789");
   });
 
   it("renders 'Not provided' and disables call button when phone is missing", async () => {

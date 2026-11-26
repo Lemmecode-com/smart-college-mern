@@ -24,6 +24,7 @@ import {
   FaSyncAlt,
   FaUndo,
   FaGraduationCap,
+  FaEye,
 } from "react-icons/fa";
 
 /* Helper to format readable date and time */
@@ -133,6 +134,7 @@ export default function ViewEnquiry() {
     if (!inquiry) return;
     navigate("/super-admin/create-college", {
       state: {
+        inquiryId: inquiry._id,
         prefillName: inquiry.institutionName,
         prefillEmail: inquiry.email,
         prefillContact: inquiry.phone,
@@ -172,6 +174,13 @@ export default function ViewEnquiry() {
           <span className="sa-badge sa-badge-closed" aria-label="Status: Closed">
             <span className="sa-badge-dot sa-badge-dot-closed" aria-hidden="true" />
             CLOSED
+          </span>
+        );
+      case "CONVERTED":
+        return (
+          <span className="sa-badge sa-badge-converted" aria-label="Status: Converted">
+            <span className="sa-badge-dot sa-badge-dot-converted" aria-hidden="true" />
+            CONVERTED
           </span>
         );
       default:
@@ -334,7 +343,7 @@ export default function ViewEnquiry() {
       title: "Contacted",
       desc: "Follow-up in Progress",
       timestamp:
-        inquiry.status === "CONTACTED" || inquiry.status === "CLOSED"
+        inquiry.status === "CONTACTED" || inquiry.status === "CLOSED" || inquiry.status === "CONVERTED"
           ? inquiry.updatedAt && inquiry.updatedAt !== inquiry.createdAt
             ? inquiry.updatedAt
             : null
@@ -342,9 +351,12 @@ export default function ViewEnquiry() {
     },
     {
       id: "CLOSED",
-      title: "Closed",
-      desc: "Resolved / Converted",
-      timestamp: inquiry.status === "CLOSED" ? inquiry.updatedAt : null,
+      title: inquiry.status === "CONVERTED" ? "Converted" : "Closed",
+      desc: inquiry.status === "CONVERTED" ? "Onboarded as College" : "Resolved / Converted",
+      timestamp:
+        inquiry.status === "CLOSED" || inquiry.status === "CONVERTED"
+          ? inquiry.convertedAt || inquiry.updatedAt
+          : null,
     },
   ];
 
@@ -358,7 +370,7 @@ export default function ViewEnquiry() {
       if (stepId === "CONTACTED") return "active";
       return "pending";
     }
-    if (inquiry.status === "CLOSED") {
+    if (inquiry.status === "CLOSED" || inquiry.status === "CONVERTED") {
       if (stepId === "CLOSED") return "active-completed";
       return "completed";
     }
@@ -408,16 +420,29 @@ export default function ViewEnquiry() {
                 </span>
               </button>
 
-              <button
-                type="button"
-                className="sa-header-btn sa-header-btn-primary"
-                onClick={handleOnboardCollege}
-                title="Register this lead as an institution"
-                aria-label="Onboard this lead as a college"
-              >
-                <FaPlus className="sa-btn-icon" />
-                <span>Onboard College</span>
-              </button>
+              {inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? (
+                <button
+                  type="button"
+                  className="sa-header-btn sa-header-btn-primary"
+                  onClick={() => navigate(`/super-admin/college/${inquiry.convertedCollegeId?._id || inquiry.convertedCollegeId}`)}
+                  title="View registered college profile"
+                  aria-label="View registered college profile"
+                >
+                  <FaEye className="sa-btn-icon" />
+                  <span>View College</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="sa-header-btn sa-header-btn-primary"
+                  onClick={handleOnboardCollege}
+                  title="Register this lead as an institution"
+                  aria-label="Onboard this lead as a college"
+                >
+                  <FaPlus className="sa-btn-icon" />
+                  <span>Onboard College</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -712,32 +737,57 @@ export default function ViewEnquiry() {
 
           {/* ================= RIGHT COLUMN (~1/3 on desktop) ================= */}
           <div className="col-12 col-lg-4">
-            {/* A. NEXT-STEP CARD ("Onboard College" - MOST PROMINENT) */}
-            <div className="sa-card sa-card-highlight mb-4">
+            {/* A. NEXT-STEP CARD ("Onboard College" or "College Already Onboarded") */}
+            <div className={`sa-card ${inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? "sa-card-converted" : "sa-card-highlight"} mb-4`}>
               <div className="sa-card-header">
                 <div className="d-flex align-items-center gap-2">
-                  <div className="sa-card-header-icon sa-icon-accent" aria-hidden="true">
-                    <FaGraduationCap />
+                  <div className={`sa-card-header-icon ${inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? "sa-icon-converted" : "sa-icon-accent"}`} aria-hidden="true">
+                    {inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? <FaCheckCircle /> : <FaGraduationCap />}
                   </div>
-                  <h2 className="sa-card-title mb-0">Next Step: Onboard</h2>
+                  <h2 className="sa-card-title mb-0">
+                    {inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? "College Onboarded" : "Next Step: Onboard"}
+                  </h2>
                 </div>
-                <span className="sa-priority-tag">Primary Action</span>
+                <span className={inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? "sa-converted-tag" : "sa-priority-tag"}>
+                  {inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? "Converted" : "Primary Action"}
+                </span>
               </div>
 
               <div className="sa-card-body">
-                <p className="sa-highlight-copy">
-                  Ready to onboard <strong>{inquiry.institutionName}</strong>? Convert this lead directly into a registered institution on NOVAA.
-                </p>
+                {inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? (
+                  <>
+                    <p className="sa-highlight-copy">
+                      ✅ This lead was successfully converted into a registered college: <strong>{inquiry.convertedCollegeId?.name || inquiry.institutionName}</strong>.
+                    </p>
+                    {inquiry.convertedCollegeId && (
+                      <button
+                        type="button"
+                        className="sa-btn-cta w-100"
+                        onClick={() => navigate(`/super-admin/college/${inquiry.convertedCollegeId._id || inquiry.convertedCollegeId}`)}
+                        aria-label={`View registered details for ${inquiry.convertedCollegeId.name || inquiry.institutionName}`}
+                      >
+                        <FaEye className="me-2" />
+                        <span>View Registered College</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="sa-highlight-copy">
+                      Ready to onboard <strong>{inquiry.institutionName}</strong>? Convert this lead directly into a registered institution on NOVAA.
+                    </p>
 
-                <button
-                  type="button"
-                  className="sa-btn-cta w-100"
-                  onClick={handleOnboardCollege}
-                  aria-label={`Onboard ${inquiry.institutionName} as a registered college`}
-                >
-                  <FaPlus className="me-2" />
-                  <span>Onboard College</span>
-                </button>
+                    <button
+                      type="button"
+                      className="sa-btn-cta w-100"
+                      onClick={handleOnboardCollege}
+                      aria-label={`Onboard ${inquiry.institutionName} as a registered college`}
+                    >
+                      <FaPlus className="me-2" />
+                      <span>Onboard College</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -787,7 +837,7 @@ export default function ViewEnquiry() {
                     </button>
                   )}
 
-                  {inquiry.status === "CLOSED" && (
+                  {(inquiry.status === "CLOSED" || inquiry.status === "CONVERTED") && (
                     <button
                       type="button"
                       className="sa-step-action-btn sa-btn-reopen w-100"
@@ -818,6 +868,7 @@ export default function ViewEnquiry() {
                     <option value="NEW">NEW</option>
                     <option value="CONTACTED">CONTACTED</option>
                     <option value="CLOSED">CLOSED</option>
+                    <option value="CONVERTED">CONVERTED</option>
                   </Form.Select>
                 </div>
               </div>
@@ -892,14 +943,25 @@ export default function ViewEnquiry() {
       {/* ================= STICKY BOTTOM ACTION BAR (MOBILE ONLY) ================= */}
       <nav className="sa-mobile-sticky-bar d-lg-none" aria-label="Mobile quick actions">
         <div className="d-flex gap-2 w-100">
-          <button
-            type="button"
-            className="sa-mobile-btn sa-mobile-btn-primary flex-fill"
-            onClick={handleOnboardCollege}
-          >
-            <FaPlus className="me-1" />
-            <span>Onboard College</span>
-          </button>
+          {inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? (
+            <button
+              type="button"
+              className="sa-mobile-btn sa-mobile-btn-primary flex-fill"
+              onClick={() => navigate(`/super-admin/college/${inquiry.convertedCollegeId?._id || inquiry.convertedCollegeId}`)}
+            >
+              <FaEye className="me-1" />
+              <span>View College</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="sa-mobile-btn sa-mobile-btn-primary flex-fill"
+              onClick={handleOnboardCollege}
+            >
+              <FaPlus className="me-1" />
+              <span>Onboard College</span>
+            </button>
+          )}
 
           {inquiry.status === "NEW" && (
             <button
@@ -1490,6 +1552,27 @@ const scopedStyles = `
     background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 40%);
   }
 
+  .sa-card-converted {
+    border-left: 4px solid #10b981;
+    background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 40%);
+  }
+
+  .sa-icon-converted {
+    background: #ecfdf5;
+    color: #10b981;
+  }
+
+  .sa-converted-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(16, 185, 129, 0.15);
+    color: #047857;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
   .sa-priority-tag {
     font-size: 0.7rem;
     font-weight: 700;
@@ -1720,6 +1803,12 @@ const scopedStyles = `
     color: #065f46;
   }
   .sa-badge-dot-closed { background: #10b981; }
+
+  .sa-badge-converted {
+    background: #ecfdf5;
+    color: #047857;
+  }
+  .sa-badge-dot-converted { background: #10b981; }
 
   .sa-badge-default {
     background: #f1f5f9;

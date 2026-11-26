@@ -106,7 +106,7 @@ describe("SuperAdminInquiries Page", () => {
     expect(container.textContent).toContain("NEW");
   });
 
-  it("enforces valid next-action rules based on enquiry status", async () => {
+  it("renders enquiry rows with status badges and View actions", async () => {
     const mockInquiries = [
       {
         _id: "inq_new",
@@ -153,14 +153,12 @@ describe("SuperAdminInquiries Page", () => {
       root.render(<SuperAdminInquiries />);
     });
 
-    // Check that NEW row has Contacted button
-    expect(container.textContent).toContain("Contacted");
-
-    // Check that CONTACTED row has Close button
-    expect(container.textContent).toContain("Close");
-
-    // Check that CLOSED row displays Closed label
-    expect(container.textContent).toContain("Closed");
+    // Check that institutions and status badges are rendered
+    expect(container.textContent).toContain("College A");
+    expect(container.textContent).toContain("College B");
+    expect(container.textContent).toContain("College C");
+    expect(container.textContent).toContain("NEW");
+    expect(container.textContent).toContain("View");
   });
 
   it("renders empty state with clear filters button when search returns no items", async () => {

@@ -1607,3 +1607,113 @@ exports.sendSuperAdminInquiryAlert = async ({ inquiry }) => {
   }
 };
 
+/**
+ * Send automated acknowledgement confirmation email to the applicant who submitted the enquiry
+ */
+exports.sendInquiryAcknowledgementEmail = async ({ inquiry }) => {
+  try {
+    if (!inquiry || !inquiry.email) {
+      logger.logWarn("⚠️ Cannot send enquiry acknowledgement email: missing recipient email");
+      return { success: false, reason: "MISSING_RECIPIENT_EMAIL" };
+    }
+
+    const { transporter, fromName, fromEmail } = await getGlobalTransporter();
+
+    const senderName = fromName || "NOVAA Smart College ERP";
+    const recipientName = `${inquiry.firstName || ""} ${inquiry.lastName || ""}`.trim() || "Valued Educator";
+    const institutionName = inquiry.institutionName || "your institution";
+    const refNumber = inquiry.inquiryNumber || "N/A";
+
+    const mailOptions = {
+      from: `"${senderName}" <${fromEmail}>`,
+      to: inquiry.email,
+      subject: `Thank you for contacting NOVAA Smart College [${refNumber}]`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; color: #1e293b;">
+          <!-- Header Banner -->
+          <div style="border-bottom: 2px solid #0f3a4a; padding-bottom: 16px; margin-bottom: 20px;">
+            <h1 style="color: #0f3a4a; margin: 0 0 6px 0; font-size: 22px; font-weight: 700;">NOVAA Smart College ERP</h1>
+            <p style="color: #64748b; margin: 0; font-size: 14px;">Enquiry Acknowledgement & Confirmation</p>
+          </div>
+
+          <!-- Greeting -->
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+            Dear <strong>${recipientName}</strong>,
+          </p>
+
+          <p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 16px 0;">
+            Thank you for your interest in <strong>NOVAA Smart College ERP</strong>. We have successfully received your enquiry regarding <strong>${institutionName}</strong>.
+          </p>
+
+          <!-- Reference Callout -->
+          <div style="background: #f0fdfa; border: 1px solid #ccfbf1; border-left: 4px solid #0d9488; padding: 14px 18px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; text-transform: uppercase; color: #0f766e; letter-spacing: 0.05em;">Your Enquiry Reference Number</p>
+            <p style="margin: 0; font-size: 18px; font-weight: 700; color: #115e59; font-family: monospace;">${refNumber}</p>
+          </div>
+
+          <!-- Summary Table -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #0f3a4a; text-transform: uppercase; letter-spacing: 0.03em;">Submission Summary</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; width: 130px;"><b>Institution:</b></td>
+                <td style="padding: 6px 0; color: #1e293b; font-weight: 600;">${institutionName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b;"><b>Role / Title:</b></td>
+                <td style="padding: 6px 0; color: #1e293b; text-transform: capitalize;">${inquiry.role || "Administrator"}</td>
+              </tr>
+              ${inquiry.phone ? `
+              <tr>
+                <td style="padding: 6px 0; color: #64748b;"><b>Contact Phone:</b></td>
+                <td style="padding: 6px 0; color: #1e293b;">${inquiry.phone}</td>
+              </tr>
+              ` : ""}
+              <tr>
+                <td style="padding: 6px 0; color: #64748b;"><b>Submitted On:</b></td>
+                <td style="padding: 6px 0; color: #1e293b;">${new Date(inquiry.createdAt || Date.now()).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Next Steps & SLA -->
+          <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: #0f3a4a;">What happens next?</h3>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 8px 0;">
+              1. Our institutional onboarding team is reviewing your requirements.
+            </p>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 8px 0;">
+              2. A product specialist will contact you within <strong>24 business hours</strong> to schedule a live demonstration, discuss module fit, and answer any questions.
+            </p>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0;">
+              3. If you have any immediate questions or priority requirements, feel free to reply directly to this email.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;" />
+          <div style="font-size: 12px; color: #94a3b8; line-height: 1.5; text-align: center;">
+            <p style="margin: 0 0 4px 0;">© ${new Date().getFullYear()} NOVAA Smart College ERP. All rights reserved.</p>
+            <p style="margin: 0;">This is an automated confirmation sent to ${inquiry.email}.</p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Enquiry acknowledgement email sent to applicant", {
+      inquiryNumber: inquiry.inquiryNumber,
+      recipientEmail: inquiry.email,
+      messageId: info.messageId,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    logger.logError("❌ Failed to send enquiry acknowledgement email to applicant", {
+      error: error.message,
+      inquiryNumber: inquiry?.inquiryNumber,
+      recipientEmail: inquiry?.email,
+    });
+    return { success: false, error: error.message };
+  }
+};
+

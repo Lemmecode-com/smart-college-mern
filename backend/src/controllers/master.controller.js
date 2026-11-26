@@ -32,6 +32,7 @@ exports.createCollege = async (req, res, next) => {
       adminName,
       adminEmail,
       adminPassword,
+      inquiryId,
     } = req.body;
 
     // 1️⃣ Check college code uniqueness
@@ -102,7 +103,22 @@ exports.createCollege = async (req, res, next) => {
       logoDocumentId,
       registrationUrl,
       registrationQr,
+      sourceInquiryId: inquiryId || null,
     });
+
+    // 4.5️⃣ Link and convert originating inquiry if onboarding from a lead
+    if (inquiryId) {
+      try {
+        const Inquiry = require("../models/inquiry.model");
+        await Inquiry.findByIdAndUpdate(inquiryId, {
+          status: "CONVERTED",
+          convertedCollegeId: college._id,
+          convertedAt: new Date(),
+        });
+      } catch (inqErr) {
+        console.error("Failed to update linked inquiry status:", inqErr.message);
+      }
+    }
 
     // 5️⃣ Create Document records NOW that college exists
     if (logoPath && processedLogo) {
@@ -202,6 +218,7 @@ NOVAA (SUPERADMIN)`,
         code: college.code,
         registrationUrl,
         registrationQr,
+        sourceInquiryId: college.sourceInquiryId,
       },
       collegeAdmin: {
         id: collegeAdmin._id,

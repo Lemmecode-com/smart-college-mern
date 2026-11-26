@@ -1,7 +1,7 @@
 const Inquiry = require("../models/inquiry.model");
 const ApiResponse = require("../utils/ApiResponse");
 const { validateEmail } = require("../utils/validators");
-const { sendSuperAdminInquiryAlert } = require("../services/email.service");
+const emailService = require("../services/email.service");
 const logger = require("../utils/logger");
 
 /**
@@ -47,12 +47,36 @@ exports.createInquiry = async (req, res) => {
       message: message.trim(),
     });
 
-    await inquiry.save();
+    // Save inquiry with retry on concurrent sequence collision
+    let saved = false;
+    let attempts = 0;
+    while (!saved && attempts < 3) {
+      try {
+        await inquiry.save();
+        saved = true;
+      } catch (saveErr) {
+        if (saveErr.code === 11000 && attempts < 2) {
+          attempts += 1;
+          inquiry.inquiryNumber = null; // force pre-save to recalculate next available sequence
+        } else {
+          throw saveErr;
+        }
+      }
+    }
 
     // Trigger email alert to Super Admin (non-blocking for response)
-    sendSuperAdminInquiryAlert({ inquiry }).catch((err) => {
+    emailService.sendSuperAdminInquiryAlert({ inquiry }).catch((err) => {
       logger.logError("Async Super Admin inquiry notification failed", {
         inquiryNumber: inquiry.inquiryNumber,
+        error: err.message,
+      });
+    });
+
+    // Trigger automated acknowledgement email to applicant (non-blocking for response)
+    emailService.sendInquiryAcknowledgementEmail({ inquiry }).catch((err) => {
+      logger.logError("Async applicant inquiry acknowledgement email failed", {
+        inquiryNumber: inquiry.inquiryNumber,
+        email: inquiry.email,
         error: err.message,
       });
     });
@@ -85,7 +109,7 @@ exports.getInquiries = async (req, res) => {
     const { status, search } = req.query;
     const filter = {};
 
-    if (status && ["NEW", "CONTACTED", "CLOSED"].includes(status.toUpperCase())) {
+    if (status && ["NEW", "CONTACTED", "CLOSED", "CONVERTED"].includes(status.toUpperCase())) {
       filter.status = status.toUpperCase();
     }
 
@@ -100,12 +124,18 @@ exports.getInquiries = async (req, res) => {
       ];
     }
 
-    const [inquiries, total, newCount, contactedCount, closedCount] = await Promise.all([
-      Inquiry.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    const [inquiries, total, newCount, contactedCount, closedCount, convertedCount] = await Promise.all([
+      Inquiry.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("convertedCollegeId", "name code email contactNumber")
+        .lean(),
       Inquiry.countDocuments(filter),
       Inquiry.countDocuments({ status: "NEW" }),
       Inquiry.countDocuments({ status: "CONTACTED" }),
       Inquiry.countDocuments({ status: "CLOSED" }),
+      Inquiry.countDocuments({ status: "CONVERTED" }),
     ]);
 
     const totalPages = Math.ceil(total / limit) || 1;
@@ -119,10 +149,11 @@ exports.getInquiries = async (req, res) => {
         total,
         totalPages,
         summary: {
-          totalAll: newCount + contactedCount + closedCount,
+          totalAll: newCount + contactedCount + closedCount + convertedCount,
           new: newCount,
           contacted: contactedCount,
           closed: closedCount,
+          converted: convertedCount,
         },
       },
       "Enquiries retrieved successfully"
@@ -139,7 +170,9 @@ exports.getInquiries = async (req, res) => {
 exports.getInquiryById = async (req, res) => {
   try {
     const { id } = req.params;
-    const inquiry = await Inquiry.findById(id).lean();
+    const inquiry = await Inquiry.findById(id)
+      .populate("convertedCollegeId", "name code email contactNumber")
+      .lean();
 
     if (!inquiry) {
       return ApiResponse.error(res, "Enquiry not found", "INQUIRY_NOT_FOUND", 404);
@@ -167,8 +200,8 @@ exports.updateInquiryStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status || !["NEW", "CONTACTED", "CLOSED"].includes(status.toUpperCase())) {
-      return ApiResponse.error(res, "Invalid status. Must be NEW, CONTACTED, or CLOSED", "INVALID_STATUS", 400);
+    if (!status || !["NEW", "CONTACTED", "CLOSED", "CONVERTED"].includes(status.toUpperCase())) {
+      return ApiResponse.error(res, "Invalid status. Must be NEW, CONTACTED, CLOSED, or CONVERTED", "INVALID_STATUS", 400);
     }
 
     const inquiry = await Inquiry.findByIdAndUpdate(

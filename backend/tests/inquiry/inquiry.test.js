@@ -129,6 +129,49 @@ describe("Inquiry Feature (#584)", () => {
       expect(inq3).not.toBeNull();
       expect(inq3.role).toBe("hod");
     });
+
+    it("triggers both Super Admin alert and applicant acknowledgement emails (#586)", async () => {
+      const adminAlertSpy = jest
+        .spyOn(emailService, "sendSuperAdminInquiryAlert")
+        .mockResolvedValueOnce({ success: true, messageId: "admin-msg-123" });
+      const ackEmailSpy = jest
+        .spyOn(emailService, "sendInquiryAcknowledgementEmail")
+        .mockResolvedValueOnce({ success: true, messageId: "ack-msg-456" });
+
+      const res = await request(app).post("/api/inquiries").send({
+        firstName: "Dr. Ramesh",
+        lastName: "Deshmukh",
+        email: "ramesh@pune-inst.edu",
+        phone: "+91 9876543210",
+        institutionName: "Pune Technical Institute",
+        role: "principal",
+        message: "Need automated campus fee and attendance solution.",
+      });
+
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+
+      expect(adminAlertSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inquiry: expect.objectContaining({
+            email: "ramesh@pune-inst.edu",
+            institutionName: "Pune Technical Institute",
+          }),
+        })
+      );
+
+      expect(ackEmailSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inquiry: expect.objectContaining({
+            email: "ramesh@pune-inst.edu",
+            institutionName: "Pune Technical Institute",
+          }),
+        })
+      );
+
+      adminAlertSpy.mockRestore();
+      ackEmailSpy.mockRestore();
+    });
   });
 
   describe("Super Admin Dashboard & Inquiry Management", () => {
