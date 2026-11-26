@@ -5,6 +5,7 @@ import { Button, OverlayTrigger, Tooltip } from "react-bootstrap";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
+import ExportButtons from "../../../components/ExportButtons";
 import {
   FaEnvelopeOpenText,
   FaSearch,
@@ -93,6 +94,30 @@ function getRelativeTime(dateString) {
   if (diffMin > 0) return `${diffMin} min${diffMin > 1 ? "s" : ""} ago`;
   return "just now";
 }
+
+const pdfColumns = [
+  { header: "Ref No.", key: "inquiryNumber", width: 32 },
+  { header: "Institution Name", key: "institutionName", width: 50 },
+  { header: "Contact Person", key: "contactPerson", width: 35 },
+  { header: "Role", key: "role", width: 22 },
+  { header: "Email Address", key: "email", width: 52 },
+  { header: "Phone", key: "phone", width: 28 },
+  { header: "Status", key: "status", width: 25 },
+  { header: "Date", key: "createdAt", width: 25 },
+];
+
+const excelColumns = [
+  { header: "Reference No.", key: "inquiryNumber", width: 20 },
+  { header: "Institution Name", key: "institutionName", width: 36 },
+  { header: "Contact Person", key: "contactPerson", width: 26 },
+  { header: "Role", key: "role", width: 16 },
+  { header: "Email", key: "email", width: 34 },
+  { header: "Phone", key: "phone", width: 18 },
+  { header: "Inquiry Message", key: "message", width: 45 },
+  { header: "Status", key: "status", width: 16 },
+  { header: "Onboarded College", key: "convertedCollege", width: 36 },
+  { header: "Submitted Date", key: "createdAt", width: 20 },
+];
 
 export default function SuperAdminInquiries() {
   const navigate = useNavigate();
@@ -193,6 +218,77 @@ export default function SuperAdminInquiries() {
   useEffect(() => {
     fetchInquiries();
   }, [fetchInquiries]);
+
+  /* ================= FETCH ALL DATA FOR EXPORT ================= */
+  const fetchExportData = useCallback(async () => {
+    try {
+      const params = {
+        limit: 100,
+        page: 1,
+      };
+      if (statusFilter) params.status = statusFilter;
+      if (searchTerm.trim()) params.search = searchTerm.trim();
+
+      const res = await api.get("/inquiries", { params });
+      const rawList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      const firstPageItems = rawList.length > 0 ? rawList : (inquiries || []);
+      const pagination = res.data?.pagination || {};
+      const totalPages = pagination.totalPages || 1;
+
+      let allItems = [...firstPageItems];
+
+      if (totalPages > 1) {
+        const pagePromises = [];
+        for (let p = 2; p <= totalPages; p++) {
+          pagePromises.push(api.get("/inquiries", { params: { ...params, page: p } }));
+        }
+        const restResults = await Promise.all(pagePromises);
+        restResults.forEach((r) => {
+          const pageList = Array.isArray(r.data) ? r.data : (r.data?.data || []);
+          if (Array.isArray(pageList) && pageList.length > 0) {
+            allItems = allItems.concat(pageList);
+          }
+        });
+      }
+
+      if (allItems.length === 0 && inquiries && inquiries.length > 0) {
+        allItems = [...inquiries];
+      }
+
+      if (sortOrder === "oldest") {
+        allItems.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      } else {
+        allItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+
+      return allItems.map((inq) => ({
+        inquiryNumber: inq.inquiryNumber || "-",
+        institutionName: inq.institutionName || "-",
+        contactPerson: `${inq.firstName || ""} ${inq.lastName || ""}`.trim() || "-",
+        role: inq.role ? inq.role.toUpperCase() : "OTHER",
+        email: inq.email || "-",
+        phone: inq.phone || "-",
+        message: inq.message || inq.inquiryMessage || "-",
+        status: inq.status === "CONVERTED" ? "ONBOARDED" : inq.status || "NEW",
+        convertedCollege: inq.convertedCollegeId?.name
+          ? `${inq.convertedCollegeId.name}${inq.convertedCollegeId.code ? ` (${inq.convertedCollegeId.code})` : ""}`
+          : "Not Onboarded",
+        createdAt: inq.createdAt
+          ? new Date(inq.createdAt).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "-",
+      }));
+    } catch (err) {
+      toast.error("Failed to fetch enquiries for export", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      return [];
+    }
+  }, [statusFilter, searchTerm, sortOrder]);
 
   /* ================= UPDATE STATUS HANDLER ================= */
   const handleStatusChange = async (inquiryId, newStatus) => {
@@ -366,6 +462,51 @@ export default function SuperAdminInquiries() {
           margin-left: 0.5rem;
           border-left: 1px solid var(--sa-teal-border);
           padding-left: 0.5rem;
+        }
+
+        /* EXPORT BUTTONS THEMED TO HEADER */
+        .sa-enquiries-wrapper .export-buttons {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .sa-enquiries-wrapper .btn-export {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 0.4rem !important;
+          background: var(--sa-teal-hover) !important;
+          color: var(--sa-teal-text) !important;
+          border: 1px solid var(--sa-teal-border) !important;
+          padding: 0.45rem 0.85rem !important;
+          border-radius: 8px !important;
+          font-size: 0.825rem !important;
+          font-weight: 500 !important;
+          transition: all 0.2s ease !important;
+          cursor: pointer !important;
+          min-height: 38px;
+        }
+
+        .sa-enquiries-wrapper .btn-export:hover:not(:disabled) {
+          background: var(--sa-teal-active) !important;
+          color: #ffffff !important;
+          border-color: var(--sa-teal-accent) !important;
+          transform: translateY(-1px);
+        }
+
+        .sa-enquiries-wrapper .btn-export-pdf:hover:not(:disabled) {
+          border-color: #f87171 !important;
+          color: #fca5a5 !important;
+        }
+
+        .sa-enquiries-wrapper .btn-export-excel:hover:not(:disabled) {
+          border-color: #34d399 !important;
+          color: #6ee7b7 !important;
+        }
+
+        .sa-enquiries-wrapper .btn-export:disabled {
+          opacity: 0.5 !important;
+          cursor: not-allowed !important;
         }
 
         /* STAT CARDS */
@@ -921,7 +1062,19 @@ export default function SuperAdminInquiries() {
               </p>
             </div>
 
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <ExportButtons
+                title={`College Enquiries & Leads Report${statusFilter ? ` - ${statusFilter}` : ""}`}
+                filename={`enquiries-${statusFilter ? statusFilter.toLowerCase() : "all"}-${new Date().toISOString().slice(0, 10)}`}
+                pdfColumns={pdfColumns}
+                excelColumns={excelColumns}
+                data={fetchExportData}
+                showPDF={true}
+                showExcel={true}
+                userRole="SUPER_ADMIN"
+                allowDataExport="allowed"
+              />
+
               <button
                 className="sa-refresh-btn"
                 onClick={fetchInquiries}

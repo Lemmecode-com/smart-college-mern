@@ -22,6 +22,8 @@ import { getGeneralSettings } from "../api/generalSettings";
 export default function ExportButtons({
   title = "Report",
   columns = [],
+  pdfColumns,
+  excelColumns,
   data = [],
   filename = "report",
   showPDF = true,
@@ -119,7 +121,7 @@ export default function ExportButtons({
         case "pdf":
           result = await exportToPDF(
             title,
-            columns,
+            pdfColumns || columns,
             exportData,
             `${filename}_${timestamp}.pdf`,
           );
@@ -127,7 +129,7 @@ export default function ExportButtons({
         case "excel":
           result = await exportToExcel(
             title,
-            columns,
+            excelColumns || columns,
             exportData,
             `${filename}_${timestamp}.xlsx`,
           );

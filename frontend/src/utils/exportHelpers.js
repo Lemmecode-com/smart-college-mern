@@ -79,9 +79,9 @@ const setPdfFont = (doc, fontAvailable, style) => {
 // Helper: compute cumulative left x-offset for column at `index`
 const colX = (colWidths, index) => colWidths.slice(0, index).reduce((s, w) => s + w, 0);
 
-const drawPdfHeader = (doc, columns, colWidths, startY, margin, usableWidth, fontAvailable) => {
+const drawPdfHeader = (doc, columns, colWidths, startY, margin, usableWidth, fontAvailable, opts = {}) => {
   // Use a slightly smaller font for headers so long labels stay single-line
-  const fontSize = 9.5;
+  const fontSize = opts.headerFontSize || (columns.length > 7 ? 8.5 : 9.5);
   const cellPaddingX = 3;
   const headerPaddingY = 3.5;
   const lineHeightFactor = 1.3;
@@ -153,7 +153,7 @@ const drawPdfTable = (doc, columns, rows, startY, pageWidth, fontAvailable, opts
     colWidths[colWidths.length - 1] += usableWidth - totalColWidth;
   }
 
-  const fontSize = 10;      // 10pt body text
+  const fontSize = opts.fontSize || (columns.length > 7 ? 8.5 : 10);      // body text font size
   const cellPaddingX = 2.5; // horizontal padding
   const cellPaddingY = 2;   // vertical padding
   const lineHeightFactor = 1.35;
@@ -163,7 +163,7 @@ const drawPdfTable = (doc, columns, rows, startY, pageWidth, fontAvailable, opts
 
   // ── Orphan-header guard ───────────────────────────────────────────────────
   // Estimate the height the table header will consume
-  const headerFontSize = 9.5;
+  const headerFontSize = opts.headerFontSize || (columns.length > 7 ? 8.5 : 9.5);
   const headerH = headerFontSize * 1.3 + 3.5 * 2; // matches drawPdfHeader constants
   // Estimate a typical row height (single line)
   const estimatedRowH = minRowHeight;
@@ -176,7 +176,7 @@ const drawPdfTable = (doc, columns, rows, startY, pageWidth, fontAvailable, opts
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  let currentY = drawPdfHeader(doc, columns, colWidths, startY, margin, usableWidth, fontAvailable);
+  let currentY = drawPdfHeader(doc, columns, colWidths, startY, margin, usableWidth, fontAvailable, opts);
 
   doc.setTextColor(30, 30, 30);
   doc.setFontSize(fontSize);
@@ -202,7 +202,7 @@ const drawPdfTable = (doc, columns, rows, startY, pageWidth, fontAvailable, opts
     if (currentY + rowHeight > availableHeight) {
       doc.addPage();
       currentY = margin;
-      currentY = drawPdfHeader(doc, columns, colWidths, currentY, margin, usableWidth, fontAvailable);
+      currentY = drawPdfHeader(doc, columns, colWidths, currentY, margin, usableWidth, fontAvailable, opts);
       doc.setTextColor(30, 30, 30);
       doc.setFontSize(fontSize);
     }
@@ -332,7 +332,7 @@ export const exportToPDF = async (title, columns, rows, filename = 'report.pdf',
         );
       });
     } else {
-      drawPdfTable(doc, columns, rows, currentY, pageWidth, fontAvailable);
+      drawPdfTable(doc, columns, rows, currentY, pageWidth, fontAvailable, options);
     }
 
     doc.save(filename);

@@ -177,4 +177,26 @@ describe("SuperAdminInquiries Page", () => {
 
     expect(container.textContent).toContain("No Enquiries Received Yet");
   });
+
+  it("renders Export to PDF and Export to Excel buttons in header band", async () => {
+    api.get.mockResolvedValueOnce({
+      data: [],
+      pagination: {
+        total: 0,
+        totalPages: 1,
+        summary: { totalAll: 0, new: 0, contacted: 0, closed: 0 },
+      },
+    });
+
+    await act(async () => {
+      root.render(<SuperAdminInquiries />);
+    });
+
+    const pdfBtn = container.querySelector(".btn-export-pdf");
+    const excelBtn = container.querySelector(".btn-export-excel");
+    expect(pdfBtn).not.toBeNull();
+    expect(excelBtn).not.toBeNull();
+    expect(pdfBtn.textContent).toContain("PDF");
+    expect(excelBtn.textContent).toContain("Excel");
+  });
 });
