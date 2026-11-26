@@ -261,7 +261,7 @@ export default function SuperAdminInquiries() {
         return (
           <span className="sa-badge sa-badge-converted">
             <span className="sa-badge-dot sa-badge-dot-converted" />
-            CONVERTED
+            ONBOARDED
           </span>
         );
       default:

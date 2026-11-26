@@ -99,7 +99,7 @@ describe("ViewEnquiry Page", () => {
     expect(container.textContent).toContain("NEW");
   });
 
-  it("renders stepper and displays next-step action 'Mark as Contacted' when status is NEW", async () => {
+  it("renders stepper and status dropdown with valid options when status is NEW", async () => {
     const mockInquiry = {
       _id: "inq_test_123",
       inquiryNumber: "ENQ-202611-9999",
@@ -123,12 +123,15 @@ describe("ViewEnquiry Page", () => {
     expect(container.textContent).toContain("New Lead");
     expect(container.textContent).toContain("Contacted");
     expect(container.textContent).toContain("Closed");
-    expect(container.textContent).toContain("Mark as Contacted");
-    expect(container.textContent).not.toContain("Mark as Closed");
-    expect(container.textContent).not.toContain("Reopen Enquiry");
+
+    const statusSelect = container.querySelector("#manual-status-select");
+    expect(statusSelect).not.toBeNull();
+    const options = Array.from(statusSelect.options).map((o) => o.value);
+    expect(options).toEqual(["NEW", "CONTACTED", "CLOSED"]);
+    expect(statusSelect.value).toBe("NEW");
   });
 
-  it("displays next-step action 'Mark as Closed' when status is CONTACTED", async () => {
+  it("renders status dropdown with current value when status is CONTACTED", async () => {
     const mockInquiry = {
       _id: "inq_test_123",
       inquiryNumber: "ENQ-202611-9999",
@@ -149,11 +152,12 @@ describe("ViewEnquiry Page", () => {
       root.render(<ViewEnquiry />);
     });
 
-    expect(container.textContent).toContain("Mark as Closed");
-    expect(container.textContent).not.toContain("Mark as Contacted");
+    const statusSelect = container.querySelector("#manual-status-select");
+    expect(statusSelect).not.toBeNull();
+    expect(statusSelect.value).toBe("CONTACTED");
   });
 
-  it("displays next-step action 'Reopen Enquiry' when status is CLOSED", async () => {
+  it("renders status dropdown with current value when status is CLOSED", async () => {
     const mockInquiry = {
       _id: "inq_test_123",
       inquiryNumber: "ENQ-202611-9999",
@@ -174,9 +178,9 @@ describe("ViewEnquiry Page", () => {
       root.render(<ViewEnquiry />);
     });
 
-    expect(container.textContent).toContain("Reopen Enquiry");
-    expect(container.textContent).not.toContain("Mark as Contacted");
-    expect(container.textContent).not.toContain("Mark as Closed");
+    const statusSelect = container.querySelector("#manual-status-select");
+    expect(statusSelect).not.toBeNull();
+    expect(statusSelect.value).toBe("CLOSED");
   });
 
   it("navigates to /super-admin/create-college with prefill state when Onboard College is clicked", async () => {
@@ -245,9 +249,12 @@ describe("ViewEnquiry Page", () => {
       root.render(<ViewEnquiry />);
     });
 
-    expect(container.textContent).toContain("CONVERTED");
+    expect(container.textContent).toContain("ONBOARDED");
     expect(container.textContent).toContain("College Onboarded");
     expect(container.textContent).toContain("View Registered College");
+    expect(container.textContent).not.toContain("Recommended Next Step");
+    expect(container.textContent).not.toContain("Reopen Enquiry");
+    expect(container.querySelector("#manual-status-select")).toBeNull();
 
     const viewCollegeBtn = Array.from(container.querySelectorAll("button")).find(
       (btn) => btn.textContent.includes("View Registered College")

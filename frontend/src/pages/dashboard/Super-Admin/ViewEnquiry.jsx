@@ -178,9 +178,9 @@ export default function ViewEnquiry() {
         );
       case "CONVERTED":
         return (
-          <span className="sa-badge sa-badge-converted" aria-label="Status: Converted">
+          <span className="sa-badge sa-badge-converted" aria-label="Status: Onboarded">
             <span className="sa-badge-dot sa-badge-dot-converted" aria-hidden="true" />
-            CONVERTED
+            ONBOARDED
           </span>
         );
       default:
@@ -351,8 +351,8 @@ export default function ViewEnquiry() {
     },
     {
       id: "CLOSED",
-      title: inquiry.status === "CONVERTED" ? "Converted" : "Closed",
-      desc: inquiry.status === "CONVERTED" ? "Onboarded as College" : "Resolved / Converted",
+      title: inquiry.status === "CONVERTED" ? "Onboarded" : "Closed",
+      desc: inquiry.status === "CONVERTED" ? "College Onboarded" : "Resolved / Closed",
       timestamp:
         inquiry.status === "CLOSED" || inquiry.status === "CONVERTED"
           ? inquiry.convertedAt || inquiry.updatedAt
@@ -749,7 +749,7 @@ export default function ViewEnquiry() {
                   </h2>
                 </div>
                 <span className={inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? "sa-converted-tag" : "sa-priority-tag"}>
-                  {inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? "Converted" : "Primary Action"}
+                  {inquiry.convertedCollegeId || inquiry.status === "CONVERTED" ? "Onboarded" : "Primary Action"}
                 </span>
               </div>
 
@@ -803,74 +803,32 @@ export default function ViewEnquiry() {
               </div>
 
               <div className="sa-card-body">
-                <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                <div className="d-flex align-items-center justify-content-between">
                   <span className="sa-label-muted">Current Status:</span>
                   <div>{getStatusBadge(inquiry.status)}</div>
                 </div>
 
-                {/* Clear Primary Action Button for Next Logical Step */}
-                <div className="mb-3">
-                  <span className="sa-quiet-label d-block mb-2">Recommended Next Step:</span>
-                  {inquiry.status === "NEW" && (
-                    <button
-                      type="button"
-                      className="sa-step-action-btn sa-btn-contacted w-100"
+                {/* Status Selection (Dropdown) - Hidden when Onboarded */}
+                {inquiry.status !== "CONVERTED" && (
+                  <div className="sa-other-status-section pt-3 mt-3 border-top">
+                    <label htmlFor="manual-status-select" className="sa-quiet-label mb-1.5">
+                      Change Status:
+                    </label>
+                    <Form.Select
+                      id="manual-status-select"
+                      size="sm"
+                      value={inquiry.status}
                       disabled={updatingStatus}
-                      onClick={() => handleStatusChange("CONTACTED")}
-                      aria-label="Mark enquiry as contacted"
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      className="sa-status-select"
+                      aria-label="Change enquiry status"
                     >
-                      <FaExchangeAlt className="me-2" />
-                      <span>{updatingStatus ? "Updating..." : "Mark as Contacted"}</span>
-                    </button>
-                  )}
-
-                  {inquiry.status === "CONTACTED" && (
-                    <button
-                      type="button"
-                      className="sa-step-action-btn sa-btn-closed w-100"
-                      disabled={updatingStatus}
-                      onClick={() => handleStatusChange("CLOSED")}
-                      aria-label="Mark enquiry as closed"
-                    >
-                      <FaCheckCircle className="me-2" />
-                      <span>{updatingStatus ? "Updating..." : "Mark as Closed"}</span>
-                    </button>
-                  )}
-
-                  {(inquiry.status === "CLOSED" || inquiry.status === "CONVERTED") && (
-                    <button
-                      type="button"
-                      className="sa-step-action-btn sa-btn-reopen w-100"
-                      disabled={updatingStatus}
-                      onClick={() => handleStatusChange("NEW")}
-                      aria-label="Reopen enquiry as new"
-                    >
-                      <FaUndo className="me-2" />
-                      <span>{updatingStatus ? "Updating..." : "Reopen Enquiry"}</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Other Status Options (Quiet Secondary Section) */}
-                <div className="sa-other-status-section pt-3 border-top">
-                  <label htmlFor="manual-status-select" className="sa-quiet-label mb-1.5">
-                    Other status options:
-                  </label>
-                  <Form.Select
-                    id="manual-status-select"
-                    size="sm"
-                    value={inquiry.status}
-                    disabled={updatingStatus}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    className="sa-status-select"
-                    aria-label="Manually change enquiry status"
-                  >
-                    <option value="NEW">NEW</option>
-                    <option value="CONTACTED">CONTACTED</option>
-                    <option value="CLOSED">CLOSED</option>
-                    <option value="CONVERTED">CONVERTED</option>
-                  </Form.Select>
-                </div>
+                      <option value="NEW">NEW</option>
+                      <option value="CONTACTED">CONTACTED</option>
+                      <option value="CLOSED">CLOSED</option>
+                    </Form.Select>
+                  </div>
+                )}
               </div>
             </div>
 
