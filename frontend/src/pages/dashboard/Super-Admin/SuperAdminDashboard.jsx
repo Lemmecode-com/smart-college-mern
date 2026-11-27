@@ -1800,141 +1800,138 @@ export default function SuperAdminDashboard() {
         .quick-actions-section {
           background: var(--bg-secondary);
           border-radius: var(--radius-lg);
-          padding: 1rem 1.25rem;
-          margin-bottom: 1.1rem;
+          padding: 0.625rem 1rem 0.5rem;
+          margin-bottom: 0.875rem;
           box-shadow: var(--shadow-md);
           border: 1px solid var(--border-light);
           animation: fadeIn 0.5s ease;
         }
 
         .quick-actions-header {
-          margin-bottom: 0.9rem;
-          padding-bottom: 0.65rem;
+          margin-bottom: 0.5rem;
+          padding-bottom: 0.375rem;
           border-bottom: 1px solid var(--border-light);
         }
 
         .quick-actions-header h3 {
           margin: 0;
-          font-size: 1.25rem;
+          font-size: 1.125rem;
           font-weight: 700;
           color: var(--sidebar-primary);
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.625rem;
           letter-spacing: -0.3px;
         }
 
         .quick-actions-icon {
           color: var(--sidebar-accent);
-          font-size: 1.25rem;
+          font-size: 1.125rem;
         }
 
         .quick-actions-subtitle {
-          margin: 0.5rem 0 0 0;
-          font-size: 0.9rem;
+          margin: 0.25rem 0 0 0;
+          font-size: 0.825rem;
           color: var(--text-muted);
           font-weight: 400;
         }
 
-        /* QUICK ACTIONS GRID */
+        /* QUICK ACTIONS GRID - Desktop: single row, 4 equal cards */
         .quick-actions-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: var(--spacing-md);
+          display: flex;
+          gap: 14px;
         }
 
         .quick-action-card {
-          background: var(--card-gradient);
-          border-radius: var(--radius-lg);
-          padding: 1.25rem 1rem;
+          flex: 1;
+          background: #FFFFFF;
+          border-radius: 12px;
+          padding: 14px 16px;
           cursor: pointer;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-          border: 1px solid var(--border-light);
+          transition: border-color 150ms ease, background-color 150ms ease;
+          border: 1px solid #DCE6EF;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          text-align: center;
-          gap: 0.75rem;
-          position: relative;
-          overflow: hidden;
-          z-index: 0;
-          min-height: 120px;
+          align-items: flex-start;
+          gap: 12px;
+          min-height: 110px;
+          max-height: 120px;
         }
 
-        .quick-action-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-          border-color: var(--sidebar-accent);
-        }
-
-        .quick-action-card:focus {
+        .quick-action-card:focus-visible {
           outline: 2px solid var(--sidebar-accent);
           outline-offset: 2px;
         }
 
+        .quick-action-card:hover {
+          border-color: inherit;
+        }
+
+        .quick-action-card.add-college:hover {
+          border-color: #10b981;
+          background-color: rgba(16, 185, 129, 0.02);
+        }
+        .quick-action-card.view-colleges:hover {
+          border-color: var(--sidebar-accent);
+          background-color: rgba(61, 181, 230, 0.02);
+        }
+        .quick-action-card.reports:hover {
+          border-color: #8b5cf6;
+          background-color: rgba(139, 92, 246, 0.02);
+        }
+        .quick-action-card.security:hover {
+          border-color: #f97316;
+          background-color: rgba(249, 115, 22, 0.02);
+        }
+
         .quick-action-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: var(--radius-md);
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.35rem;
+          font-size: 1.15rem;
           flex-shrink: 0;
-          transition: transform var(--transition-base);
-          overflow: hidden;
-        }
-
-        .quick-action-card:hover .quick-action-icon {
-          transform: scale(1.08);
         }
 
         .quick-action-icon.add-college {
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
+          background: rgba(16, 185, 129, 0.12);
           color: #10b981;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
         }
 
         .quick-action-icon.view-colleges {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.08) 100%);
+          background: rgba(61, 181, 230, 0.12);
           color: var(--sidebar-accent);
-          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.15);
         }
 
         .quick-action-icon.reports {
-          background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(167, 139, 250, 0.08) 100%);
+          background: rgba(139, 92, 246, 0.12);
           color: #8b5cf6;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
         }
 
         .quick-action-icon.security {
-          background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(251, 146, 60, 0.08) 100%);
+          background: rgba(249, 115, 22, 0.12);
           color: #f97316;
-          box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
-        }
-
-        .quick-action-icon.support {
-          background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(167, 139, 250, 0.08) 100%);
-          color: #8b5cf6;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
         }
 
         .quick-action-content {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 0.25rem;
+          gap: 4px;
+          flex: 1;
+          min-width: 0;
         }
 
         .quick-action-title {
-          font-weight: 700;
+          font-weight: 600;
           color: var(--sidebar-primary);
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           line-height: 1.25;
         }
 
         .quick-action-description {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           color: var(--text-muted);
           line-height: 1.3;
         }
@@ -2329,31 +2326,54 @@ export default function SuperAdminDashboard() {
 
           /* Quick actions */
           .quick-actions-section {
-            padding: 1rem !important;
-            margin-bottom: 1.25rem !important;
+            padding: 0.625rem 0.875rem 0.5rem !important;
+            margin-bottom: 0.875rem !important;
+          }
+
+          .quick-actions-header {
+            margin-bottom: 0.5rem !important;
+            padding-bottom: 0.375rem !important;
+          }
+
+          .quick-actions-header h3 {
+            font-size: 1rem !important;
+            gap: 0.5rem !important;
+          }
+
+          .quick-actions-icon {
+            font-size: 1rem !important;
+          }
+
+          .quick-actions-subtitle {
+            margin-top: 0.25rem !important;
+            font-size: 0.75rem !important;
           }
 
           .quick-actions-grid {
+            display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.75rem !important;
+            gap: 12px !important;
           }
 
           .quick-action-card {
-            padding: 1rem !important;
+            padding: 12px 14px !important;
+            min-height: 105px !important;
+            max-height: 115px !important;
+            gap: 10px !important;
           }
 
           .quick-action-icon {
-            width: 46px !important;
-            height: 46px !important;
-            font-size: 1.2rem !important;
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 1.1rem !important;
           }
 
           .quick-action-title {
-            font-size: 0.9rem !important;
+            font-size: 0.85rem !important;
           }
 
           .quick-action-description {
-            font-size: 0.75rem !important;
+            font-size: 0.72rem !important;
           }
 
 
@@ -2604,49 +2624,63 @@ export default function SuperAdminDashboard() {
           /* ================= QUICK ACTIONS ================= */
 
           .quick-actions-section {
-            padding: 0.9rem !important;
-            margin-bottom: 1rem !important;
+            padding: 0.5rem 0.75rem 0.375rem !important;
+            margin-bottom: 0.75rem !important;
             border-radius: 12px !important;
           }
 
           .quick-actions-header {
-            margin-bottom: 0.85rem !important;
-            padding-bottom: 0.7rem !important;
+            margin-bottom: 0.375rem !important;
+            padding-bottom: 0.25rem !important;
           }
 
           .quick-actions-header h3 {
-            font-size: 1rem !important;
+            font-size: 0.9rem !important;
+            gap: 0.5rem !important;
+          }
+
+          .quick-actions-icon {
+            font-size: 0.9rem !important;
           }
 
           .quick-actions-subtitle {
-            font-size: 0.72rem !important;
-            margin-top: 0.35rem !important;
+            font-size: 0.675rem !important;
+            margin-top: 0.125rem !important;
           }
 
           .quick-actions-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.6rem !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
           }
 
           .quick-action-card {
-            min-height: 64px !important;
-            padding: 0.75rem !important;
-            gap: 0.7rem !important;
+            min-height: 100px !important;
+            padding: 12px 14px !important;
+            gap: 10px !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            text-align: left !important;
           }
 
           .quick-action-icon {
-            width: 42px !important;
-            height: 42px !important;
-            min-width: 42px !important;
-            font-size: 1rem !important;
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            font-size: 1.1rem !important;
+          }
+
+          .quick-action-content {
+            flex: 1 !important;
+            min-width: 0 !important;
           }
 
           .quick-action-title {
-            font-size: 0.82rem !important;
+            font-size: 0.85rem !important;
           }
 
           .quick-action-description {
-            font-size: 0.7rem !important;
+            font-size: 0.72rem !important;
           }
 
 

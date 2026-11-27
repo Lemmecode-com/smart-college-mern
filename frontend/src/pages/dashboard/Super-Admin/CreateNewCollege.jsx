@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import Loading from "../../../components/Loading";
+import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 
@@ -489,29 +490,13 @@ export default function CreateNewCollege() {
       />
 
       {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse">
-            <FaUniversity />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Create New College</h1>
-            <p className="erp-page-subtitle">
-              Register a new educational institution and generate administrator
-              credentials
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate("/super-admin/colleges-list")}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            <span>Back to Colleges</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={FaUniversity}
+        title="Create New College"
+        subtitle="Register a new educational institution and generate administrator credentials"
+        onBack={() => navigate("/super-admin/colleges-list")}
+        backLabel="Back to Colleges"
+      />
 
       {/* INFO BANNER */}
       <div className="info-banner animate-fade-in">
@@ -1225,66 +1210,6 @@ export default function CreateNewCollege() {
           background: #f5f7fa;
           min-height: 100vh;
           animation: fadeIn 0.6s ease;
-        }
-
-        /* ================= PAGE HEADER ================= */
-        .erp-page-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-        }
-
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-
-        .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(61, 181, 230, 0.2);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.75rem;
-          color: #3db5e6;
-        }
-
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-        }
-
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
-
-        .erp-header-actions .erp-btn {
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          padding: 0.75rem 1.5rem;
-          font-weight: 600;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-        }
-
-        .erp-header-actions .erp-btn:hover {
-          background: rgba(255, 255, 255, 0.2);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
 
         /* ================= INFO BANNER ================= */
