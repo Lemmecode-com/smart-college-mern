@@ -223,12 +223,8 @@ export default function SuperAdminDashboard() {
         {/* Subtle horizontal divider */}
         <div className="erp-header-divider" aria-hidden="true" />
 
-        {/* Bottom row: Ctrl + R to refresh on left; Refresh and Add College buttons aligned right */}
+        {/* Bottom row: Refresh and Add College buttons aligned right */}
         <div className="erp-header-bottom">
-          <div className="erp-header-shortcut">
-            <kbd className="meta-kbd">Ctrl/Cmd + R</kbd>
-            <span className="shortcut-label">to refresh</span>
-          </div>
           <div className="erp-header-actions">
             <button
               className="erp-btn erp-btn-secondary"
@@ -914,10 +910,10 @@ export default function SuperAdminDashboard() {
           z-index: 1;
         }
 
-        /* Bottom Row: shortcut on left, buttons on right */
+        /* Bottom Row: buttons aligned right */
         .erp-header-bottom {
           display: flex;
-          justify-content: space-between;
+          justify-content: flex-end;
           align-items: center;
           width: 100%;
           position: relative;
@@ -2176,7 +2172,7 @@ export default function SuperAdminDashboard() {
 
           .erp-header-bottom {
             display: flex !important;
-            justify-content: space-between !important;
+            justify-content: flex-end !important;
             align-items: center !important;
           }
 
