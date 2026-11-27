@@ -81,6 +81,38 @@ exports.createInquiry = async (req, res) => {
       });
     });
 
+    // Trigger in-app notification to Super Admin (non-blocking, deduplicated by relatedInquiryId)
+    (async () => {
+      try {
+        const Notification = require("../models/notification.model");
+        await Notification.findOneAndUpdate(
+          { relatedInquiryId: inquiry._id },
+          {
+            $setOnInsert: {
+              relatedInquiryId: inquiry._id,
+              college_id: null,
+              createdBy: null,
+              createdByRole: "SYSTEM",
+              target: "SUPER_ADMIN",
+              title: "New College Enquiry",
+              message: `${inquiry.institutionName} (${inquiry.firstName} ${inquiry.lastName}) submitted a new enquiry [${inquiry.inquiryNumber}].`,
+              type: "ENQUIRY",
+              priority: "HIGH",
+              actionUrl: `/super-admin/enquiry/${inquiry._id}`,
+              expiresAt: null,
+              isActive: true,
+            },
+          },
+          { upsert: true, new: true }
+        );
+      } catch (notifErr) {
+        logger.logError("Async Super Admin in-app enquiry notification failed", {
+          inquiryNumber: inquiry.inquiryNumber,
+          error: notifErr.message,
+        });
+      }
+    })();
+
     return ApiResponse.created(
       res,
       {

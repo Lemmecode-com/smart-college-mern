@@ -985,6 +985,34 @@ exports.getAdminNotificationCount = async (req, res, next) => {
   }
 };
 
+exports.getSuperAdminNotificationCount = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const userObjectId = toObjectId(userId, "User ID");
+    const readIds = await getReadNotificationIds(userId);
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      role: "SUPER_ADMIN",
+      userId,
+    });
+
+    const unreadQuery = {
+      ...visibilityQuery,
+      _id: { $nin: readIds },
+      createdBy: { $ne: userObjectId },
+    };
+
+    const total = await Notification.countDocuments(unreadQuery);
+
+    ApiResponse.success(
+      res,
+      { total },
+      "Super Admin notification count fetched successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getParentNotifications = async (req, res, next) => {
   try {
     const parent = await ParentGuardian.findOne({
@@ -1096,7 +1124,7 @@ exports.getParentNotificationCount = async (req, res, next) => {
 
 exports.getUnreadForBell = async (req, res, next) => {
   try {
-    if (!req.college_id) {
+    if (!req.college_id && req.user?.role !== "SUPER_ADMIN") {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
 
@@ -1156,7 +1184,7 @@ exports.markAllAsRead = async (req, res, next) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    if (!req.college_id) {
+    if (!req.college_id && userRole !== "SUPER_ADMIN") {
       throw new AppError(
         "College ID not available. Please login again.",
         403,

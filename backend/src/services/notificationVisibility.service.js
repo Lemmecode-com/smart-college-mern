@@ -134,6 +134,23 @@ const getNotificationVisibilityQuery = async ({
 }) => {
   const userObjectId = toObjectId(userId, "User ID");
   const normalizedRole = String(role || "").toUpperCase();
+
+  if (normalizedRole === "SUPER_ADMIN") {
+    return {
+      college_id: null,
+      isActive: true,
+      $and: [
+        getExpiryCondition(),
+        {
+          $or: [
+            { target: "SUPER_ADMIN" },
+            { target: "INDIVIDUAL", target_users: userObjectId },
+          ],
+        },
+      ],
+    };
+  }
+
   const baseQuery = {
     college_id: toObjectId(collegeId, "College ID"),
     isActive: true,

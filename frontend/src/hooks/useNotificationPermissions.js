@@ -114,6 +114,13 @@ export function useNotificationEndpoints() {
     if (!user?.role) return {};
 
     switch (user.role) {
+      case "SUPER_ADMIN":
+        return {
+          list: "/super-admin/enquiries",
+          count: "/notifications/count/super-admin",
+          unread: "/notifications/unread/bell",
+        };
+
       case "COLLEGE_ADMIN":
         return {
           list: "/notifications/admin/read",

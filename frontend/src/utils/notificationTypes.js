@@ -7,6 +7,7 @@ import {
   FaBullhorn,
   FaClipboardList,
   FaExclamationTriangle,
+  FaEnvelopeOpenText,
 } from "react-icons/fa";
 
 /**
@@ -67,6 +68,12 @@ export const NOTIFICATION_TYPES = {
     color: "#dc2626",
     bg: "#fee2e2",
     label: "Urgent",
+  },
+  ENQUIRY: {
+    icon: FaEnvelopeOpenText,
+    color: "#3db5e6",
+    bg: "#e0f7fc",
+    label: "Enquiry",
   },
 };
 

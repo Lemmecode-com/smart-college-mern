@@ -9,7 +9,10 @@ const notificationSchema = new mongoose.Schema(
     college_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "College",
-      required: true,
+      required: function () {
+        return this.target !== "SUPER_ADMIN" && this.createdByRole !== "SYSTEM";
+      },
+      default: null,
     },
 
     createdByRole: {
@@ -20,13 +23,17 @@ const notificationSchema = new mongoose.Schema(
         "TEACHER",
         "HOD",
         "EXAM_COORDINATOR",
+        "SYSTEM",
       ],
       required: true,
     },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: function () {
+        return this.createdByRole !== "SYSTEM";
+      },
+      default: null,
     },
 
     // Department scope of the creator.
@@ -63,6 +70,7 @@ const notificationSchema = new mongoose.Schema(
         "EVENT",
         "ASSIGNMENT",
         "URGENT",
+        "ENQUIRY",
       ],
       default: "GENERAL",
     },
@@ -87,6 +95,7 @@ const notificationSchema = new mongoose.Schema(
         "COURSE",
         "SEMESTER",
         "INDIVIDUAL",
+        "SUPER_ADMIN",
       ],
       required: true,
       default: "ALL",
@@ -125,6 +134,11 @@ const notificationSchema = new mongoose.Schema(
     promotionDecisionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "PromotionDecision",
+      default: null,
+    },
+    relatedInquiryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Inquiry",
       default: null,
     },
     expiresAt: {
@@ -200,5 +214,17 @@ notificationSchema.index(
     partialFilterExpression: { promotionDecisionId: { $type: "objectId" } },
   },
 );
+
+// Unique index to prevent duplicate notifications for the same inquiry
+notificationSchema.index(
+  { relatedInquiryId: 1 },
+  {
+    name: "idx_enquiry_notification_dedupe",
+    unique: true,
+    partialFilterExpression: { relatedInquiryId: { $type: "objectId" } },
+  },
+);
+
+notificationSchema.index({ target: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Notification", notificationSchema);

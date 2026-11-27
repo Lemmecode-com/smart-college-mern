@@ -210,7 +210,7 @@ export default function NavbarComponent({
     }
 
     // Only supported roles have notification endpoints
-    const supportedRoles = ["COLLEGE_ADMIN", "PRINCIPAL", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
+    const supportedRoles = ["COLLEGE_ADMIN", "PRINCIPAL", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN", "SUPER_ADMIN"];
     if (!supportedRoles.includes(user.role)) {
       return;
     }
@@ -218,6 +218,8 @@ export default function NavbarComponent({
     try {
       let res;
 
+      if (user.role === "SUPER_ADMIN")
+        res = await api.get("/notifications/count/super-admin");
       if (user.role === "COLLEGE_ADMIN" || user.role === "PRINCIPAL")
         res = await api.get("/notifications/count/admin");
       if (user.role === "TEACHER")
@@ -278,7 +280,7 @@ export default function NavbarComponent({
        return;
      }
      // Only supported roles have notification endpoints
-      const supportedRoles = ["COLLEGE_ADMIN", "PRINCIPAL", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
+      const supportedRoles = ["COLLEGE_ADMIN", "PRINCIPAL", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN", "SUPER_ADMIN"];
       if (!supportedRoles.includes(user.role)) {
         setNotes([]);
         return;
@@ -339,7 +341,9 @@ export default function NavbarComponent({
   /* ================= ROLE BASED VIEW ALL ================= */
    const goToNotificationList = () => {
      setNotifOpen(false);
-     if (user.role === "COLLEGE_ADMIN") {
+     if (user.role === "SUPER_ADMIN") {
+       navigate("/super-admin/enquiries");
+     } else if (user.role === "COLLEGE_ADMIN") {
        navigate("/notification/list");
      } else if (user.role === "TEACHER") {
        navigate("/teacher/notifications/list");
@@ -623,10 +627,8 @@ export default function NavbarComponent({
 
           {/* RIGHT */}
           <Nav className="nav-items-gap navbar-right-group d-flex align-items-center flex-row">
-            {user.role !== "SUPER_ADMIN" && (
-              <>
-                {/* BELL NOTIFICATION - Opens dropdown panel */}
-                <Dropdown
+            {/* BELL NOTIFICATION - Opens dropdown panel */}
+            <Dropdown
                   show={notifOpen}
               onToggle={(isOpen) => {
                 setNotifOpen(isOpen);
@@ -798,8 +800,6 @@ export default function NavbarComponent({
                 </div>
               </Dropdown.Menu>
                 </Dropdown>
-              </>
-            )}
 
             {/* User Profile Dropdown - Clickable Icon */}
             <Dropdown

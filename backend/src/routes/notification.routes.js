@@ -19,6 +19,7 @@ const {
   updateNotification,
   deleteNotification,
   getAdminNotificationCount,
+  getSuperAdminNotificationCount,
   getTeacherNotificationCount,
   getHodNotificationCount,
   getStudentNotificationCount,
@@ -94,6 +95,15 @@ router.get(
   role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAdminNotificationCount,
+);
+
+// Super Admin
+router.get(
+  "/count/super-admin",
+  auth,
+  role(ROLE.SUPER_ADMIN),
+  collegeMiddleware,
+  getSuperAdminNotificationCount,
 );
 
 // Teacher
