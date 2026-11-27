@@ -25,6 +25,8 @@ import {
   FaSortAmountDown,
   FaSortAmountUpAlt,
   FaFilter,
+  FaGraduationCap,
+  FaArchive,
 } from "react-icons/fa";
 
 /* Animated Counter Component with prefers-reduced-motion check */
@@ -143,6 +145,7 @@ export default function SuperAdminInquiries() {
     new: 0,
     contacted: 0,
     closed: 0,
+    converted: 0,
   });
 
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
@@ -194,7 +197,7 @@ export default function SuperAdminInquiries() {
       const res = await api.get("/inquiries", { params });
 
       const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
-      const pagination = res.data?.pagination || {};
+      const pagination = res.data?.pagination || res.pagination || {};
 
       setInquiries(list);
       setTotalPages(pagination.totalPages || 1);
@@ -350,7 +353,7 @@ export default function SuperAdminInquiries() {
         return (
           <span className="sa-badge sa-badge-closed">
             <span className="sa-badge-dot sa-badge-dot-closed" />
-            CLOSED
+            ARCHIVED
           </span>
         );
       case "CONVERTED":
@@ -1093,11 +1096,11 @@ export default function SuperAdminInquiries() {
         </div>
 
         {/* STAT CARDS GRID */}
-        <div className="row g-3 mb-4">
+        <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
           {/* Total Enquiries */}
-          <div className="col-12 col-sm-6 col-lg-3">
+          <div className="col">
             <div
-              className={`sa-stat-card ${statusFilter === "" ? "active" : ""}`}
+              className={`sa-stat-card h-100 ${statusFilter === "" ? "active" : ""}`}
               tabIndex={0}
               role="button"
               aria-label="Filter by all enquiries"
@@ -1139,9 +1142,9 @@ export default function SuperAdminInquiries() {
           </div>
 
           {/* New / Unread */}
-          <div className="col-12 col-sm-6 col-lg-3">
+          <div className="col">
             <div
-              className={`sa-stat-card ${statusFilter === "NEW" ? "active" : ""} ${
+              className={`sa-stat-card h-100 ${statusFilter === "NEW" ? "active" : ""} ${
                 summary.new > 0 ? "sa-stat-card-attention" : ""
               }`}
               tabIndex={0}
@@ -1188,9 +1191,9 @@ export default function SuperAdminInquiries() {
           </div>
 
           {/* Contacted */}
-          <div className="col-12 col-sm-6 col-lg-3">
+          <div className="col">
             <div
-              className={`sa-stat-card ${statusFilter === "CONTACTED" ? "active" : ""}`}
+              className={`sa-stat-card h-100 ${statusFilter === "CONTACTED" ? "active" : ""}`}
               tabIndex={0}
               role="button"
               aria-label="Filter by contacted enquiries"
@@ -1231,13 +1234,57 @@ export default function SuperAdminInquiries() {
             </div>
           </div>
 
-          {/* Closed */}
-          <div className="col-12 col-sm-6 col-lg-3">
+          {/* Onboarded */}
+          <div className="col">
             <div
-              className={`sa-stat-card ${statusFilter === "CLOSED" ? "active" : ""}`}
+              className={`sa-stat-card h-100 ${statusFilter === "CONVERTED" ? "active" : ""}`}
               tabIndex={0}
               role="button"
-              aria-label="Filter by closed enquiries"
+              aria-label="Filter by onboarded enquiries"
+              onClick={() => {
+                setStatusFilter("CONVERTED");
+                setPage(1);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setStatusFilter("CONVERTED");
+                  setPage(1);
+                }
+              }}
+            >
+              <div className="d-flex align-items-center justify-content-between">
+                <div>
+                  <span className="text-muted small fw-semibold text-uppercase letter-spacing-1">
+                    Onboarded
+                  </span>
+                  <div className="h3 fw-bold mb-0 mt-1" style={{ color: "#059669" }}>
+                    {loading ? (
+                      <span className="sa-skeleton" style={{ width: "40px", height: "30px" }} />
+                    ) : (
+                      <AnimatedCounter value={summary.converted || 0} />
+                    )}
+                  </div>
+                  <span className="text-muted" style={{ fontSize: "0.75rem" }}>
+                    Active institutions
+                  </span>
+                </div>
+                <div
+                  className="sa-stat-icon-wrap"
+                  style={{ background: "#d1fae5", color: "#059669" }}
+                >
+                  <FaGraduationCap />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Archived */}
+          <div className="col">
+            <div
+              className={`sa-stat-card h-100 ${statusFilter === "CLOSED" ? "active" : ""}`}
+              tabIndex={0}
+              role="button"
+              aria-label="Filter by archived enquiries"
               onClick={() => {
                 setStatusFilter("CLOSED");
                 setPage(1);
@@ -1252,9 +1299,9 @@ export default function SuperAdminInquiries() {
               <div className="d-flex align-items-center justify-content-between">
                 <div>
                   <span className="text-muted small fw-semibold text-uppercase letter-spacing-1">
-                    Closed
+                    Archived
                   </span>
-                  <div className="h3 fw-bold mb-0 mt-1" style={{ color: "#047857" }}>
+                  <div className="h3 fw-bold mb-0 mt-1" style={{ color: "#64748b" }}>
                     {loading ? (
                       <span className="sa-skeleton" style={{ width: "40px", height: "30px" }} />
                     ) : (
@@ -1262,14 +1309,14 @@ export default function SuperAdminInquiries() {
                     )}
                   </div>
                   <span className="text-muted" style={{ fontSize: "0.75rem" }}>
-                    Resolved / archived
+                    Archived / resolved
                   </span>
                 </div>
                 <div
                   className="sa-stat-icon-wrap"
-                  style={{ background: "#ecfdf5", color: "#059669" }}
+                  style={{ background: "#f1f5f9", color: "#64748b" }}
                 >
-                  <FaCheckCircle />
+                  <FaArchive />
                 </div>
               </div>
             </div>
@@ -1363,6 +1410,20 @@ export default function SuperAdminInquiries() {
                 <button
                   type="button"
                   role="tab"
+                  aria-selected={statusFilter === "CONVERTED"}
+                  className={`sa-tab-btn ${statusFilter === "CONVERTED" ? "active" : ""}`}
+                  onClick={() => {
+                    setStatusFilter("CONVERTED");
+                    setPage(1);
+                  }}
+                >
+                  <span>Onboarded</span>
+                  <span className="sa-tab-badge">{summary.converted || 0}</span>
+                </button>
+
+                <button
+                  type="button"
+                  role="tab"
                   aria-selected={statusFilter === "CLOSED"}
                   className={`sa-tab-btn ${statusFilter === "CLOSED" ? "active" : ""}`}
                   onClick={() => {
@@ -1370,7 +1431,7 @@ export default function SuperAdminInquiries() {
                     setPage(1);
                   }}
                 >
-                  <span>Closed</span>
+                  <span>Archived</span>
                   <span className="sa-tab-badge">{summary.closed || 0}</span>
                 </button>
               </div>

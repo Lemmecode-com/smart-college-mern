@@ -25,6 +25,7 @@ import {
   FaUndo,
   FaGraduationCap,
   FaEye,
+  FaArchive,
 } from "react-icons/fa";
 
 /* Helper to format readable date and time */
@@ -171,9 +172,9 @@ export default function ViewEnquiry() {
         );
       case "CLOSED":
         return (
-          <span className="sa-badge sa-badge-closed" aria-label="Status: Closed">
+          <span className="sa-badge sa-badge-closed" aria-label="Status: Archived">
             <span className="sa-badge-dot sa-badge-dot-closed" aria-hidden="true" />
-            CLOSED
+            ARCHIVED
           </span>
         );
       case "CONVERTED":
@@ -343,18 +344,23 @@ export default function ViewEnquiry() {
       title: "Contacted",
       desc: "Follow-up in Progress",
       timestamp:
-        inquiry.status === "CONTACTED" || inquiry.status === "CLOSED" || inquiry.status === "CONVERTED"
+        inquiry.status === "CONTACTED"
           ? inquiry.updatedAt && inquiry.updatedAt !== inquiry.createdAt
             ? inquiry.updatedAt
             : null
+          : inquiry.status === "CONVERTED" &&
+            inquiry.convertedAt &&
+            inquiry.updatedAt !== inquiry.createdAt &&
+            inquiry.updatedAt !== inquiry.convertedAt
+          ? inquiry.updatedAt
           : null,
     },
     {
-      id: "CLOSED",
-      title: inquiry.status === "CONVERTED" ? "Onboarded" : "Closed",
-      desc: inquiry.status === "CONVERTED" ? "College Onboarded" : "Resolved / Closed",
+      id: "CONVERTED",
+      title: "Onboarded",
+      desc: inquiry.status === "CONVERTED" ? "College Onboarded" : "Institution Onboarding",
       timestamp:
-        inquiry.status === "CLOSED" || inquiry.status === "CONVERTED"
+        inquiry.status === "CONVERTED"
           ? inquiry.convertedAt || inquiry.updatedAt
           : null,
     },
@@ -370,9 +376,13 @@ export default function ViewEnquiry() {
       if (stepId === "CONTACTED") return "active";
       return "pending";
     }
-    if (inquiry.status === "CLOSED" || inquiry.status === "CONVERTED") {
-      if (stepId === "CLOSED") return "active-completed";
+    if (inquiry.status === "CONVERTED") {
+      if (stepId === "CONVERTED") return "active-completed";
       return "completed";
+    }
+    if (inquiry.status === "CLOSED") {
+      if (stepId === "NEW") return "completed";
+      return "pending";
     }
     return "pending";
   };
@@ -494,52 +504,93 @@ export default function ViewEnquiry() {
 
       {/* ================= MAIN CONTENT AREA ================= */}
       <main className="sa-main-content">
-        {/* 1. PROGRESS STEPPER */}
-        <section
-          className="sa-stepper-card mb-4"
-          aria-label="Enquiry progress stepper"
-        >
-          <ol className="sa-stepper-track" role="list">
-            {steps.map((step, idx) => {
-              const stepStatus = getStepStatus(step.id);
-              const isCurrent =
-                (inquiry.status === "NEW" && step.id === "NEW") ||
-                (inquiry.status === "CONTACTED" && step.id === "CONTACTED") ||
-                (inquiry.status === "CLOSED" && step.id === "CLOSED");
-
-              return (
-                <li
-                  key={step.id}
-                  className={`sa-step-item sa-step-${stepStatus}`}
-                  role="listitem"
-                  aria-current={isCurrent ? "step" : undefined}
-                >
-                  <div className="sa-step-indicator-wrapper">
-                    <div className="sa-step-indicator">
-                      {stepStatus === "completed" || stepStatus === "active-completed" ? (
-                        <FaCheckCircle className="sa-step-check" />
-                      ) : (
-                        <span>{idx + 1}</span>
-                      )}
-                    </div>
-                    {idx < steps.length - 1 && <div className="sa-step-line" />}
+        {/* 1. PROGRESS STEPPER OR CLOSED BANNER */}
+        {inquiry.status === "CLOSED" ? (
+          <section
+            className="sa-closed-banner-card mb-4"
+            aria-label="Enquiry archived notification"
+          >
+            <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div className="d-flex align-items-center gap-3">
+                <div className="sa-closed-icon-wrap" aria-hidden="true">
+                  <FaArchive />
+                </div>
+                <div>
+                  <div className="d-flex align-items-center gap-2">
+                    <h3 className="sa-closed-title mb-0">Enquiry Archived</h3>
+                    <span className="sa-closed-pill">Archived</span>
                   </div>
-
-                  <div className="sa-step-content">
-                    <span className="sa-step-title">{step.title}</span>
-                    <span className="sa-step-desc">{step.desc}</span>
-                    {step.timestamp && (
-                      <span className="sa-step-date">
-                        <FaClock className="me-1" aria-hidden="true" />
-                        {formatDateTime(step.timestamp)}
+                  <p className="sa-closed-desc mb-0 mt-1">
+                    This enquiry was resolved or archived without onboarding an institution.
+                    {inquiry.updatedAt && inquiry.updatedAt !== inquiry.createdAt && (
+                      <span className="sa-closed-date ms-1">
+                        • Archived on {formatDateTime(inquiry.updatedAt)}
                       </span>
                     )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
+                  </p>
+                </div>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm sa-reopen-btn"
+                  disabled={updatingStatus}
+                  onClick={() => handleStatusChange("NEW")}
+                  title="Reopen this enquiry as a New Lead"
+                >
+                  <FaUndo className="me-1.5" />
+                  <span>Reopen Enquiry</span>
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section
+            className="sa-stepper-card mb-4"
+            aria-label="Enquiry progress stepper"
+          >
+            <ol className="sa-stepper-track" role="list">
+              {steps.map((step, idx) => {
+                const stepStatus = getStepStatus(step.id);
+                const isCurrent =
+                  (inquiry.status === "NEW" && step.id === "NEW") ||
+                  (inquiry.status === "CONTACTED" && step.id === "CONTACTED") ||
+                  (inquiry.status === "CONVERTED" && step.id === "CONVERTED");
+
+                return (
+                  <li
+                    key={step.id}
+                    className={`sa-step-item sa-step-${stepStatus}`}
+                    role="listitem"
+                    aria-current={isCurrent ? "step" : undefined}
+                  >
+                    <div className="sa-step-indicator-wrapper">
+                      <div className="sa-step-indicator">
+                        {stepStatus === "completed" || stepStatus === "active-completed" ? (
+                          <FaCheckCircle className="sa-step-check" />
+                        ) : (
+                          <span>{idx + 1}</span>
+                        )}
+                      </div>
+                      {idx < steps.length - 1 && <div className="sa-step-line" />}
+                    </div>
+
+                    <div className="sa-step-content">
+                      <span className="sa-step-title">{step.title}</span>
+                      <span className="sa-step-desc">{step.desc}</span>
+                      {step.timestamp && (
+                        <span className="sa-step-date">
+                          <FaClock className="me-1" aria-hidden="true" />
+                          {formatDateTime(step.timestamp)}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )}
 
         {/* 2. TWO-COLUMN LAYOUT */}
         <div className="row g-4">
@@ -771,6 +822,34 @@ export default function ViewEnquiry() {
                       </button>
                     )}
                   </>
+                ) : inquiry.status === "CLOSED" ? (
+                  <>
+                    <p className="sa-highlight-copy text-muted">
+                      This enquiry is currently <strong>Archived</strong>. You can reopen this lead to resume follow-up or proceed to onboard as an institution.
+                    </p>
+
+                    <div className="d-flex flex-column gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-outline-secondary w-100 fw-semibold"
+                        disabled={updatingStatus}
+                        onClick={() => handleStatusChange("NEW")}
+                      >
+                        <FaUndo className="me-2" />
+                        <span>Reopen Enquiry</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="sa-btn-cta w-100"
+                        onClick={handleOnboardCollege}
+                        aria-label={`Onboard ${inquiry.institutionName} as a registered college`}
+                      >
+                        <FaPlus className="me-2" />
+                        <span>Onboard College</span>
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <p className="sa-highlight-copy">
@@ -825,7 +904,7 @@ export default function ViewEnquiry() {
                     >
                       <option value="NEW">NEW</option>
                       <option value="CONTACTED">CONTACTED</option>
-                      <option value="CLOSED">CLOSED</option>
+                      <option value="CLOSED">ARCHIVED</option>
                     </Form.Select>
                   </div>
                 )}
@@ -940,8 +1019,8 @@ export default function ViewEnquiry() {
               disabled={updatingStatus}
               onClick={() => handleStatusChange("CLOSED")}
             >
-              <FaCheckCircle className="me-1" />
-              <span>Close</span>
+              <FaArchive className="me-1" />
+              <span>Archive</span>
             </button>
           )}
 
@@ -1193,13 +1272,77 @@ const scopedStyles = `
     padding: 0 1.5rem;
   }
 
-  /* ================= STEPPER CARD ================= */
+  /* ================= STEPPER CARD & CLOSED BANNER ================= */
   .sa-stepper-card {
     background: var(--sa-card-bg);
     border: 1px solid var(--sa-card-border);
     border-radius: var(--sa-card-radius);
     padding: 1.25rem 1.75rem;
     box-shadow: var(--sa-card-shadow);
+  }
+
+  .sa-closed-banner-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #64748b;
+    border-radius: var(--sa-card-radius);
+    padding: 1.25rem 1.75rem;
+    box-shadow: var(--sa-card-shadow);
+  }
+
+  .sa-closed-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .sa-closed-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .sa-closed-pill {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #e2e8f0;
+    color: #475569;
+    padding: 2px 8px;
+    border-radius: 9999px;
+  }
+
+  .sa-closed-desc {
+    font-size: 0.8125rem;
+    color: #64748b;
+  }
+
+  .sa-closed-date {
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .sa-reopen-btn {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-color: #cbd5e1;
+    color: #334155;
+    background: #ffffff;
+    transition: all 0.2s ease;
+  }
+
+  .sa-reopen-btn:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+    color: #0f172a;
   }
 
   .sa-stepper-track {

@@ -199,4 +199,98 @@ describe("SuperAdminInquiries Page", () => {
     expect(pdfBtn.textContent).toContain("PDF");
     expect(excelBtn.textContent).toContain("Excel");
   });
+
+  it("renders Onboarded stat card and tab, and filters by CONVERTED status on click", async () => {
+    const mockInquiries = [
+      {
+        _id: "inq_conv",
+        inquiryNumber: "ENQ-202611-0004",
+        institutionName: "Greenfield College of Management",
+        firstName: "Priya",
+        lastName: "Deshmukh",
+        email: "priya.deshmukh@greenfield-demo.edu",
+        role: "admin",
+        message: "We are looking for a comprehensive ERP",
+        status: "CONVERTED",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    api.get.mockResolvedValueOnce({
+      data: mockInquiries,
+      pagination: {
+        total: 5,
+        totalPages: 1,
+        summary: {
+          totalAll: 5,
+          new: 1,
+          contacted: 1,
+          closed: 0,
+          converted: 3,
+        },
+      },
+    });
+
+    await act(async () => {
+      root.render(<SuperAdminInquiries />);
+    });
+
+    expect(container.textContent).toContain("Onboarded");
+    expect(container.textContent).toContain("Active institutions");
+
+    // Verify Onboarded tab badge displays converted count
+    const tabs = Array.from(container.querySelectorAll(".sa-tab-btn"));
+    const onboardedTab = tabs.find((t) => t.textContent.includes("Onboarded"));
+    expect(onboardedTab).toBeDefined();
+    expect(onboardedTab.querySelector(".sa-tab-badge").textContent).toBe("3");
+
+    // Click Onboarded card
+    const onboardedCard = container.querySelector('[aria-label="Filter by onboarded enquiries"]');
+    expect(onboardedCard).not.toBeNull();
+
+    api.get.mockResolvedValueOnce({
+      data: mockInquiries,
+      pagination: {
+        total: 3,
+        totalPages: 1,
+        summary: { totalAll: 5, new: 1, contacted: 1, closed: 0, converted: 3 },
+      },
+    });
+
+    await act(async () => {
+      onboardedCard.click();
+    });
+
+    expect(api.get).toHaveBeenCalledWith(
+      "/inquiries",
+      expect.objectContaining({
+        params: expect.objectContaining({ status: "CONVERTED" }),
+      })
+    );
+
+    // Verify Archived card and tab
+    expect(container.textContent).toContain("Archived");
+    const archivedCard = container.querySelector('[aria-label="Filter by archived enquiries"]');
+    expect(archivedCard).not.toBeNull();
+
+    api.get.mockResolvedValueOnce({
+      data: [],
+      pagination: {
+        total: 0,
+        totalPages: 1,
+        summary: { totalAll: 5, new: 1, contacted: 1, closed: 0, converted: 3 },
+      },
+    });
+
+    await act(async () => {
+      archivedCard.click();
+    });
+
+    expect(api.get).toHaveBeenCalledWith(
+      "/inquiries",
+      expect.objectContaining({
+        params: expect.objectContaining({ status: "CLOSED" }),
+      })
+    );
+  });
 });

@@ -122,7 +122,7 @@ describe("ViewEnquiry Page", () => {
 
     expect(container.textContent).toContain("New Lead");
     expect(container.textContent).toContain("Contacted");
-    expect(container.textContent).toContain("Closed");
+    expect(container.textContent).toContain("Onboarded");
 
     const statusSelect = container.querySelector("#manual-status-select");
     expect(statusSelect).not.toBeNull();
@@ -152,12 +152,16 @@ describe("ViewEnquiry Page", () => {
       root.render(<ViewEnquiry />);
     });
 
+    expect(container.textContent).toContain("New Lead");
+    expect(container.textContent).toContain("Contacted");
+    expect(container.textContent).toContain("Onboarded");
+
     const statusSelect = container.querySelector("#manual-status-select");
     expect(statusSelect).not.toBeNull();
     expect(statusSelect.value).toBe("CONTACTED");
   });
 
-  it("renders status dropdown with current value when status is CLOSED", async () => {
+  it("renders closed banner and status dropdown with current value when status is CLOSED", async () => {
     const mockInquiry = {
       _id: "inq_test_123",
       inquiryNumber: "ENQ-202611-9999",
@@ -177,6 +181,10 @@ describe("ViewEnquiry Page", () => {
     await act(async () => {
       root.render(<ViewEnquiry />);
     });
+
+    expect(container.textContent).toContain("Enquiry Archived");
+    expect(container.textContent).toContain("ARCHIVED");
+    expect(container.textContent).toContain("Reopen Enquiry");
 
     const statusSelect = container.querySelector("#manual-status-select");
     expect(statusSelect).not.toBeNull();
