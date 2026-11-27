@@ -29,19 +29,24 @@ const {
   getAlumni,
   getDeactivatedStudents,
   searchStudents,
+  getCollegeDivisions,
+  bulkAssignDivision,
 } = require("../controllers/student.controller");
 const {
   approveStudent,
   confirmEnrollment,
   rejectStudent,
   bulkApproveStudents,
+  bulkConfirmEnrollment,
 } = require("../controllers/studentApproval.controller");
 const {
   verifyStudentDocument,
   rejectStudentDocument,
+  bulkVerifyStudentDocuments,
+  adminUploadStudentDocument,
 } = require("../controllers/documentVerification.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
-const { uploadStudentDocuments } = require("../middlewares/upload.middleware");
+const { uploadStudentDocuments, uploadDocument } = require("../middlewares/upload.middleware");
 const { ROLE } = require("../utils/constants");
 
 // 🌍 PUBLIC STUDENT REGISTRATION
@@ -112,6 +117,16 @@ router.put(
   rejectStudentDocument,
 );
 
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER → ADMIN UPLOAD / REPLACE STUDENT DOCUMENT
+router.post(
+  "/:studentId/documents/:documentType/admin-upload",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
+  collegeMiddleware,
+  uploadDocument,
+  adminUploadStudentDocument,
+);
+
 // 🔐 COLLEGE ADMIN / ADMISSION_OFFICER → BULK APPROVE STUDENTS
 router.post(
   "/bulk-approve",
@@ -119,6 +134,42 @@ router.post(
   role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   bulkApproveStudents,
+);
+
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER → BULK CONFIRM ENROLLMENT
+router.post(
+  "/bulk-confirm-enrollment",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
+  collegeMiddleware,
+  bulkConfirmEnrollment,
+);
+
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL → BULK DOCUMENT VERIFICATION
+router.post(
+  "/bulk-verify-documents",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  bulkVerifyStudentDocuments,
+);
+
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL → BULK ASSIGN DIVISION
+router.post(
+  "/bulk-assign-division",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  bulkAssignDivision,
+);
+
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL → GET COLLEGE DIVISIONS
+router.get(
+  "/college-divisions",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  getCollegeDivisions,
 );
 
 // 🎓 GET STUDENT'S FULL PROFILE (COLLEGE + FEES + ATTENDANCE)
@@ -146,22 +197,22 @@ router.put(
   updateMyProfile,
 );
 
-// 🏛️ ADMIN: Update student
+// 🏛️ ADMIN / ADMISSION_OFFICER: Update student
 router.put(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   validateStudentId,
   validateStudentUpdateByAdmin,
   updateStudentByAdmin,
 );
 
-// 🏛️ ADMIN: Get valid divisions for a student's academic context
+// 🏛️ ADMIN / ADMISSION_OFFICER: Get valid divisions for a student's academic context
 router.get(
   "/:id/valid-divisions",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   validateStudentId,
   getValidDivisionsForStudent,

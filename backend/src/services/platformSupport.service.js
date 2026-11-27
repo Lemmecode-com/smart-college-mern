@@ -553,22 +553,40 @@ exports.getSystemMetrics = async () => {
 /**
  * Broadcast alert to all college admins
  */
-exports.broadcastAlert = async (message, severity = "MEDIUM") => {
-  // Find all college admins
+exports.broadcastAlert = async (message, severity = "MEDIUM", creatorId = null) => {
+  // Find all active college admins with their college_id
   const User = require("../models/user.model");
   const collegeAdmins = await User.find({
     role: "COLLEGE_ADMIN",
-  }).select("_id");
+    isActive: { $ne: false },
+  })
+    .select("_id college_id")
+    .lean();
 
-  // Create notification for each (using existing Notification model)
+  if (!collegeAdmins || collegeAdmins.length === 0) {
+    return { sent: 0 };
+  }
+
+  // Create notification for each admin conforming to the Notification schema
   const Notification = require("../models/notification.model");
-  const notifications = collegeAdmins.map((admin) => ({
-    user: admin._id,
-    title: `System Alert: ${severity}`,
-    message,
-    type: "URGENT",
-    read: false,
-  }));
+  const notifications = collegeAdmins
+    .filter((admin) => admin.college_id)
+    .map((admin) => ({
+      college_id: admin.college_id,
+      createdBy: creatorId || admin._id,
+      createdByRole: "COLLEGE_ADMIN",
+      target: "INDIVIDUAL",
+      target_users: [admin._id],
+      title: `System Alert: ${severity}`,
+      message,
+      type: "GENERAL",
+      priority: "URGENT",
+      isActive: true,
+    }));
+
+  if (notifications.length === 0) {
+    return { sent: 0 };
+  }
 
   await Notification.insertMany(notifications);
   return { sent: notifications.length };

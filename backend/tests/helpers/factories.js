@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const College = require('../../src/models/college.model');
 const User = require('../../src/models/user.model');
 const Teacher = require('../../src/models/teacher.model');
@@ -93,12 +94,14 @@ const createUser = async (overrides = {}) => {
 const createTeacher = async (overrides = {}) => {
   const now = new Date();
   const birthYear = now.getFullYear() - 30; // 30 years old
+  const rand = `${Date.now()}.${Math.floor(Math.random() * 1000000)}`;
   const payload = {
+    user_id: overrides.user_id || new mongoose.Types.ObjectId(),
     name: 'Test Teacher',
-    email: 'teacher@test.com',
+    email: overrides.email || `teacher.${rand}@test.com`,
     college_id: null,
     department_id: null,
-    employeeId: 'EMP-001',
+    employeeId: overrides.employeeId || `EMP-${rand}`,
     designation: 'Teacher',
     qualification: 'MSc',
     experienceYears: 5,
@@ -120,7 +123,7 @@ const createStudent = async (overrides = {}) => {
   const birthYear = now.getFullYear() - 20; // 20 years old
   const payload = {
     fullName: 'Test Student',
-    email: 'student@test.com',
+    email: overrides.email || `student.${Date.now()}.${Math.floor(Math.random() * 1000000)}@test.com`,
     college_id: null,
     department_id: null,
     course_id: null,
@@ -185,42 +188,57 @@ const createStaffProfile = async (overrides = {}) => {
 };
 
 const createDepartment = async (overrides = {}) => {
+  const rand = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const payload = {
-    name: 'Test Department',
-    code: 'DEPT',
+    college_id: overrides.college_id || new mongoose.Types.ObjectId(),
+    name: overrides.name || `Department ${rand}`,
+    code: overrides.code || `D${Math.floor(Math.random() * 9000 + 1000)}`,
     type: 'ACADEMIC',
     status: 'ACTIVE',
+    isActive: overrides.isActive !== undefined ? overrides.isActive : true,
     programsOffered: ['UG'],
     startYear: 2020,
     sanctionedFacultyCount: 10,
     sanctionedStudentIntake: 60,
+    createdBy: overrides.createdBy || new mongoose.Types.ObjectId(),
     ...overrides,
   };
   return Department.create(payload);
 };
 
 const createCourse = async (overrides = {}) => {
+  const rand = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const payload = {
-    name: 'Test Course',
-    code: 'COURSE',
+    college_id: overrides.college_id || new mongoose.Types.ObjectId(),
+    department_id: overrides.department_id || new mongoose.Types.ObjectId(),
+    name: overrides.name || `Course ${rand}`,
+    code: overrides.code || `C${Math.floor(Math.random() * 9000 + 1000)}`,
     type: 'THEORY',
     programLevel: 'UG',
     durationSemesters: 8,
     credits: 120,
     maxStudents: 60,
-    status: 'ACTIVE',
+    status: overrides.status || 'ACTIVE',
+    isActive: overrides.isActive !== undefined ? overrides.isActive : true,
+    createdBy: overrides.createdBy || new mongoose.Types.ObjectId(),
     ...overrides,
   };
   return Course.create(payload);
 };
 
 const createSubject = async (overrides = {}) => {
+  const rand = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const payload = {
-    name: 'Test Subject',
-    code: 'SUBJ',
+    college_id: overrides.college_id || new mongoose.Types.ObjectId(),
+    department_id: overrides.department_id || new mongoose.Types.ObjectId(),
+    course_id: overrides.course_id || new mongoose.Types.ObjectId(),
+    name: overrides.name || `Subject ${rand}`,
+    code: overrides.code || `S${Math.floor(Math.random() * 9000 + 1000)}`,
     semester: 1,
     credits: 3,
-    status: 'ACTIVE',
+    status: overrides.status || 'ACTIVE',
+    isActive: overrides.isActive !== undefined ? overrides.isActive : true,
+    createdBy: overrides.createdBy || new mongoose.Types.ObjectId(),
     ...overrides,
   };
   return Subject.create(payload);

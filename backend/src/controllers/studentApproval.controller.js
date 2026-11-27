@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Student = require("../models/student.model");
 const Course = require("../models/course.model");
 const College = require("../models/college.model");
@@ -129,9 +130,12 @@ exports.approveStudent = async (req, res, next) => {
       );
     }
 
-    // 4️⃣ Prevent duplicate fee record
+    // 4️⃣ Prevent duplicate fee record (One fee per student per course - #565)
+    const admissionAcademicYear = student.currentAcademicYear || `${student.admissionYear}-${student.admissionYear + 1}`;
     let studentFee = await StudentFee.findOne({
       student_id: student._id,
+      college_id: student.college_id,
+      course_id: student.course_id,
     });
 
     if (!studentFee) {
@@ -159,14 +163,22 @@ exports.approveStudent = async (req, res, next) => {
         name: inst.name,
         amount: inst.amount,
         dueDate: inst.dueDate,
+        order: inst.order,
         status: "PENDING",
+        baseAmount: inst.baseAmount !== undefined ? inst.baseAmount : inst.amount,
+        gstAmount: inst.gstAmount !== undefined ? inst.gstAmount : 0,
+        taxBreakdown: inst.taxBreakdown ? { ...inst.taxBreakdown } : null,
       }));
 
       studentFee = await StudentFee.create({
         student_id: student._id,
         college_id: student.college_id,
         course_id: student.course_id,
+        academicYear: admissionAcademicYear,
+        feeStructure_id: feeStructure._id,
         totalFee: feeStructure.totalFee,
+        baseFee: feeStructure.baseFee !== undefined ? feeStructure.baseFee : feeStructure.totalFee,
+        totalTax: feeStructure.totalTax !== undefined ? feeStructure.totalTax : 0,
         paidAmount: 0,
         installments,
       });
@@ -454,22 +466,38 @@ exports.bulkApproveStudents = async (req, res, next) => {
         const sequence = String(existingCount + 1).padStart(4, "0");
         student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
 
-        // ── 8. Create student fee ──
-        const installments = feeStructure.installments.map((inst) => ({
-          name: inst.name,
-          amount: inst.amount,
-          dueDate: inst.dueDate,
-          status: "PENDING",
-        }));
-
-        await StudentFee.create({
+        // ── 8. Create student fee (One fee per student per course - #565) ──
+        const admissionAcademicYear = student.currentAcademicYear || `${student.admissionYear}-${student.admissionYear + 1}`;
+        const existingEnrollmentFee = await StudentFee.findOne({
           student_id: student._id,
           college_id: student.college_id,
           course_id: student.course_id,
-          totalFee: feeStructure.totalFee,
-          paidAmount: 0,
-          installments,
         });
+
+        if (!existingEnrollmentFee) {
+          const installments = feeStructure.installments.map((inst) => ({
+            name: inst.name,
+            amount: inst.amount,
+            dueDate: inst.dueDate,
+            status: "PENDING",
+            baseAmount: inst.baseAmount !== undefined ? inst.baseAmount : inst.amount,
+            gstAmount: inst.gstAmount !== undefined ? inst.gstAmount : 0,
+            taxBreakdown: inst.taxBreakdown ? { ...inst.taxBreakdown } : null,
+          }));
+
+          await StudentFee.create({
+            student_id: student._id,
+            college_id: student.college_id,
+            course_id: student.course_id,
+            academicYear: admissionAcademicYear,
+            feeStructure_id: feeStructure._id,
+            totalFee: feeStructure.totalFee,
+            baseFee: feeStructure.baseFee !== undefined ? feeStructure.baseFee : feeStructure.totalFee,
+            totalTax: feeStructure.totalTax !== undefined ? feeStructure.totalTax : 0,
+            paidAmount: 0,
+            installments,
+          });
+        }
 
         // ── 9. Approve student ──
         student.status = "APPROVED";
@@ -826,6 +854,183 @@ exports.confirmEnrollment = async (req, res, next) => {
         parents: parentCreationResult.parents,
         error: parentCreationResult.error,
       } : null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * BULK CONFIRM ENROLLMENT
+ * Transitions multiple students from APPROVED/OFFER_MADE/SEAT_CONFIRMED → ENROLLED.
+ * Enforces division assignment per student.
+ * Creates parent user accounts and sends confirmation emails.
+ */
+exports.bulkConfirmEnrollment = async (req, res, next) => {
+  try {
+    const { studentIds } = req.body;
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      throw new AppError("Provide studentIds array in request body", 400, "INVALID_INPUT");
+    }
+
+    if (studentIds.length > 200) {
+      throw new AppError("Cannot process more than 200 students at a time", 400, "BATCH_LIMIT_EXCEEDED");
+    }
+
+    const validStudentIds = studentIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validStudentIds.length === 0) {
+      throw new AppError("No valid student IDs provided", 400, "INVALID_INPUT");
+    }
+
+    const students = await Student.find({
+      _id: { $in: validStudentIds },
+      college_id: req.college_id,
+      status: { $ne: "DELETED" },
+    });
+
+    if (students.length === 0) {
+      throw new AppError("No matching students found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    const ENROLLABLE_STATUSES = ["APPROVED", "OFFER_MADE", "SEAT_CONFIRMED"];
+    const results = { enrolled: [], failed: [] };
+    const allParentAccounts = [];
+
+    for (const student of students) {
+      try {
+        if (student.status === "ENROLLED") {
+          results.failed.push({
+            studentId: student._id,
+            fullName: student.fullName,
+            reason: "Student is already enrolled",
+          });
+          continue;
+        }
+
+        if (!ENROLLABLE_STATUSES.includes(student.status)) {
+          results.failed.push({
+            studentId: student._id,
+            fullName: student.fullName,
+            reason: `Student status must be approved before enrollment. Current status: ${student.status}`,
+          });
+          continue;
+        }
+
+        // Division must be assigned before enrollment
+        if (!student.division || student.division.toString().trim() === "") {
+          results.failed.push({
+            studentId: student._id,
+            fullName: student.fullName,
+            reason: "Division not assigned. Please assign division first.",
+          });
+          continue;
+        }
+
+        // Transition to ENROLLED
+        const now = new Date();
+        student.status = "ENROLLED";
+        student.seatConfirmedAt = student.seatConfirmedAt || now;
+        student.enrollmentConfirmedAt = now;
+        student.enrollmentDate = now;
+        student.approvedBy = req.user.id;
+        student.approvedAt = now;
+        await student.save();
+
+        // Create parent users
+        let parentCreationResult = null;
+        try {
+          parentCreationResult = await parentCreationService.createParentUsers(student);
+          if (parentCreationResult.count > 0 && Array.isArray(parentCreationResult.parents)) {
+            parentCreationResult.parents.forEach((parent) => {
+              allParentAccounts.push({
+                ...parent,
+                studentName: student.fullName,
+              });
+            });
+          }
+        } catch (parentErr) {
+          console.error(`Parent creation failed for ${student.fullName}:`, parentErr.message);
+        }
+
+        // Audit log (non-blocking)
+        auditLogService
+          .logStudentEnrollment(student, req.user, req)
+          .catch((err) => console.error("Audit log failed:", err));
+
+        // Send enrollment confirmation email (non-blocking)
+        (async () => {
+          try {
+            const college = await College.findById(student.college_id).select("name email");
+            const crs = await Course.findById(student.course_id).select("name");
+            const loginUrl = buildFrontendUrl("/login");
+
+            await sendAdmissionApprovalEmail({
+              to: student.email,
+              studentName: student.fullName,
+              courseName: crs?.name || "N/A",
+              collegeName: college?.name || "Our College",
+              admissionYear: student.admissionYear,
+              enrollmentNumber: student.enrollmentNumber,
+              loginUrl,
+              email: student.email,
+              collegeId: student.college_id,
+            });
+          } catch (e) {
+            console.error(`❌ Enrollment email failed for ${student.email}:`, e.message);
+          }
+        })();
+
+        results.enrolled.push({
+          id: student._id,
+          fullName: student.fullName,
+          email: student.email,
+          division: student.division,
+          enrollmentNumber: student.enrollmentNumber,
+          enrollmentDate: student.enrollmentDate,
+        });
+      } catch (studentErr) {
+        results.failed.push({
+          studentId: student._id,
+          fullName: student.fullName,
+          reason: studentErr.message || "Failed to enroll student",
+        });
+      }
+    }
+
+    // Security audit log for the batch action
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "HIGH",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: req.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: "/api/students/bulk-confirm-enrollment",
+        method: "POST",
+        statusCode: 200,
+        metadata: {
+          action: "BULK_CONFIRM_ENROLLMENT",
+          totalRequested: validStudentIds.length,
+          enrolledCount: results.enrolled.length,
+          failedCount: results.failed.length,
+          parentAccountsCount: allParentAccounts.length,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
+    res.json({
+      message: `Successfully confirmed enrollment for ${results.enrolled.length} student(s)`,
+      enrolled: results.enrolled,
+      failed: results.failed,
+      parentAccounts: {
+        created: allParentAccounts.length,
+        parents: allParentAccounts,
+      },
     });
   } catch (error) {
     next(error);

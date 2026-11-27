@@ -3,10 +3,20 @@ import api from "../../../api/axios";
 import { toast } from "react-toastify";
 import { FaCheckCircle, FaExclamationTriangle, FaLock, FaInfoCircle, FaTimes, FaCalendarAlt, FaClock, FaUser, FaChalkboardTeacher } from "react-icons/fa";
 
-export default function CreateSessionModal({ onClose, onSuccess, slots }) {
+const getTodayDateStr = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+export default function CreateSessionModal({ onClose, onSuccess, slots: initialSlots }) {
+  const [slots, setSlots] = useState(initialSlots || []);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [form, setForm] = useState({
     slot_id: "",
-    lectureDate: "",
+    lectureDate: getTodayDateStr(),
     lectureNumber: "1"
   });
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -14,17 +24,47 @@ export default function CreateSessionModal({ onClose, onSuccess, slots }) {
   const [errors, setErrors] = useState({});
   const [closing, setClosing] = useState(false);
 
+  // Load today's slots if not passed or empty
+  useEffect(() => {
+    if (Array.isArray(initialSlots) && initialSlots.length > 0) {
+      setSlots(initialSlots);
+    } else {
+      const loadSlots = async () => {
+        try {
+          setLoadingSlots(true);
+          const res = await api.get("/attendance/today-slots");
+          const slotsData = res.data?.slots || (Array.isArray(res.data) ? res.data : []);
+          setSlots(slotsData);
+        } catch (err) {
+          console.error("Failed to fetch slots for modal:", err);
+          setSlots([]);
+        } finally {
+          setLoadingSlots(false);
+        }
+      };
+      loadSlots();
+    }
+  }, [initialSlots]);
+
   // ✅ Auto-set today's date
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    setForm(prev => ({ ...prev, lectureDate: today }));
+    setForm(prev => ({ ...prev, lectureDate: getTodayDateStr() }));
   }, []);
 
-  // ✅ Get selected slot details
+  // ✅ Get selected slot details and auto-adjust lectureNumber
   useEffect(() => {
-    if (form.slot_id && slots) {
-      const slot = slots.find(s => s._id === form.slot_id);
-      setSelectedSlot(slot);
+    if (form.slot_id && slots && slots.length > 0) {
+      const slot = slots.find(s => String(s._id) === String(form.slot_id));
+      setSelectedSlot(slot || null);
+      if (slot) {
+        if (slot.sessionCount && slot.sessionCount > 0) {
+          setForm(prev => ({ ...prev, lectureNumber: String(slot.sessionCount + 1) }));
+        } else {
+          setForm(prev => ({ ...prev, lectureNumber: "1" }));
+        }
+      }
+    } else {
+      setSelectedSlot(null);
     }
   }, [form.slot_id, slots]);
 
@@ -83,21 +123,26 @@ export default function CreateSessionModal({ onClose, onSuccess, slots }) {
     setErrors({});
 
     try {
-      await api.post("/attendance/sessions", form);
+      const payload = {
+        slot_id: form.slot_id,
+        lectureDate: form.lectureDate,
+        lectureNumber: Number(form.lectureNumber)
+      };
+
+      const res = await api.post("/attendance/sessions", payload);
+      const newSession = res.data?.data || res.data;
       
-      // Success animation
       toast.success("Session created successfully!", {
         position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />,
-        onClose: () => {
-          setClosing(true);
-          setTimeout(() => {
-            onSuccess();
-            onClose();
-          }, 300);
-        }
+        autoClose: 2500,
+        icon: <FaCheckCircle />
       });
+
+      setClosing(true);
+      setTimeout(() => {
+        if (onSuccess) onSuccess(newSession);
+        if (onClose) onClose();
+      }, 300);
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Failed to create session";
 
@@ -127,10 +172,16 @@ export default function CreateSessionModal({ onClose, onSuccess, slots }) {
           icon: <FaInfoCircle />
         });
       } else if (err.response?.data?.code === 'DUPLICATE_SESSION') {
-        toast.warning("⚠️ Attendance session already created for this lecture", {
+        toast.warning("⚠️ Attendance session already created for this lecture number. Try using the next lecture number.", {
           position: "top-right",
           autoClose: 5000,
           icon: <FaInfoCircle />
+        });
+      } else if (err.response?.data?.code === 'NO_STUDENTS_ENROLLED') {
+        toast.error("⚠️ Cannot create session: No students enrolled in this course", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />
         });
       } else {
         toast.error(errorMsg, {
@@ -186,16 +237,39 @@ export default function CreateSessionModal({ onClose, onSuccess, slots }) {
               <div className="info-content">
                 <div className="info-row">
                   <FaChalkboardTeacher className="info-icon-small" />
-                  <span><strong>Subject:</strong> {selectedSlot.subject?.name || selectedSlot.slotSnapshot?.subject_name}</span>
+                  <span>
+                    <strong>Subject:</strong>{" "}
+                    {selectedSlot.subject_id?.name || selectedSlot.subject?.name || selectedSlot.slotSnapshot?.subject_name || "N/A"}
+                    {(selectedSlot.subject_id?.code || selectedSlot.subject?.code) ? ` (${selectedSlot.subject_id?.code || selectedSlot.subject?.code})` : ""}
+                  </span>
                 </div>
                 <div className="info-row">
                   <FaUser className="info-icon-small" />
-                  <span><strong>Teacher:</strong> {selectedSlot.teacher?.name || selectedSlot.slotSnapshot?.teacher_name}</span>
+                  <span>
+                    <strong>Teacher:</strong>{" "}
+                    {selectedSlot.teacher_id?.name || selectedSlot.teacher?.name || selectedSlot.slotSnapshot?.teacher_name || "N/A"}
+                  </span>
                 </div>
                 <div className="info-row">
                   <FaClock className="info-icon-small" />
-                  <span><strong>Time:</strong> {selectedSlot.startTime || selectedSlot.slotSnapshot?.startTime} - {selectedSlot.endTime || selectedSlot.slotSnapshot?.endTime}</span>
+                  <span>
+                    <strong>Time:</strong>{" "}
+                    {selectedSlot.startTime || selectedSlot.slotSnapshot?.startTime} - {selectedSlot.endTime || selectedSlot.slotSnapshot?.endTime}
+                    {selectedSlot.room ? ` · Room: ${selectedSlot.room}` : ""}
+                  </span>
                 </div>
+                {selectedSlot.hasOpenSession && (
+                  <div className="info-row" style={{ color: "#d97706", fontWeight: 600, marginTop: "0.25rem" }}>
+                    <FaExclamationTriangle className="info-icon-small" style={{ color: "#d97706" }} />
+                    <span>An active session is currently open for this slot. Close it first or choose another slot.</span>
+                  </div>
+                )}
+                {selectedSlot.hasClosedSession && (
+                  <div className="info-row" style={{ color: "#0f766e", fontWeight: 500, marginTop: "0.25rem" }}>
+                    <FaInfoCircle className="info-icon-small" style={{ color: "#0f766e" }} />
+                    <span>{selectedSlot.sessionCount} session(s) already recorded today. Lecture number is set for your next session.</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -217,20 +291,63 @@ export default function CreateSessionModal({ onClose, onSuccess, slots }) {
                   if (errors.slot_id) setErrors({...errors, slot_id: ''});
                 }}
                 required
-                disabled={loading}
+                disabled={loading || loadingSlots}
               >
-                <option value="">-- Select a Slot --</option>
-                {slots?.map(slot => (
-                  <option key={slot._id} value={slot._id}>
-                    {slot.subject?.name || slot.slotSnapshot?.subject_name} - {slot.day} {slot.startTime}
-                  </option>
-                ))}
+                <option value="">
+                  {loadingSlots
+                    ? "Loading available slots..."
+                    : slots && slots.length > 0
+                    ? "-- Select a Slot --"
+                    : "-- No slots scheduled for today --"}
+                </option>
+                {slots?.map((slot) => {
+                  const subjectName =
+                    slot.subject_id?.name ||
+                    slot.subject?.name ||
+                    slot.slotSnapshot?.subject_name ||
+                    "Subject";
+                  const subjectCode =
+                    slot.subject_id?.code ||
+                    slot.subject?.code ||
+                    slot.slotSnapshot?.subject_code ||
+                    "";
+                  const timeRange =
+                    slot.startTime && slot.endTime
+                      ? `${slot.startTime} - ${slot.endTime}`
+                      : slot.startTime || "";
+                  const roomText = slot.room ? ` (${slot.room})` : "";
+                  const statusSuffix = slot.hasOpenSession
+                    ? " · [Session Active]"
+                    : slot.hasClosedSession
+                    ? ` · [${slot.sessionCount || 1} Closed]`
+                    : "";
+
+                  return (
+                    <option
+                      key={slot._id}
+                      value={slot._id}
+                      disabled={slot.hasOpenSession}
+                    >
+                      {subjectName}
+                      {subjectCode ? ` (${subjectCode})` : ""} · {slot.day}{" "}
+                      {timeRange}
+                      {roomText}
+                      {statusSuffix}
+                    </option>
+                  );
+                })}
               </select>
               {errors.slot_id && (
                 <span className="error-message" role="alert">
                   <FaExclamationTriangle className="error-icon" />
                   {errors.slot_id}
                 </span>
+              )}
+              {(!slots || slots.length === 0) && !loadingSlots && (
+                <small className="form-hint" style={{ color: "#b45309" }}>
+                  <FaInfoCircle className="hint-icon" style={{ color: "#b45309" }} />
+                  No published timetable slots found for today. Timetable must be published by the HOD.
+                </small>
               )}
             </div>
 
@@ -251,8 +368,8 @@ export default function CreateSessionModal({ onClose, onSuccess, slots }) {
                     setForm({ ...form, lectureDate: e.target.value });
                     if (errors.lectureDate) setErrors({...errors, lectureDate: ''});
                   }}
-                  min={new Date().toISOString().split('T')[0]}
-                  max={new Date().toISOString().split('T')[0]}
+                  min={getTodayDateStr()}
+                  max={getTodayDateStr()}
                   required
                   disabled
                   title="Attendance sessions can only be created for today"

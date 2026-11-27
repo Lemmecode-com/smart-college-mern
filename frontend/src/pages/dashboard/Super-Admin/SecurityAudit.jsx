@@ -4,7 +4,10 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
+import PageHeader from "../../../components/PageHeader";
+import Pagination from "../../../components/Pagination";
 import { logger } from "../../../utils/logger";
 import {
   FaShieldAlt,
@@ -82,6 +85,13 @@ export default function SecurityAudit() {
     endDate: "",
     collegeId: "",
   });
+  const [appliedFilters, setAppliedFilters] = useState({
+    eventType: "",
+    severity: "",
+    startDate: "",
+    endDate: "",
+    collegeId: "",
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [colleges, setColleges] = useState([]);
@@ -108,7 +118,7 @@ export default function SecurityAudit() {
     fetchLogs();
     // Don't refetch colleges and stats on filter change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, currentPage]);
+  }, [appliedFilters, currentPage]);
 
   useEffect(() => {
     const interval = setInterval(fetchLogs, 60000); // Auto-refresh logs every 60s for real-time monitoring
@@ -121,7 +131,7 @@ export default function SecurityAudit() {
       setLoading(true);
       setError(null);
       const params = new URLSearchParams({
-        ...filters,
+        ...appliedFilters,
         page: currentPage,
         limit: 10,
       });
@@ -199,6 +209,10 @@ export default function SecurityAudit() {
     }
 
     setFilters(next);
+  };
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(filters);
     setCurrentPage(1);
   };
 
@@ -273,38 +287,40 @@ const getCategoryBadgeClass = (category) => {
     );
   }
 
-  if (loading && !logs.length) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading Security Audit..."
-        variant="spinner"
-      />
-    );
-  }
+if (loading && !logs.length) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Security Audit..."
+        />
+      </div>
+    </div>
+  );
+}
 
   return (
     <>
       <div className="security-audit-page">
-        {/* Page Header */}
-        <div className="page-header">
-          <div className="header-content">
-            <div className="header-icon">
-              <FaShieldAlt />
-            </div>
-            <div className="header-text">
-              <h1 className="page-title">Security Audit Dashboard</h1>
-              <p className="page-subtitle">
-                Monitor and analyze security events across all colleges
-              </p>
-              <p className="page-meta">
-                <FaClock className="meta-icon" />
-                Real-time security monitoring
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Breadcrumb */}
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/super-admin/dashboard" },
+            { label: "Security Audit" },
+          ]}
+        />
+
+        {/* HEADER */}
+        <PageHeader
+          icon={FaShieldAlt}
+          title="Security Audit Dashboard"
+          subtitle="Monitor and analyze security events across all colleges • Real-time security monitoring"
+        />
 
         {/* Statistics Cards */}
         {stats && (
@@ -386,10 +402,13 @@ const getCategoryBadgeClass = (category) => {
         {/* Filters Section */}
         <div className="filter-section">
           <div className="filter-header">
-            <h3 className="filter-title">
-              <FaFilter className="filter-icon" />
-              Filters
-            </h3>
+            <div className="filter-header-content">
+              <FaFilter className="filter-header-icon" />
+              <div className="filter-header-text">
+                <h3 className="filter-title">Filters</h3>
+                <p className="filter-subtitle">Find specific security events</p>
+              </div>
+            </div>
           </div>
           <div className="filter-grid">
             <div className="filter-item">
@@ -481,10 +500,27 @@ const getCategoryBadgeClass = (category) => {
             </div>
 
             <div className="filter-item filter-actions">
-              <button className="btn-apply" onClick={() => setCurrentPage(1)}>
-                <FaSearch className="btn-icon" />
-                Apply Filters
-              </button>
+              <div className="filter-action-group">
+                <button
+                  type="button"
+                  className="btn-clear"
+                  onClick={() => {
+                    setFilters({
+                      eventType: "",
+                      severity: "",
+                      startDate: "",
+                      endDate: "",
+                      collegeId: "",
+                    });
+                  }}
+                >
+                  Clear All
+                </button>
+                <button className="btn-apply" onClick={handleApplyFilters}>
+                  <FaSearch className="btn-icon" />
+                  Apply Filters
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -497,10 +533,10 @@ const getCategoryBadgeClass = (category) => {
               Security Events Log
             </h3>
             {pagination && (
-              <span className="table-info">
-                {pagination.page} of {pagination.pages} pages •{" "}
-                {pagination.totalDocs} events
-              </span>
+              <div className="table-summary">
+                {/* <span className="total-events-badge">{pagination.total} EVENTS</span> */}
+                <span className="total-events-badge">Page {pagination.page} of {pagination.pages}</span>
+              </div>
             )}
           </div>
 
@@ -627,53 +663,11 @@ const getCategoryBadgeClass = (category) => {
 
           {/* Pagination */}
           {pagination && pagination.pages > 1 && (
-            <div className="pagination-section">
-              <nav className="pagination-nav">
-                <ul className="pagination-list">
-                  <li
-                    className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() => setCurrentPage((prev) => prev - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </button>
-                  </li>
-                </ul>
-                <div className="pagination-pages-wrapper">
-                  <ul className="pagination-list">
-                    {[...Array(pagination.pages)].map((_, i) => (
-                      <li
-                        key={i}
-                        className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
-                      >
-                        <button
-                          className="page-link"
-                          onClick={() => setCurrentPage(i + 1)}
-                        >
-                          {i + 1}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <ul className="pagination-list">
-                  <li
-                    className={`page-item ${currentPage === pagination.pages ? "disabled" : ""}`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() => setCurrentPage((prev) => prev + 1)}
-                      disabled={currentPage === pagination.pages}
-                    >
-                      Next
-                    </button>
-                  </li>
-                </ul>
-              </nav>
-            </div>
+            <Pagination
+              page={currentPage}
+              totalPages={pagination.pages}
+              setPage={setCurrentPage}
+            />
           )}
         </div>
       </div>
@@ -739,11 +733,12 @@ const getCategoryBadgeClass = (category) => {
           gap: 0.5rem;
           color: #94a3b8;
           font-size: 0.85rem;
-          margin: 0.5rem 0 0;
+          // margin: 0.5rem 0 0;
         }
 
         .meta-icon {
           font-size: 0.75rem;
+          
         }
 
         /* Stats Grid */
@@ -840,98 +835,161 @@ const getCategoryBadgeClass = (category) => {
 
         /* Filter Section */
         .filter-section {
-          background: white;
-          border-radius: 12px;
-          padding: 1.25rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          padding: 0.75rem 1rem;
+          margin-bottom: 1rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
         }
 
         .filter-header {
-          margin-bottom: 1rem;
+          margin-bottom: 0.625rem;
         }
 
-        .filter-title {
+        .filter-header-content {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 1rem;
+        }
+
+        .filter-header-icon {
+          color: #22B8E6;
+          font-size: 1.1rem;
+          flex-shrink: 0;
+        }
+
+        .filter-header-text {
+          min-width: 0;
+        }
+
+        .filter-title {
+          font-size: 0.9rem;
           font-weight: 700;
           color: #1a4b6d;
           margin: 0;
+          line-height: 1.2;
         }
 
-        .filter-icon {
-          color: #3db5e6;
+        .filter-subtitle {
+          font-size: 0.72rem;
+          color: #64748b;
+          margin: 0.0625rem 0 0;
+          line-height: 1.3;
         }
 
         .filter-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 1rem;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          gap: 0.625rem;
         }
 
         .filter-item {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.3rem;
+          min-width: 0;
+          flex: 1 1 180px;
+        }
+
+        .filter-item.filter-actions {
+          flex: 0 0 auto;
+          margin-left: auto;
         }
 
         .filter-label {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          font-size: 0.85rem;
+          gap: 0.3rem;
+          font-size: 0.7rem;
           font-weight: 600;
           color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
         }
 
         .label-icon {
-          font-size: 0.75rem;
+          font-size: 0.65rem;
           color: #3db5e6;
         }
 
         .filter-select,
         .filter-input {
-          padding: 0.625rem 0.875rem;
+          height: 38px;
+          padding: 0 0.625rem;
           border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          background: white;
+          border-radius: 6px;
+          font-size: 0.825rem;
+          background: #fafbfc;
           color: #1a4b6d;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
+        }
+
+        .filter-select:hover,
+        .filter-input:hover {
+          border-color: #cbd5e1;
         }
 
         .filter-select:focus,
         .filter-input:focus {
           outline: none;
           border-color: #1a4b6d;
-          box-shadow: 0 0 0 3px rgba(26, 75, 109, 0.1);
+          background: #ffffff;
+          box-shadow: 0 0 0 2px rgba(26, 75, 109, 0.08);
         }
 
-        .filter-actions {
-          justify-content: flex-end;
-        }
-
-        .btn-apply {
+        .filter-action-group {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.625rem 1.25rem;
+        }
+
+        .btn-clear {
+          height: 38px;
+          padding: 0 0.875rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          background: #ffffff;
+          color: #64748b;
+          font-size: 0.775rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+        }
+
+        .btn-clear:hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+          color: #1a4b6d;
+        }
+
+        .btn-apply {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.4rem;
+          height: 38px;
+          padding: 0 0.875rem;
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           color: white;
           border: none;
-          border-radius: 8px;
+          border-radius: 6px;
           font-weight: 600;
-          font-size: 0.9rem;
+          font-size: 0.775rem;
           cursor: pointer;
           transition: all 0.2s ease;
-          align-self: flex-end;
+          white-space: nowrap;
         }
 
         .btn-apply:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(26, 75, 109, 0.3);
+          transform: translateY(-1px);
+          box-shadow: 0 3px 10px rgba(26, 75, 109, 0.25);
+        }
+
+        .btn-icon {
+          font-size: 0.7rem;
         }
 
         /* Table Section */
@@ -969,6 +1027,31 @@ const getCategoryBadgeClass = (category) => {
           color: #94a3b8;
         }
 
+        .table-summary {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .total-events-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.1875rem 0.5rem;
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: #3db5e6;
+          background: rgba(61, 181, 230, 0.1);
+          border-radius: 9999px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .page-info {
+          font-size: 0.8rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
         .table-loading {
           padding: 3rem;
           display: flex;
@@ -982,6 +1065,7 @@ const getCategoryBadgeClass = (category) => {
         .data-table {
           width: 100%;
           border-collapse: collapse;
+          font-size: 0.85rem;
         }
 
         .data-table thead {
@@ -990,9 +1074,9 @@ const getCategoryBadgeClass = (category) => {
         }
 
         .data-table thead th {
-          padding: 1rem 0.875rem;
+          padding: 0.625rem 0.75rem;
           font-weight: 600;
-          font-size: 0.85rem;
+          font-size: 0.75rem;
           text-transform: uppercase;
           letter-spacing: 0.5px;
           text-align: left;
@@ -1001,20 +1085,20 @@ const getCategoryBadgeClass = (category) => {
 
         .data-table tbody tr {
           border-bottom: 1px solid #e2e8f0;
-          transition: all 0.2s ease;
+          transition: background-color 0.15s ease;
         }
 
         .data-table tbody tr:hover {
-          background: linear-gradient(90deg, rgba(61, 181, 230, 0.05), transparent);
+          background-color: rgba(61, 181, 230, 0.04);
         }
 
         .data-table tbody tr.row-pending {
-          background: rgba(255, 193, 7, 0.03);
+          background-color: rgba(255, 193, 7, 0.03);
         }
 
         .data-table tbody td {
-          padding: 1rem 0.875rem;
-          font-size: 0.9rem;
+          padding: 0.625rem 0.75rem;
+          font-size: 0.825rem;
           color: #334155;
           vertical-align: middle;
         }
@@ -1026,29 +1110,31 @@ const getCategoryBadgeClass = (category) => {
         .timestamp-date {
           font-weight: 600;
           color: #1a4b6d;
+          font-size: 0.825rem;
         }
 
         .timestamp-time {
-          font-size: 0.8rem;
+          font-size: 0.725rem;
           color: #94a3b8;
         }
 
         .event-cell {
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.375rem;
         }
 
         .event-icon {
-          font-size: 1rem;
+          font-size: 0.85rem;
         }
 
         .category-badge {
-          padding: 0.25rem 0.625rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
+          padding: 0.15rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.7rem;
           font-weight: 600;
           text-transform: uppercase;
+          white-space: nowrap;
         }
 
         .category-auth {
@@ -1074,35 +1160,42 @@ const getCategoryBadgeClass = (category) => {
         .user-cell {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.15rem;
         }
 
         .user-name {
-          font-weight: 700;
+          font-weight: 600;
           color: #0f172a;
-          font-size: 0.9rem;
+          font-size: 0.825rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 180px;
         }
 
         .user-role {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           color: #94a3b8;
+          white-space: nowrap;
         }
 
         .ip-address {
-          background: rgba(26, 75, 109, 0.05);
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-size: 0.85rem;
+          font-family: 'Consolas', 'Monaco', monospace;
+          font-size: 0.775rem;
           color: #1a4b6d;
+          white-space: nowrap;
         }
 
         .severity-badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
-          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          padding: 0.175rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.7rem;
+          font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.3px;
+          white-space: nowrap;
         }
 
         .severity-critical {
@@ -1125,24 +1218,19 @@ const getCategoryBadgeClass = (category) => {
           color: white;
         }
 
-        .endpoint-cell {
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-size: 0.8rem;
-          color: #64748b;
-        }
-
         .status-badge {
           display: inline-flex;
           align-items: center;
-          gap: 0.375rem;
-          padding: 0.25rem 0.75rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
+          gap: 0.3rem;
+          padding: 0.175rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.7rem;
           font-weight: 600;
+          white-space: nowrap;
         }
 
         .status-icon {
-          font-size: 0.65rem;
+          font-size: 0.6rem;
         }
 
         .status-reviewed {
@@ -1156,455 +1244,985 @@ const getCategoryBadgeClass = (category) => {
         }
 
         .btn-review {
-          padding: 0.375rem 0.75rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.3rem 0.6rem;
           background: linear-gradient(135deg, #28a745, #218838);
           color: white;
           border: none;
-          border-radius: 6px;
-          font-size: 0.8rem;
+          border-radius: 4px;
+          font-size: 0.725rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+          height: 34px;
         }
 
         .btn-review:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(40, 167, 69, 0.25);
         }
 
         .cell-empty {
-          padding: 3rem !important;
+          padding: 2rem !important;
         }
 
         .empty-state {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
           color: #94a3b8;
         }
 
         .empty-icon {
-          font-size: 3rem;
+          font-size: 2.5rem;
           opacity: 0.3;
         }
 
         .empty-text {
           margin: 0;
-          font-size: 1rem;
+          font-size: 0.9rem;
         }
 
         .text-muted {
           color: #94a3b8 !important;
         }
 
-        /* Pagination */
-        .pagination-section {
-          padding: 1rem 1.25rem;
-          border-top: 1px solid #e2e8f0;
-          background: #f8fafc;
-        }
-
-        .pagination-nav {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 0.5rem;
-          flex-wrap: nowrap;
-        }
-
-        .pagination-pages-wrapper {
-          display: flex;
-          overflow-x: auto;
-          gap: 0.5rem;
-          padding: 0.25rem 0.5rem;
-          max-width: 100%;
-          scroll-behavior: smooth;
-          align-items: center;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: thin;
-          scrollbar-color: #1a4b6d #f1f5f9;
-        }
-
-        .pagination-pages-wrapper::-webkit-scrollbar {
-          height: 6px;
-        }
-
-        .pagination-pages-wrapper::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 3px;
-        }
-
-        .pagination-pages-wrapper::-webkit-scrollbar-thumb {
-          background: #1a4b6d;
-          border-radius: 3px;
-        }
-
-        .pagination-list {
-          display: flex;
-          list-style: none;
-          gap: 0.5rem;
-          padding: 0;
-          margin: 0;
-          flex-shrink: 0;
-        }
-
-        .page-item button {
-          padding: 0.5rem 0.875rem;
-          border: 1px solid #e2e8f0;
-          background: white;
-          color: #1a4b6d;
-          border-radius: 6px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .page-item button:hover:not(:disabled) {
-          background: linear-gradient(135deg, #1a4b6d, #0f3a4a);
-          color: white;
-          border-color: #1a4b6d;
-        }
-
-        .page-item.active button {
-          background: linear-gradient(135deg, #1a4b6d, #0f3a4a);
-          color: white;
-          border-color: #1a4b6d;
-        }
-
-        .page-item.disabled button,
-        .page-item button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        /* Responsive */
-         @media (max-width: 768px) {
-           .security-audit-page {
-             padding: 1rem;
-           }
-
-           .page-header {
-             flex-direction: column;
-             align-items: flex-start;
-             gap: 1rem;
-           }
-
-           .stats-grid {
-             grid-template-columns: 1fr;
-           }
-
-           .filter-grid {
-             grid-template-columns: 1fr;
-           }
-
-           .table-header {
-             flex-direction: column;
-             align-items: flex-start;
-             gap: 0.5rem;
-           }
-
-           .data-table thead {
-             display: none;
-           }
-
-           .data-table tbody tr {
-             display: block;
-             margin-bottom: 1rem;
-             border: 1px solid #e2e8f0;
-             border-radius: 8px;
-             padding: 1rem;
-           }
-
-           .data-table tbody td {
-             display: flex;
-             justify-content: space-between;
-             align-items: center;
-             padding: 0.5rem 0;
-             border-bottom: 1px solid #f1f5f9;
-           }
-
-           .data-table tbody td:last-child {
-             border-bottom: none;
-           }
-
-           .data-table tbody td::before {
-             content: attr(data-label);
-             font-weight: 600;
-             color: #1a4b6d;
-           }
-         }
-
-         @media (max-width: 480px) {
-           .security-audit-page {
-             padding: 0.75rem;
-           }
-
-           .page-header {
-             padding: 1rem;
-             margin-bottom: 1rem;
-           }
-
-           .header-icon {
-             width: 44px;
-             height: 44px;
-             font-size: 1.2rem;
-           }
-
-           .page-title {
-             font-size: 1.35rem;
-           }
-
-           .page-subtitle {
-             font-size: 0.85rem;
-           }
-
-           .stats-grid {
-             gap: 0.75rem;
-             margin-bottom: 1rem;
-           }
-
-           .stat-card {
-             padding: 1rem;
-           }
-
-           .stat-value {
-             font-size: 1.5rem;
-           }
-
-           .stat-title {
-             font-size: 0.75rem;
-           }
-
-           .stat-icon {
-             width: 40px;
-             height: 40px;
-             font-size: 1rem;
-           }
-
-           .filter-section {
-             padding: 1rem;
-             margin-bottom: 1rem;
-           }
-
-           .filter-grid {
-             gap: 0.75rem;
-           }
-
-           .filter-select,
-           .filter-input {
-             padding: 0.5rem 0.75rem;
-             font-size: 0.85rem;
-           }
-
-            .filter-actions {
-              justify-content: center;
-            }
-
-            .btn-apply {
-              width: auto;
-              max-width: 160px;
-              justify-content: center;
-              padding: 0.5rem 0.875rem;
-              font-size: 0.8rem;
-              align-self: center;
-            }
-
-           .table-section {
-             border-radius: 8px;
-           }
-
-           .table-header {
-             padding: 1rem;
-           }
-
-           .table-title {
-             font-size: 0.9rem;
-           }
-
-           .data-table tbody td {
-             padding: 0.4rem 0;
-             font-size: 0.8rem;
-           }
-
-           .severity-badge {
-             padding: 0.2rem 0.5rem;
-             font-size: 0.65rem;
-           }
-
-           .status-badge {
-             padding: 0.2rem 0.5rem;
-             font-size: 0.65rem;
-           }
-
-           .btn-review {
-             padding: 0.25rem 0.5rem;
-             font-size: 0.7rem;
-           }
-
-            .pagination-section {
-              padding: 0.75rem 1rem;
-            }
-
-            .pagination-pages-wrapper {
-              justify-content: flex-start;
-            }
-
-            .page-item button {
-              padding: 0.375rem 0.625rem;
-              font-size: 0.8rem;
-            }
-          }
-
-         @media (max-width: 375px) {
-           .security-audit-page {
-             padding: 0.5rem;
-           }
-
-           .page-header {
-             padding: 0.75rem;
-             margin-bottom: 0.75rem;
-           }
-
-           .header-icon {
-             width: 38px;
-             height: 38px;
-             font-size: 1rem;
-           }
-
-           .page-title {
-             font-size: 1.15rem;
-           }
-
-           .page-subtitle {
-             font-size: 0.75rem;
-           }
-
-           .stats-grid {
-             gap: 0.5rem;
-             margin-bottom: 0.75rem;
-           }
-
-           .stat-card {
-             padding: 0.75rem;
-           }
-
-           .stat-value {
-             font-size: 1.25rem;
-           }
-
-           .stat-title {
-             font-size: 0.7rem;
-           }
-
-           .stat-icon {
-             width: 34px;
-             height: 34px;
-             font-size: 0.85rem;
-           }
-
-           .stat-card-header {
-             gap: 0.5rem;
-             margin-bottom: 0.75rem;
-           }
-
-           .stat-trend {
-             font-size: 0.75rem;
-           }
-
-           .filter-section {
-             padding: 0.75rem;
-             margin-bottom: 0.75rem;
-           }
-
-           .filter-title {
-             font-size: 0.9rem;
-           }
-
-           .filter-grid {
-             gap: 0.5rem;
-           }
-
-           .filter-label {
-             font-size: 0.75rem;
-           }
-
-           .filter-select,
-           .filter-input {
-             padding: 0.4rem 0.625rem;
-             font-size: 0.8rem;
-           }
-
-            .filter-actions {
-              justify-content: center;
-            }
-
-            .btn-apply {
-              max-width: 140px;
-              padding: 0.4rem 0.625rem;
-              font-size: 0.75rem;
-              align-self: center;
-            }
-
-           .table-header {
-             padding: 0.75rem;
-           }
-
-           .table-title {
-             font-size: 0.85rem;
-           }
-
-           .table-info {
-             font-size: 0.75rem;
-           }
-
-           .data-table tbody td {
-             padding: 0.3rem 0;
-             font-size: 0.75rem;
-           }
-
-           .category-badge {
-             padding: 0.15rem 0.4rem;
-             font-size: 0.6rem;
-           }
-
-           .severity-badge {
-             padding: 0.15rem 0.4rem;
-             font-size: 0.6rem;
-           }
-
-           .status-badge {
-             padding: 0.15rem 0.4rem;
-             font-size: 0.6rem;
-           }
-
-           .btn-review {
-             padding: 0.2rem 0.4rem;
-             font-size: 0.65rem;
-           }
-
-            .pagination-section {
-              padding: 0.5rem 0.75rem;
-            }
-
-            .pagination-pages-wrapper {
-              justify-content: flex-start;
-            }
-
-            .page-item button {
-              padding: 0.3rem 0.5rem;
-              font-size: 0.7rem;
-            }
-
-           .empty-icon {
-             font-size: 2rem;
-           }
-
-           .empty-text {
-             font-size: 0.85rem;
-           }
-         }
+ /* =========================================================
+   RESPONSIVE DESIGN
+   Desktop remains unchanged
+   Tablet + Mobile optimized
+   ========================================================= */
+
+/* =========================================================
+   TABLET
+   769px - 991px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 991.98px) {
+
+  .security-audit-page {
+    padding: 1.25rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* =========================
+     HEADER
+     ========================= */
+
+  .page-header {
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-radius: 14px;
+  }
+
+  .header-content {
+    gap: 0.9rem;
+    min-width: 0;
+  }
+
+  .header-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    font-size: 1.35rem;
+  }
+
+  .header-text {
+    min-width: 0;
+  }
+
+  .page-title {
+    font-size: 1.55rem;
+    line-height: 1.25;
+  }
+
+  .page-subtitle {
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .page-meta {
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+  }
+
+  /* =========================
+     STATISTICS
+     ========================= */
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    min-width: 0;
+    padding: 1rem;
+  }
+
+  .stat-card-header {
+    gap: 0.65rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.15rem;
+  }
+
+  .stat-title {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .stat-value {
+    font-size: 1.8rem;
+  }
+
+  .stat-trend {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+/* =========================
+      FILTERS
+      ========================= */
+
+  .filter-section {
+    padding: 0.875rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .filter-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .filter-header-content {
+    gap: 0.625rem;
+  }
+
+  .filter-header-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .filter-title {
+    font-size: 0.9rem;
+  }
+
+  .filter-subtitle {
+    font-size: 0.72rem;
+  }
+
+  .filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.625rem;
+  }
+
+  .filter-item {
+    min-width: 0;
+    gap: 0.3rem;
+  }
+
+  .filter-label {
+    font-size: 0.7rem;
+  }
+
+  .filter-select,
+  .filter-input {
+    height: 38px;
+    padding: 0 0.625rem;
+    font-size: 0.8rem;
+  }
+
+  .filter-action-group {
+    gap: 0.375rem;
+  }
+
+  .btn-clear {
+    height: 38px;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-apply {
+    height: 38px;
+    padding: 0 0.875rem;
+    font-size: 0.75rem;
+  }
+
+  /* =========================
+     TABLE
+     ========================= */
+
+  .table-section {
+    border-radius: 12px;
+  }
+
+  .table-header {
+    padding: 1rem 1.15rem;
+  }
+
+  .table-title {
+    font-size: 0.95rem;
+  }
+
+  .table-info {
+    font-size: 0.8rem;
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 850px;
+  }
+
+  .data-table thead th {
+    padding: 0.625rem 0.625rem;
+    font-size: 0.725rem;
+  }
+
+  .data-table tbody td {
+    padding: 0.625rem 0.625rem;
+    font-size: 0.775rem;
+  }
+
+  .user-name {
+    max-width: 150px;
+  }
+
+  .btn-review {
+    height: 32px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .category-badge {
+    font-size: 0.65rem;
+    padding: 0.125rem 0.4rem;
+  }
+
+  .severity-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .status-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  /* =========================
+     PAGINATION
+     ========================= */
+
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .security-audit-page {
+    padding: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* =========================
+     PAGE HEADER
+     ========================= */
+
+  .page-header {
+    display: block;
+
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 14px;
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .header-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 11px;
+    font-size: 1.2rem;
+  }
+
+  .header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .page-title {
+    font-size: 1.35rem;
+    line-height: 1.2;
+    margin: 0;
+    word-break: normal;
+  }
+
+  .page-subtitle {
+    font-size: 0.84rem;
+    line-height: 1.4;
+    margin-top: 0.3rem;
+  }
+
+  .page-meta {
+    font-size: 0.76rem;
+    line-height: 1.3;
+    margin-top: 0.45rem;
+    gap: 0.35rem;
+  }
+
+  .meta-icon {
+    font-size: 0.7rem;
+  }
+
+  /* =========================
+     STATISTICS
+     ========================= */
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .stat-card-header {
+    gap: 0.7rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 10px;
+    font-size: 1.05rem;
+  }
+
+  .stat-title {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .stat-value {
+    font-size: 1.65rem;
+  }
+
+  .stat-trend {
+    font-size: 0.78rem;
+    line-height: 1.35;
+    flex-wrap: wrap;
+  }
+
+/* =========================
+      FILTER SECTION
+      ========================= */
+
+  .filter-section {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.875rem;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+  }
+
+  .filter-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .filter-header-content {
+    gap: 0.625rem;
+  }
+
+  .filter-header-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .filter-title {
+    font-size: 0.9rem;
+  }
+
+  .filter-subtitle {
+    font-size: 0.72rem;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.625rem;
+    width: 100%;
+  }
+
+  .filter-item {
+    width: 100%;
+    min-width: 0;
+    gap: 0.3rem;
+  }
+
+  .filter-label {
+    font-size: 0.72rem;
+  }
+
+  .label-icon {
+    font-size: 0.65rem;
+  }
+
+  /*
+   * Important:
+   * Prevent select/date inputs from overflowing
+   * the mobile card.
+   */
+
+  .filter-select,
+  .filter-input {
+    display: block;
+
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    height: 40px;
+    padding: 0 0.75rem;
+
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+
+  .filter-select {
+    text-overflow: ellipsis;
+  }
+
+  .filter-input {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Apply button */
+
+  .filter-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .filter-action-group {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .btn-clear {
+    height: 40px;
+    padding: 0 1rem;
+    font-size: 0.8rem;
+  }
+
+  .btn-apply {
+    width: auto;
+    max-width: 200px;
+    min-height: 40px;
+    justify-content: center;
+    align-self: center;
+    padding: 0 1rem;
+    font-size: 0.8rem;
+  }
+
+  /* =========================
+     TABLE SECTION
+     ========================= */
+
+  .table-section {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 0.9rem 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .table-title {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  .table-info {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  /*
+   * Mobile table becomes cards.
+   */
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .data-table {
+    width: 100%;
+    min-width: 0;
+    border-collapse: separate;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table tbody tr {
+    display: block;
+
+    width: calc(100% - 1rem);
+    margin: 0.5rem;
+
+    box-sizing: border-box;
+
+    padding: 0.8rem;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+  }
+
+  .data-table tbody td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    width: 100%;
+    box-sizing: border-box;
+
+    gap: 0.625rem;
+
+    padding: 0.5rem 0;
+    font-size: 0.775rem;
+
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .data-table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .data-table tbody td::before {
+    content: attr(data-label);
+
+    flex: 0 0 38%;
+
+    font-weight: 600;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: #1a4b6d;
+  }
+
+  .data-table tbody td > * {
+    max-width: 62%;
+    text-align: right;
+  }
+
+  .event-cell {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .category-badge,
+  .severity-badge,
+  .status-badge {
+    white-space: normal;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .user-cell {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .ip-address {
+    word-break: break-all;
+  }
+
+  .btn-review {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.7rem;
+    height: 32px;
+  }
+
+  .category-badge {
+    font-size: 0.65rem;
+    padding: 0.125rem 0.4rem;
+  }
+
+  .severity-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .status-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  /* Empty state */
+
+  .cell-empty {
+    display: block !important;
+    padding: 1.5rem 1rem !important;
+  }
+
+  .cell-empty::before {
+    display: none;
+  }
+
+  .empty-text {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 2.25rem;
+  }
+
+  /* =========================
+     PAGINATION
+     ========================= */
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .security-audit-page {
+    padding: 0.6rem;
+  }
+
+  /* Header */
+
+  .page-header {
+    padding: 0.9rem;
+    border-radius: 12px;
+  }
+
+  .header-content {
+    gap: 0.65rem;
+  }
+
+  .header-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    font-size: 1.05rem;
+    border-radius: 10px;
+  }
+
+  .page-title {
+    font-size: 1.2rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .page-meta {
+    font-size: 0.7rem;
+  }
+
+  /* Stats */
+
+  .stat-card {
+    padding: 0.85rem;
+  }
+
+  .stat-card-header {
+    margin-bottom: 0.65rem;
+  }
+
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: 0.95rem;
+  }
+
+  .stat-title {
+    font-size: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.45rem;
+  }
+
+  .stat-trend {
+    font-size: 0.72rem;
+  }
+
+  /* Filters */
+
+  .filter-section {
+    padding: 0.75rem;
+  }
+
+  .filter-header-content {
+    gap: 0.5rem;
+  }
+
+  .filter-header-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+
+  .filter-title {
+    font-size: 0.85rem;
+  }
+
+  .filter-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .filter-grid {
+    gap: 0.5rem;
+  }
+
+  .filter-label {
+    font-size: 0.68rem;
+  }
+
+  .filter-select,
+  .filter-input {
+    height: 38px;
+    padding: 0 0.625rem;
+    font-size: 0.8rem;
+  }
+
+  .filter-action-group {
+    gap: 0.375rem;
+  }
+
+  .btn-clear {
+    height: 38px;
+    padding: 0 0.75rem;
+    font-size: 0.72rem;
+  }
+
+  .btn-apply {
+    max-width: 180px;
+    min-height: 38px;
+    font-size: 0.72rem;
+  }
+
+  /* Table */
+
+  .table-header {
+    padding: 0.8rem 0.85rem;
+  }
+
+  .table-title {
+    font-size: 0.88rem;
+  }
+
+  .table-info {
+    font-size: 0.7rem;
+  }
+
+  .data-table tbody tr {
+    width: calc(100% - 0.75rem);
+    margin: 0.375rem;
+    padding: 0.7rem;
+  }
+
+  .data-table tbody td {
+    gap: 0.5rem;
+    padding: 0.45rem 0;
+    font-size: 0.74rem;
+  }
+
+  .data-table tbody td::before {
+    flex-basis: 40%;
+    font-size: 0.7rem;
+  }
+
+  .data-table tbody td > * {
+    max-width: 60%;
+  }
+
+  .category-badge,
+  .severity-badge,
+  .status-badge {
+    font-size: 0.62rem;
+    padding: 0.2rem 0.45rem;
+  }
+
+  .btn-review {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.68rem;
+    height: 30px;
+  }
+
+  /* Pagination */
+}
+
+
+/* =========================================================
+   VERY SMALL DEVICES
+   0px - 375px
+   ========================================================= */
+
+@media (max-width: 375px) {
+
+  .security-audit-page {
+    padding: 0.5rem;
+  }
+
+  .page-header {
+    padding: 0.75rem;
+  }
+
+  .header-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: 0.95rem;
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.72rem;
+  }
+
+  .page-meta {
+    font-size: 0.65rem;
+  }
+
+  .filter-section {
+    padding: 0.75rem;
+  }
+
+  .filter-select,
+  .filter-input {
+    height: 40px;
+    font-size: 0.78rem;
+  }
+
+  .btn-apply {
+    max-width: 175px;
+    min-height: 40px;
+    font-size: 0.78rem;
+  }
+
+  .stat-card {
+    padding: 0.7rem;
+  }
+
+  .stat-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    font-size: 0.85rem;
+  }
+
+  .stat-title {
+    font-size: 0.68rem;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .stat-trend {
+    font-size: 0.68rem;
+  }
+
+  .table-title {
+    font-size: 0.82rem;
+  }
+
+  .table-info {
+    font-size: 0.65rem;
+  }
+
+  .data-table tbody tr {
+    padding: 0.6rem;
+  }
+
+  .data-table tbody td {
+    font-size: 0.7rem;
+  }
+
+  .data-table tbody td::before {
+    font-size: 0.66rem;
+  }
+
+  .empty-icon {
+    font-size: 2rem;
+  }
+
+  .empty-text {
+    font-size: 0.78rem;
+  }
+}
       `}</style>
     </>
   );

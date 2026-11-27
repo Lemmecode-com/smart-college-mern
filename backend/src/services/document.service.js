@@ -77,8 +77,18 @@ class DocumentService {
     return document;
   }
 
-  static async downloadDocument(documentId) {
-    const document = await Document.findOne({ documentId, status: "ACTIVE" });
+  static async downloadDocument(documentId, existingDoc = null) {
+    let document = existingDoc;
+
+    // Backward compatibility: handle case where caller passed document object as first argument
+    if (!document && typeof documentId === "object" && documentId !== null && documentId.storageKey) {
+      document = documentId;
+      documentId = document.documentId;
+    }
+
+    if (!document) {
+      document = await Document.findOne({ documentId, status: "ACTIVE" });
+    }
     if (!document) {
       throw new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND");
     }
@@ -242,7 +252,7 @@ class DocumentService {
       return ["TEACHER", "COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "HOD", "EXAM_COORDINATOR"].includes(user.role);
     }
     if (document.ownerType === "College") {
-      return ["COLLEGE_ADMIN", "SUPER_ADMIN"].includes(user.role);
+      return ["COLLEGE_ADMIN", "SUPER_ADMIN","PRINCIPAL"].includes(user.role);
     }
     if (document.ownerType === "StudentFee") {
       return ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "ACCOUNTANT"].includes(user.role);

@@ -1,8 +1,14 @@
 require("dotenv").config();
+const validateUrlConfig = require("./src/utils/validateUrlConfig");
+
+// Validate production URL and CORS configuration before starting server
+validateUrlConfig();
+
 require("./src/cron/paymentReminder.cron");
 require("./src/cron/lowAttendanceAlert.cron");
 require("./src/cron/paymentCleanup.cron");
 require("./src/cron/paymentReconciliation.cron");
+require("./src/cron/userDeactivation.cron");
 const app = require("./app");
 const connectDB = require("./src/config/db");
 const seedSuperAdmin = require("./src/utils/seedSuperAdmin");
@@ -25,7 +31,7 @@ connectDB().then(async () => {
   initializeCronJobs();
 });
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`Server running on port http://localhost:${PORT}`),
 );

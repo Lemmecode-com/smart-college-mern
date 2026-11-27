@@ -1,8 +1,11 @@
 ﻿import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Loading from "../../../components/Loading";
+import PageHeader from "../../../components/PageHeader";
 import {
   FaArrowLeft,
   FaMoneyBillWave,
@@ -16,7 +19,7 @@ import {
   FaCalendarAlt
 } from "react-icons/fa";
 import api from "../../../api/axios";
-import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
+import { formatDateTime, formatINR } from "../../../utils/format";
 import { toast } from "react-toastify";
 
 // Brand Color Palette - Matching Application Theme
@@ -90,17 +93,6 @@ const pulseVariants = {
   }
 };
 
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: {
-      duration: 1,
-      repeat: Infinity,
-      ease: "linear"
-    }
-  }
-};
-
 export default function ChildFees() {
   const { childId } = useParams();
   const navigate = useNavigate();
@@ -132,19 +124,16 @@ export default function ChildFees() {
 
   if (loading) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
-          <div className="parent-loading-state">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="parent-loading-spinner"
-              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Fee Details...</h4>
-          </div>
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-fees">
+        <div
+          className="parent-portal-container parent-child-fees-page parent-loading-container"
+          style={{ minHeight: "70vh", width: "100%", maxWidth: "none" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Fee Details..."
+          />
         </div>
       </div>
     );
@@ -152,8 +141,8 @@ export default function ChildFees() {
 
   if (error) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-fees">
+        <div className="parent-portal-container parent-child-fees-page" style={{ width: "100%", maxWidth: "none" }}>
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
@@ -210,8 +199,8 @@ export default function ChildFees() {
 
   if (!feeData) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-fees">
+        <div className="parent-portal-container parent-child-fees-page" style={{ width: "100%", maxWidth: "none" }}>
           <EmptyState
             icon={<FaMoneyBillWave style={{ color: BRAND_COLORS.warning.main }} />}
             title="No Fee Record Available"
@@ -233,9 +222,9 @@ export default function ChildFees() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper erp-viewport-min-100"
+        className="parent-portal-wrapper parent-portal-wrapper--child-fees erp-viewport-min-100"
       >
-        <div className="parent-portal-container">
+        <div className="parent-portal-container parent-child-fees-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -245,37 +234,11 @@ export default function ChildFees() {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaMoneyBillWave />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    Fee Details & Payments
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    Track your child's fee payments and outstanding amounts
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-              </div>
-            </div>
-          </motion.div>
+            <PageHeader
+  icon={FaMoneyBillWave}
+  title="Fee Details & Payments"
+  subtitle="Track your child's fee payments and outstanding amounts"
+/>
 
           {/* ================= FEE SUMMARY CARDS ================= */}
           <motion.div
@@ -327,10 +290,10 @@ export default function ChildFees() {
             <div className="parent-fee-card">
               <div className="parent-fee-header">
                 <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${BRAND_COLORS.primary.main}20, ${BRAND_COLORS.primary.main}10)` }}>
-                  <FaCreditCard style={{ color: BRAND_COLORS.primary.main }} />
+                  <FaCreditCard  />
                 </div>
                 <div>
-                  <h3 className="parent-fee-title">Payment Progress</h3>
+                  <h3 className="parent-fee-title" style={{color: 'white' }}>Payment Progress</h3>
                 </div>
               </div>
               <div className="parent-fee-card-body">
@@ -387,7 +350,7 @@ export default function ChildFees() {
                   <FaCalendarAlt style={{ color: BRAND_COLORS.success.main }} />
                 </div>
                 <div>
-                  <h3 className="parent-fee-title">Installment History</h3>
+                  <h3 className="parent-fee-title" style={{color: 'white' }}>Installment History</h3>
                 </div>
               </div>
               <div className="parent-fee-card-body">
@@ -465,7 +428,9 @@ export default function ChildFees() {
 }
 
 /* ================= FEE STAT CARD ================= */
-function FeeStatCard({ icon: Icon, label, value, color, gradient, showProgress = false, progressValue = 0 }) {
+function FeeStatCard({ icon: IconComp, label, value, gradient, showProgress = false, progressValue = 0 }) {
+  // eslint-disable-next-line no-unused-vars
+  const Icon = IconComp;
   return (
     <motion.div
       whileHover={{ y: -3, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)' }}

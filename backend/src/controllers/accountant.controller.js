@@ -1,6 +1,7 @@
 const StudentFee = require("../models/studentFee.model");
 const User = require("../models/user.model");
 const AppError = require("../utils/AppError");
+const { selectAuthoritativeFee } = require("../services/studentFee.service");
 
 /**
  * GET /api/accountant/dashboard
@@ -8,9 +9,9 @@ const AppError = require("../utils/AppError");
  */
 exports.getDashboard = async (req, res, next) => {
   try {
-    let collegeId = req.user.college_id;
+    let collegeId = req.user?.college_id || req.college_id;
 
-    if (!collegeId) {
+    if (!collegeId && req.user?.id) {
       const user = await User.findById(req.user.id).select("college_id");
       if (!user || !user.college_id) {
         return next(new AppError("College not assigned to accountant. Please contact admin.", 403, "COLLEGE_ID_MISSING"));
@@ -22,26 +23,67 @@ exports.getDashboard = async (req, res, next) => {
       return next(new AppError("College ID not found in user profile", 403, "COLLEGE_ID_MISSING"));
     }
 
-    const totalFeesAggregate = await StudentFee.aggregate([
-      { $match: { college_id: collegeId } },
-      {
-        $group: {
-          _id: null,
-          totalFees: { $sum: "$totalFee" },
-          totalPaid: { $sum: "$paidAmount" },
-        },
-      },
-    ]);
+    // 1. Fetch all StudentFees for the college and group by student to select authoritative fee
+    const allFees = await StudentFee.find({ college_id: collegeId })
+      .populate("student_id", "fullName email")
+      .populate("course_id", "name")
+      .lean();
 
-    const totalFees = totalFeesAggregate[0]?.totalFees || 0;
-    const totalCollected = totalFeesAggregate[0]?.totalPaid || 0;
-    const pendingAmount = totalFees - totalCollected;
+    const feesByStudent = new Map();
+    for (const fee of allFees) {
+      if (!fee.student_id) continue;
+      const sId = fee.student_id._id ? String(fee.student_id._id) : String(fee.student_id);
+      if (!feesByStudent.has(sId)) {
+        feesByStudent.set(sId, []);
+      }
+      feesByStudent.get(sId).push(fee);
+    }
 
-    const overdueCount = await StudentFee.countDocuments({
-      college_id: collegeId,
-      "installments.status": "PENDING",
-      "installments.dueDate": { $lt: new Date() },
-    });
+    const authoritativeFees = [];
+    for (const studentFees of feesByStudent.values()) {
+      const authFee = selectAuthoritativeFee(studentFees);
+      if (authFee) authoritativeFees.push(authFee);
+    }
+
+    // 2. Compute financial stats strictly per student from authoritative fees
+    let totalFees = 0;
+    let totalCollected = 0;
+    let overdueCount = 0;
+    let criticalOverdueCount = 0;
+    const defaulterStudentIds = new Set();
+    let pendingFromDefaulters = 0;
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    for (const fee of authoritativeFees) {
+      const tFee = Number(fee.totalFee) || 0;
+      const pFee = Number(fee.paidAmount) || 0;
+      totalFees += tFee;
+      totalCollected += pFee;
+
+      let studentIsDefaulter = false;
+      for (const inst of fee.installments || []) {
+        if (inst.status === "PENDING" && inst.dueDate && new Date(inst.dueDate) < now) {
+          overdueCount++;
+          studentIsDefaulter = true;
+          pendingFromDefaulters += (Number(inst.amount) || 0);
+          if (
+            new Date(inst.dueDate) < thirtyDaysAgo ||
+            ["SEVERELY_OVERDUE", "CRITICALLY_OVERDUE"].includes(inst.escalationLevel)
+          ) {
+            criticalOverdueCount++;
+          }
+        }
+      }
+      if (studentIsDefaulter && fee.student_id) {
+        defaulterStudentIds.add(String(fee.student_id._id || fee.student_id));
+      }
+    }
+
+    const totalStudents = feesByStudent.size;
+    const pendingAmount = Math.max(0, totalFees - totalCollected);
+    const totalDefaultersCount = defaulterStudentIds.size;
 
     const recentPayments = await StudentFee.aggregate([
       { $match: { college_id: collegeId } },
@@ -63,31 +105,6 @@ exports.getDashboard = async (req, res, next) => {
 
     const recentCount = recentPayments[0]?.count || 0;
     const recentTotal = recentPayments[0]?.total || 0;
-
-    const defaultersList = await StudentFee.aggregate([
-      { $match: { college_id: collegeId, "installments.status": "PENDING", "installments.dueDate": { $lt: new Date() } } },
-      { $unwind: "$installments" },
-      { $match: { "installments.status": "PENDING", "installments.dueDate": { $lt: new Date() } } },
-      {
-        $group: {
-          _id: null,
-          totalDefaulters: { $addToSet: "$student_id" },
-          totalPendingFromDefaulters: { $sum: "$installments.amount" },
-        },
-      },
-    ]);
-
-    const totalDefaultersCount = defaultersList[0]?.totalDefaulters?.length || 0;
-    const pendingFromDefaulters = defaultersList[0]?.totalPendingFromDefaulters || 0;
-
-    const totalStudents = await StudentFee.countDocuments({ college_id: collegeId });
-
-    const criticalOverdueCount = await StudentFee.countDocuments({
-      college_id: collegeId,
-      "installments.status": "PENDING",
-      "installments.dueDate": { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
-      "installments.escalationLevel": { $in: ["SEVERELY_OVERDUE", "CRITICALLY_OVERDUE"] },
-    });
 
     const recentOfflinePayments = await StudentFee.aggregate([
       { $match: { college_id: collegeId } },
@@ -121,12 +138,7 @@ exports.getDashboard = async (req, res, next) => {
       },
     ]);
 
-    const report = await StudentFee.find({ college_id: collegeId })
-      .populate("student_id", "fullName email")
-      .populate("course_id", "name")
-      .lean();
-
-    const reportFormatted = report.map((fee) => ({
+    const reportFormatted = authoritativeFees.map((fee) => ({
       student: {
         _id: fee.student_id?._id,
         fullName: fee.student_id?.fullName,
@@ -136,16 +148,17 @@ exports.getDashboard = async (req, res, next) => {
         _id: fee.course_id?._id,
         name: fee.course_id?.name,
       },
-      totalFee: fee.totalFee,
-      paidAmount: fee.paidAmount,
-      pendingAmount: fee.totalFee - fee.paidAmount,
-      installments: fee.installments,
+      totalFee: Number(fee.totalFee) || 0,
+      paidAmount: Number(fee.paidAmount) || 0,
+      pendingAmount: Math.max(0, (Number(fee.totalFee) || 0) - (Number(fee.paidAmount) || 0)),
+      installments: fee.installments || [],
     }));
 
     res.json({
       success: true,
+      totalFees,
       totalCollected,
-      totalStudents: report.length,
+      totalStudents: reportFormatted.length,
       report: reportFormatted,
       pendingAmount,
       overdueInstallments: overdueCount,

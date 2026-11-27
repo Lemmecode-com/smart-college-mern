@@ -5,6 +5,8 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import Pagination from "../../../components/Pagination";
 import { toast } from "react-toastify";
 import {
   FaUserTimes,
@@ -15,8 +17,6 @@ import {
   FaCalendarAlt,
   FaRupeeSign,
   FaSyncAlt,
-  FaChevronLeft,
-  FaChevronRight,
   FaFileInvoiceDollar,
 } from "react-icons/fa";
 import "./DefaulterList.css";
@@ -47,13 +47,13 @@ export default function DefaulterList() {
       setDefaulters(res.data?.defaulters || []);
       setSummary(res.data?.summary || null);
 
-      toast.success("Defaulter list loaded successfully!", {
+      toast.success("Pending dues list loaded successfully!", {
         position: "top-right",
         autoClose: 3000,
         toastId: PAGE_LOAD_TOAST_ID,
       });
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to load defaulters list";
+      const errorMsg = err.response?.data?.message || "Failed to load pending dues list";
       setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
       toast.error(errorMsg, {
         position: "top-right",
@@ -155,13 +155,26 @@ export default function DefaulterList() {
   ];
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading defaulters list..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Pending Dues..."
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
       <ApiError
-        title="Error Loading Defaulters"
+        title="Error Loading Pending Dues"
         message={error.message}
         statusCode={error.statusCode}
         errorCode={error.errorCode}
@@ -176,16 +189,16 @@ export default function DefaulterList() {
        <Breadcrumb
          items={[
            { label: "Accountant Dashboard", path: "/dashboard/accountant" },
-           { label: "Defaulter List" },
+           { label: "Pending Dues" },
          ]}
        />
 
-       <div className="dashboard-header">
-         <h1>
-           <FaUserTimes />
-           Defaulter List
-         </h1>
-       </div>
+ {/* ================= HEADER ================= */}
+<PageHeader
+  icon={FaUserTimes}
+  title="Pending Dues"
+  subtitle="View and manage students with overdue fee payments"
+/>
 
        {summary && (
          <div className="summary-grid">
@@ -194,7 +207,7 @@ export default function DefaulterList() {
                <FaUserTimes />
              </div>
              <div className="stat-content">
-               <div className="stat-label">Total Defaulters</div>
+               <div className="stat-label">Students with Dues</div>
                <div className="stat-value">{summary.totalDefaulters}</div>
              </div>
            </div>
@@ -212,7 +225,7 @@ export default function DefaulterList() {
                <FaExclamationTriangle />
              </div>
              <div className="stat-content">
-               <div className="stat-label">Critical Defaulters</div>
+               <div className="stat-label">Critical Dues</div>
                <div className="stat-value">{summary.byEscalation.CRITICALLY_OVERDUE || 0}</div>
              </div>
            </div>
@@ -221,7 +234,7 @@ export default function DefaulterList() {
                <FaCalendarAlt />
              </div>
              <div className="stat-content">
-               <div className="stat-label">Severe Defaulters</div>
+               <div className="stat-label">Severe Dues</div>
                <div className="stat-value">{summary.byEscalation.SEVERELY_OVERDUE || 0}</div>
              </div>
            </div>
@@ -253,10 +266,10 @@ export default function DefaulterList() {
            </select>
 
           <ExportButtons
-            title="Defaulter List"
+            title="Pending Dues"
             columns={exportColumns}
             data={getExportData()}
-            filename={`defaulters_${new Date().toISOString().split("T")[0]}`}
+            filename={`pending_dues_${new Date().toISOString().split("T")[0]}`}
             showCSV
             showPDF
           />
@@ -267,14 +280,14 @@ export default function DefaulterList() {
         <div className="p-4 border-bottom">
           <h5 className="mb-0">
             <FaFileInvoiceDollar className="me-2" />
-            Defaulters ({filteredDefaulters.length})
+            Pending Dues ({filteredDefaulters.length})
           </h5>
         </div>
 
         {paginatedDefaulters.length === 0 ? (
           <div className="empty-state">
             <FaUserTimes style={{ fontSize: "3rem", color: "#cbd5e1", marginBottom: "1rem" }} />
-            <h4>No Defaulters Found</h4>
+            <h4>No Pending Dues Found</h4>
             <p>Students with overdue payments will appear here.</p>
           </div>
         ) : (
@@ -325,35 +338,11 @@ export default function DefaulterList() {
             </div>
 
             {totalPages > 1 && (
-              <div className="defaulter-pagination">
-                <button
-                  className="page-btn"
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  <FaChevronLeft />
-                </button>
-
-                <div className="d-flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                    <button
-                      key={num}
-                      className={`page-btn ${currentPage === num ? "active" : ""}`}
-                      onClick={() => setCurrentPage(num)}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  className="page-btn"
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  <FaChevronRight />
-                </button>
-              </div>
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
             )}
           </>
         )}

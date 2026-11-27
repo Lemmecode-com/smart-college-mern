@@ -13,7 +13,11 @@ const PasswordReset = require("../models/passwordReset.model");
 const AuthSession = require("../models/authSession.model");
 const GeneralSettings = require("../models/generalSettings.model");
 const AppError = require("../utils/AppError");
-const { validatePassword, passwordValidationMessage } = require("../utils/validators");
+const {
+  validatePassword,
+  passwordValidationMessage,
+  getPasswordValidationMessage,
+} = require("../utils/validators");
 const {
   createAndSendOTP,
   verifyOTP,
@@ -22,9 +26,79 @@ const {
 } = require("../services/otp.service");
 const securityAuditService = require("../services/securityAudit.service");
 
-const MAX_LOGIN_ATTEMPTS = 5;
+const DEFAULT_MAX_LOGIN_ATTEMPTS = 5;
+const DEFAULT_MIN_PASSWORD_LENGTH = 8;
+const DEFAULT_PASSWORD_EXPIRY_DAYS = 90;
+const DEFAULT_AUTO_DISABLE_INACTIVE_DAYS = 180;
 const LOGIN_LOCKOUT_MINUTES = parseInt(process.env.LOGIN_LOCKOUT_MINUTES, 10) || 1;
 const LOCKOUT_DURATION_MS = LOGIN_LOCKOUT_MINUTES * 60 * 1000;
+
+const getCollegeAuthSettings = async (collegeId) => {
+  const DEFAULT_POLICY = {
+    maxLoginAttempts: DEFAULT_MAX_LOGIN_ATTEMPTS,
+    minPasswordLength: DEFAULT_MIN_PASSWORD_LENGTH,
+    passwordExpiryDays: DEFAULT_PASSWORD_EXPIRY_DAYS,
+    autoDisableInactiveDays: DEFAULT_AUTO_DISABLE_INACTIVE_DAYS,
+  };
+
+  if (!collegeId) return DEFAULT_POLICY;
+
+  try {
+    const settings = await GeneralSettings.findOne({ college_id: collegeId }).lean();
+    if (!settings) return DEFAULT_POLICY;
+    return {
+      maxLoginAttempts:
+        typeof settings.maxLoginAttempts === "number"
+          ? settings.maxLoginAttempts
+          : DEFAULT_MAX_LOGIN_ATTEMPTS,
+      minPasswordLength:
+        typeof settings.minPasswordLength === "number"
+          ? settings.minPasswordLength
+          : DEFAULT_MIN_PASSWORD_LENGTH,
+      passwordExpiryDays:
+        typeof settings.passwordExpiryDays === "number"
+          ? settings.passwordExpiryDays
+          : DEFAULT_PASSWORD_EXPIRY_DAYS,
+      autoDisableInactiveDays:
+        typeof settings.autoDisableInactiveDays === "number"
+          ? settings.autoDisableInactiveDays
+          : DEFAULT_AUTO_DISABLE_INACTIVE_DAYS,
+    };
+  } catch (err) {
+    logger.logError("Failed to load GeneralSettings for auth policy", {
+      error: err.message,
+      collegeId,
+    });
+    return DEFAULT_POLICY;
+  }
+};
+
+const isPasswordExpired = (user, passwordExpiryDays) => {
+  if (!user || user.role === "SUPER_ADMIN") return false;
+  if (!passwordExpiryDays || typeof passwordExpiryDays !== "number") return false;
+
+  const lastChanged = user.passwordChangedAt
+    ? new Date(user.passwordChangedAt)
+    : (user.createdAt ? new Date(user.createdAt) : new Date(0));
+
+  const expiryDurationMs = passwordExpiryDays * 24 * 60 * 60 * 1000;
+  return Date.now() - lastChanged.getTime() > expiryDurationMs;
+};
+
+const sendPasswordExpiredResponse = (res, user, passwordExpiryDays) => {
+  return res.status(403).json({
+    success: false,
+    code: "PASSWORD_EXPIRED",
+    message: `Your password has expired (policy: ${passwordExpiryDays} days). Please reset or change your password to continue.`,
+    passwordExpired: true,
+    mustChangePassword: true,
+    user: {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+    },
+  });
+};
 
 const isAccountLocked = (record) => {
   if (!record) return false;
@@ -32,11 +106,49 @@ const isAccountLocked = (record) => {
   return new Date() < new Date(record.lockedUntil);
 };
 
-const incrementLoginAttempts = async (Model, id) => {
+const throwAccountLockedError = (record) => {
+  const remainingSeconds = Math.max(
+    0,
+    Math.ceil((new Date(record.lockedUntil) - new Date()) / 1000)
+  );
+  const remainingMinutes = Math.max(1, Math.ceil(remainingSeconds / 60));
+  const remainingLabel = remainingMinutes === 1 ? "minute" : "minutes";
+  throw new AppError(
+    `Account locked due to multiple failed login attempts. Try again in ${remainingMinutes} ${remainingLabel}.`,
+    423,
+    "ACCOUNT_LOCKED",
+    {
+      lockedUntil: record.lockedUntil.toISOString(),
+      retryAfter: remainingSeconds,
+      attemptsRemaining: 0,
+    }
+  );
+};
+
+const throwInvalidCredentialsError = (nextAttempts, maxAttempts = DEFAULT_MAX_LOGIN_ATTEMPTS) => {
+  const effectiveMax =
+    typeof maxAttempts === "number" ? maxAttempts : DEFAULT_MAX_LOGIN_ATTEMPTS;
+  const remaining = Math.max(0, effectiveMax - nextAttempts);
+  if (remaining <= 2 && remaining > 0) {
+    throw new AppError(
+      `Invalid credentials. Caution: Only ${remaining} login attempt${remaining > 1 ? "s" : ""} remaining before your account is temporarily locked!`,
+      401,
+      "INVALID_CREDENTIALS",
+      { attemptsRemaining: remaining }
+    );
+  }
+  throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS", {
+    attemptsRemaining: remaining,
+  });
+};
+
+const incrementLoginAttempts = async (Model, id, maxAttempts = DEFAULT_MAX_LOGIN_ATTEMPTS) => {
+  const effectiveMax =
+    typeof maxAttempts === "number" ? maxAttempts : DEFAULT_MAX_LOGIN_ATTEMPTS;
   const attempts = (await Model.findById(id).select("loginAttempts")) || {};
   const next = (attempts.loginAttempts || 0) + 1;
   const update =
-    next >= MAX_LOGIN_ATTEMPTS
+    next >= effectiveMax
       ? { loginAttempts: next, lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) }
       : { loginAttempts: next };
   await Model.findByIdAndUpdate(id, update);
@@ -59,23 +171,22 @@ exports.login = async (req, res, next) => {
     let user = await User.findOne({ email });
     if (user) {
       if (isAccountLocked(user)) {
-        const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
-        const remainingLabel = remaining === 1 ? "minute" : "minutes";
-        throw new AppError(
-          `Account locked due to multiple failed login attempts. Try again in ${remaining} ${remainingLabel}.`,
-          423,
-          "ACCOUNT_LOCKED",
-          { lockedUntil: user.lockedUntil.toISOString() },
-        );
+        throwAccountLockedError(user);
       }
+
+      const authPolicy = await getCollegeAuthSettings(user.college_id);
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        await incrementLoginAttempts(User, user._id);
+        const nextAttempts = await incrementLoginAttempts(
+          User,
+          user._id,
+          authPolicy.maxLoginAttempts
+        );
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
-        throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+        throwInvalidCredentialsError(nextAttempts, authPolicy.maxLoginAttempts);
       }
 
       await resetLoginAttempts(User, user._id);
@@ -87,6 +198,11 @@ exports.login = async (req, res, next) => {
           403,
           "ACCOUNT_DEACTIVATED",
         );
+      }
+
+      // 🔒 Check if password has expired (skip for SUPER_ADMIN)
+      if (isPasswordExpired(user, authPolicy.passwordExpiryDays)) {
+        return sendPasswordExpiredResponse(res, user, authPolicy.passwordExpiryDays);
       }
 
       // 🔒 Force password change on first login (skip for students)
@@ -111,35 +227,39 @@ exports.login = async (req, res, next) => {
     let teacher = await Teacher.findOne({ email, status: "ACTIVE" });
     if (teacher) {
       if (isAccountLocked(teacher)) {
-        const remaining = Math.ceil((new Date(teacher.lockedUntil) - new Date()) / 60000);
-        const remainingLabel = remaining === 1 ? "minute" : "minutes";
-        throw new AppError(
-          `Account locked due to multiple failed login attempts. Try again in ${remaining} ${remainingLabel}.`,
-          423,
-          "ACCOUNT_LOCKED",
-          { lockedUntil: teacher.lockedUntil.toISOString() },
-        );
+        throwAccountLockedError(teacher);
       }
+
+      const authPolicy = await getCollegeAuthSettings(teacher.college_id);
 
       const isMatch = await bcrypt.compare(password, teacher.password);
       if (!isMatch) {
-        await incrementLoginAttempts(Teacher, teacher._id);
+        const nextAttempts = await incrementLoginAttempts(
+          Teacher,
+          teacher._id,
+          authPolicy.maxLoginAttempts
+        );
         securityAuditService
           .logLoginFailed(email, req, "INVALID_CREDENTIALS")
           .catch((err) => console.error("Audit log failed:", err));
-        throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+        throwInvalidCredentialsError(nextAttempts, authPolicy.maxLoginAttempts);
       }
 
       await resetLoginAttempts(Teacher, teacher._id);
 
       const linkedUser = await User.findOne({ email, role: "TEACHER" });
-      if (linkedUser && linkedUser.mustChangePassword === true) {
-        return res.status(403).json({
-          success: false,
-          code: "MUST_CHANGE_PASSWORD",
-          message: "You must change your temporary password on first login",
-          user: { id: linkedUser._id },
-        });
+      if (linkedUser) {
+        if (isPasswordExpired(linkedUser, authPolicy.passwordExpiryDays)) {
+          return sendPasswordExpiredResponse(res, linkedUser, authPolicy.passwordExpiryDays);
+        }
+        if (linkedUser.mustChangePassword === true) {
+          return res.status(403).json({
+            success: false,
+            code: "MUST_CHANGE_PASSWORD",
+            message: "You must change your temporary password on first login",
+            user: { id: linkedUser._id },
+          });
+        }
       }
 
       securityAuditService
@@ -182,25 +302,28 @@ exports.login = async (req, res, next) => {
 
       if (user) {
         if (isAccountLocked(user)) {
-          const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
-          throw new AppError(
-            `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
-            423,
-            "ACCOUNT_LOCKED",
-            { lockedUntil: user.lockedUntil.toISOString() },
-          );
+          throwAccountLockedError(user);
         }
+
+        const authPolicy = await getCollegeAuthSettings(student.college_id);
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          await incrementLoginAttempts(User, user._id);
+          const nextAttempts = await incrementLoginAttempts(
+            User,
+            user._id,
+            authPolicy.maxLoginAttempts
+          );
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
-          throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+          throwInvalidCredentialsError(nextAttempts, authPolicy.maxLoginAttempts);
         }
 
         await resetLoginAttempts(User, user._id);
+        if (isPasswordExpired(user, authPolicy.passwordExpiryDays)) {
+          return sendPasswordExpiredResponse(res, user, authPolicy.passwordExpiryDays);
+        }
         securityAuditService
           .logLoginSuccess(student, req)
           .catch((err) => console.error("Audit log failed:", err));
@@ -222,25 +345,28 @@ exports.login = async (req, res, next) => {
 
       if (user) {
         if (isAccountLocked(user)) {
-          const remaining = Math.ceil((new Date(user.lockedUntil) - new Date()) / 60000);
-          throw new AppError(
-            `Account locked due to multiple failed login attempts. Try again in ${remaining} minutes.`,
-            423,
-            "ACCOUNT_LOCKED",
-            { lockedUntil: user.lockedUntil.toISOString() },
-          );
+          throwAccountLockedError(user);
         }
+
+        const authPolicy = await getCollegeAuthSettings(student.college_id);
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-          await incrementLoginAttempts(User, user._id);
+          const nextAttempts = await incrementLoginAttempts(
+            User,
+            user._id,
+            authPolicy.maxLoginAttempts
+          );
           securityAuditService
             .logLoginFailed(email, req, "INVALID_CREDENTIALS")
             .catch((err) => console.error("Audit log failed:", err));
-          throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
+          throwInvalidCredentialsError(nextAttempts, authPolicy.maxLoginAttempts);
         }
 
         await resetLoginAttempts(User, user._id);
+        if (isPasswordExpired(user, authPolicy.passwordExpiryDays)) {
+          return sendPasswordExpiredResponse(res, user, authPolicy.passwordExpiryDays);
+        }
         securityAuditService
           .logLoginSuccess(student, req)
           .catch((err) => console.error("Audit log failed:", err));
@@ -496,7 +622,10 @@ exports.requestPasswordReset = async (req, res, next) => {
     // ✅ CHECK RATE LIMIT (Prevent duplicate requests)
     const rateLimit = await checkRateLimit(email);
     if (!rateLimit.allowed) {
-      throw new AppError(rateLimit.message, 429, "RATE_LIMIT_EXCEEDED");
+      throw new AppError(rateLimit.message, 429, "RATE_LIMIT_EXCEEDED", {
+        attemptsRemaining: 0,
+        retryAfter: rateLimit.retryAfter,
+      });
     }
 
     // ✅ Check if there's already an active OTP for this email
@@ -514,6 +643,7 @@ exports.requestPasswordReset = async (req, res, next) => {
         success: true,
         message: `OTP already sent! Please check your email. Valid for ${minutesLeft} more minutes.`,
         otpAlreadySent: true,
+        attemptsRemaining: rateLimit.attemptsRemaining,
       });
     }
 
@@ -523,6 +653,7 @@ exports.requestPasswordReset = async (req, res, next) => {
     res.json({
       success: true,
       message: "OTP sent successfully to your email.",
+      attemptsRemaining: Math.max(0, (rateLimit.attemptsRemaining || 1) - 1),
     });
   } catch (error) {
     console.error("❌ Password Reset Error:", error.message);
@@ -554,7 +685,9 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
 
     if (!result.valid) {
       const errorCode = result.code === "OTP_MAX_ATTEMPTS" ? "OTP_MAX_ATTEMPTS" : "INVALID_OTP";
-      throw new AppError(result.message, 400, errorCode);
+      throw new AppError(result.message, 400, errorCode, {
+        attemptsRemaining: result.attemptsRemaining,
+      });
     }
 
     // Find user and update password
@@ -572,8 +705,18 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
       throw new AppError("User not found", 404, "USER_NOT_FOUND");
     }
 
+    const authPolicy = await getCollegeAuthSettings(user.college_id);
+    if (!validatePassword(newPassword, authPolicy.minPasswordLength)) {
+      throw new AppError(
+        getPasswordValidationMessage(authPolicy.minPasswordLength),
+        400,
+        "WEAK_PASSWORD"
+      );
+    }
+
     // Update password
     user.password = newPassword; // Will be hashed by pre-save hook
+    user.passwordChangedAt = new Date();
     await user.save();
 
     // Invalidate all existing tokens by bumping version
@@ -634,13 +777,6 @@ exports.changePassword = async (req, res, next) => {
       return next(new AppError("Invalid user ID format", 400, "INVALID_ID"));
     }
 
-    // Validate new password strength using centralized policy
-    if (!validatePassword(newPassword)) {
-      return next(
-        new AppError(passwordValidationMessage, 400, "WEAK_PASSWORD")
-      );
-    }
-
     // Find user in User collection first (for staff/college admin/super admin)
     let user = await User.findById(effectiveUserId);
 
@@ -648,54 +784,30 @@ exports.changePassword = async (req, res, next) => {
       // Check Teacher collection (unlikely for first-login but allow)
       const Teacher = require("../models/teacher.model");
       user = await Teacher.findOne({ user_id: effectiveUserId });
+    }
 
-      if (user) {
-        // Verify current password
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-          // 🔒 SECURITY AUDIT: Log failed password change attempt
-          await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
-          throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
-        }
-
-        // Update password
-        user.password = newPassword;
-        await user.save();
-
-        // 🔒 SECURITY AUDIT: Log successful password change
-        await securityAuditService.logPasswordChangeSuccess(user, req);
-
-        return res.json({
-          success: true,
-          message: "Password changed successfully. Please login with your new password.",
-        });
-      }
-
+    if (!user) {
       // Check Student collection
       const Student = require("../models/student.model");
       user = await Student.findOne({ user_id: effectiveUserId });
+    }
 
-      if (user) {
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-          await securityAuditService.logPasswordChangeFailed(user, req, "INVALID_CURRENT_PASSWORD");
-          throw new AppError("Current password is incorrect", 401, "INVALID_CURRENT_PASSWORD");
-        }
-
-        user.password = newPassword;
-        await user.save();
-        await securityAuditService.logPasswordChangeSuccess(user, req);
-
-        return res.json({
-          success: true,
-          message: "Password changed successfully. Please login with your new password.",
-        });
-      }
-
+    if (!user) {
       throw new AppError("User not found", 404, "USER_NOT_FOUND");
     }
 
-    // User is from User collection
+    // Validate new password strength using college policy
+    const authPolicy = await getCollegeAuthSettings(user.college_id || req.college_id);
+    if (!validatePassword(newPassword, authPolicy.minPasswordLength)) {
+      return next(
+        new AppError(
+          getPasswordValidationMessage(authPolicy.minPasswordLength),
+          400,
+          "WEAK_PASSWORD"
+        )
+      );
+    }
+
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
@@ -705,7 +817,10 @@ exports.changePassword = async (req, res, next) => {
 
     // Update password
     user.password = newPassword;
-    user.mustChangePassword = false; // ✅ Clear flag on successful change
+    user.passwordChangedAt = new Date();
+    if (user.mustChangePassword !== undefined) {
+      user.mustChangePassword = false; // ✅ Clear flag on successful change
+    }
     await user.save();
 
     // 🔒 SECURITY AUDIT: Log successful password change
@@ -845,6 +960,23 @@ const sendTokens = async (res, id, role, college_id, tokenVersion, req) => {
     sameSite: "strict",
   });
 
+  // 🕒 Update lastLogin timestamp for user and linked records
+  const now = new Date();
+  await User.findByIdAndUpdate(id, { $set: { lastLogin: now } }).catch((err) =>
+    logger.logError("Failed to update user lastLogin", { error: err.message, id })
+  );
+  if (role === "TEACHER") {
+    await Teacher.findOneAndUpdate(
+      { $or: [{ user_id: id }, { _id: id }] },
+      { $set: { lastLogin: now } }
+    ).catch(() => {});
+  } else if (role === "STUDENT") {
+    await Student.findOneAndUpdate(
+      { $or: [{ user_id: id }, { _id: id }] },
+      { $set: { lastLogin: now } }
+    ).catch(() => {});
+  }
+
   res.json({
     success: true,
     message: "Login successful",
@@ -856,22 +988,27 @@ const sendTokens = async (res, id, role, college_id, tokenVersion, req) => {
 
 /**
  * Parse JWT expiry string to milliseconds
- * @param {string} expiry - Expiry string (e.g., "1d", "2h", "30m")
+ * Supports units: s, m, min, h, hr, hrs, d
+ * @param {string} expiry - Expiry string (e.g., "1d", "2h", "2hr", "2hrs", "30m", "30min")
  * @returns {number} Milliseconds
  */
 const parseExpiryToMilliseconds = (expiry) => {
-  const match = /^(\d+)([smhd])$/.exec(expiry);
+  if (typeof expiry !== "string") return 24 * 60 * 60 * 1000;
+  const match = /^(\d+)\s*(s|m|min|h|hr|hrs|d)$/i.exec(expiry.trim());
   if (!match) return 24 * 60 * 60 * 1000; // Default 1 day
 
-  const value = parseInt(match[1]);
-  const unit = match[2];
+  const value = parseInt(match[1], 10);
+  const unit = match[2].toLowerCase();
 
   switch (unit) {
     case "s":
       return value * 1000;
     case "m":
+    case "min":
       return value * 60 * 1000;
     case "h":
+    case "hr":
+    case "hrs":
       return value * 60 * 60 * 1000;
     case "d":
       return value * 24 * 60 * 60 * 1000;
@@ -916,3 +1053,9 @@ const getAccessTokenExpiry = () => process.env.JWT_ACCESS_EXPIRY || "15m";
  */
 const getAccessTokenExpiryMs = () =>
   parseExpiryToMilliseconds(getAccessTokenExpiry());
+
+exports.parseExpiryToMilliseconds = parseExpiryToMilliseconds;
+exports.getCollegeAuthSettings = getCollegeAuthSettings;
+exports.isPasswordExpired = isPasswordExpired;
+exports.DEFAULT_PASSWORD_EXPIRY_DAYS = DEFAULT_PASSWORD_EXPIRY_DAYS;
+exports.DEFAULT_AUTO_DISABLE_INACTIVE_DAYS = DEFAULT_AUTO_DISABLE_INACTIVE_DAYS;

@@ -99,6 +99,15 @@ const documentSchema = new mongoose.Schema({
     type: String,
   },
 
+  reuploadToken: {
+    type: String,
+    index: true,
+    sparse: true,
+  },
+  reuploadTokenExpires: {
+    type: Date,
+  },
+
   metadata: {
     type: Map,
     of: mongoose.Schema.Types.Mixed,

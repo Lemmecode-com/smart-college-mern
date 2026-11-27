@@ -24,6 +24,7 @@ import {
 } from "react-icons/fa";
 import api from "../../../api/axios";
 import ApiError from "../../../components/ApiError";
+import Loading from "../../../components/Loading";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 
@@ -141,13 +142,18 @@ export default function PlatformSupportConfig() {
 
   if (loading) {
     return (
-      <Container className="py-4">
-        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "50vh" }}>
-          <Spinner animation="border" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading..."
+          />
         </div>
-      </Container>
+      </div>
     );
   }
 

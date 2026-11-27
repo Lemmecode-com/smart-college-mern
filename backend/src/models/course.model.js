@@ -37,6 +37,12 @@ const courseSchema = new mongoose.Schema(
       default: "ACTIVE"
     },
 
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true
+    },
+
     programLevel: {
       type: String,
       enum: ["UG", "PG", "DIPLOMA", "PHD"],

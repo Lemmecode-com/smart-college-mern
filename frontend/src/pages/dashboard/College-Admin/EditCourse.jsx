@@ -3,13 +3,17 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
 import {
   FaBookOpen,
   FaSave,
-  FaArrowLeft
+  FaArrowLeft,
+  FaExclamationTriangle,
+  FaUsers,
 } from "react-icons/fa";
 
 export default function EditCourse() {
@@ -127,9 +131,22 @@ export default function EditCourse() {
   };
 
   /* ================= LOADING ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading course details..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Course Details..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error && typeof error === 'object') {
     return (
@@ -149,17 +166,73 @@ export default function EditCourse() {
   }
 
   return (
-    <div className="container-fluid">
-      {/* HEADER */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow mb-4">
-        <h3 className="fw-bold">
-          <FaBookOpen className="blink me-2" />
-          Edit Course
-        </h3>
-        <p className="opacity-75 mb-0">
-          Update course details
-        </p>
+    <div className="container-fluid pt-2 edit-course-page">
+      {/* ================= BREADCRUMB ================= */}
+    <div
+      className="edit-course-breadcrumb"
+      style={{
+        width: "100%",
+        margin: "0 auto",
+        paddingTop: 0,
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard/college-admin" },
+            { label: "Courses", path: "/courses" },
+            { label: "Edit Course" },
+          ]}
+        />
       </div>
+    </div>
+
+    {/* PAGE HEADER */}
+    <PageHeader
+      icon={FaBookOpen}
+      title="Edit Course"
+      subtitle="Update course details"
+      actions={
+        <button
+          type="button"
+          onClick={() => navigate("/courses")}
+          aria-label="Back to courses"
+          title="Back to courses"
+          style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",    
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 10px rgba(0, 0, 0, 0.15)";
+            e.currentTarget.style.background =
+              "rgba(255, 255, 255, 0.18)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+            e.currentTarget.style.background =
+              "rgba(255, 255, 255, 0.12)";
+          }}
+        >
+          <FaArrowLeft size={15} />
+          <span>Back</span>
+        </button>
+      }
+    />
 
       {/* ERROR */}
       {error && typeof error === 'string' && (
@@ -167,66 +240,369 @@ export default function EditCourse() {
       )}
 
       {/* FORM */}
-      <form onSubmit={handleSubmit}>
-        <div className="card shadow-lg border-0 rounded-4">
-          <div className="card-body p-4">
-
-            <div className="row g-3">
-              <Input label="Course Name" name="name" value={formData.name} onChange={handleChange} />
-              <Input label="Course Code" name="code" value={formData.code} onChange={handleChange} />
-
-              <Select label="Type" name="type" value={formData.type} onChange={handleChange}
-                options={["THEORY", "PRACTICAL", "BOTH"]} />
-
-              <Select label="Status" name="status" value={formData.status} onChange={handleChange}
-                options={["ACTIVE", "INACTIVE"]} />
-
-              <Select label="Program Level" name="programLevel" value={formData.programLevel} onChange={handleChange}
-                options={["UG", "PG", "DIPLOMA", "PHD"]} />
-
-              <Input label="Program Duration (Semesters)" type="number" name="durationSemesters" value={formData.durationSemesters} onChange={handleChange} min="1" max="8" />
-              <Input label="Credits" type="number" name="credits" value={formData.credits} onChange={handleChange} />
-              <Input label="Max Students" type="number" name="maxStudents" value={formData.maxStudents} onChange={handleChange} min="1" step="1" />
+      <form onSubmit={handleSubmit} className="ec-form">
+        {/* ============ COURSE INFORMATION ============ */}
+        <section className="ec-section">
+          <header className="ec-section-head">
+            <span className="ec-section-icon"><FaBookOpen /></span>
+            <div className="ec-section-text">
+              <h3 className="ec-section-title">Course Information</h3>
+              <p className="ec-section-subtitle">Basic course details and academic classification</p>
             </div>
+          </header>
+          <div className="ec-divider" />
+          <div className="ec-grid">
+            <Input label="Course Name" name="name" value={formData.name} onChange={handleChange} />
+            <Input label="Course Code" name="code" value={formData.code} onChange={handleChange} />
 
+            <Select label="Type" name="type" value={formData.type} onChange={handleChange}
+              options={["THEORY", "PRACTICAL", "BOTH"]} />
+
+            <Select label="Status" name="status" value={formData.status} onChange={handleChange}
+              options={["ACTIVE", "INACTIVE"]} />
+
+            <Select label="Program Level" name="programLevel" value={formData.programLevel} onChange={handleChange}
+              options={["UG", "PG", "DIPLOMA", "PHD"]} />
+
+            <div className="ec-field">
+              <label className="ec-label">Program Duration (Semesters)</label>
+              <input
+                type="number"
+                className="ec-input"
+                name="durationSemesters"
+                value={formData.durationSemesters}
+                onChange={handleChange}
+                min="1"
+                max="8"
+                required
+              />
+              {(() => {
+                const semNum = Number(formData.durationSemesters);
+                const years = formData.durationYears ? Number(formData.durationYears) : Math.ceil(semNum / 2);
+                if (!semNum || isNaN(semNum)) return null;
+
+                let warningMsg = null;
+                if (formData.durationYears && semNum < 2 * Number(formData.durationYears)) {
+                  warningMsg = `Warning: Duration (${semNum} semesters) is less than 2 × durationYears (${2 * Number(formData.durationYears)} semesters).`;
+                } else if (semNum <= 2) {
+                  warningMsg = `Warning: ${semNum} semester(s) (${years} year) is unusually low. Degree programs like B.Tech typically require 8 semesters (4 years). Please verify you did not enter years instead of semesters.`;
+                } else if (formData.programLevel === "UG" && semNum < 6) {
+                  warningMsg = `Warning: ${semNum} semester(s) is lower than typical undergraduate programs (usually 6–8 semesters).`;
+                }
+
+                if (!warningMsg) return null;
+                return (
+                  <div className="ec-warning">
+                    <FaExclamationTriangle className="ec-warning-icon" />
+                    <span>{warningMsg}</span>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
+        </section>
 
-          {/* FOOTER */}
-          <div className="card-footer bg-white border-0 d-flex justify-content-between p-3">
-            <button
-              type="button"
-              className="btn btn-outline-secondary"
-              onClick={() => navigate("/courses")}
-            >
-              <FaArrowLeft className="me-1" />
-              Back
-            </button>
-
-            <button
-              className="btn btn-success px-4"
-              disabled={saving}
-            >
-              <FaSave className="me-1" />
-              {saving ? "Updating..." : "Update Course"}
-            </button>
+        {/* ============ ACADEMIC CAPACITY ============ */}
+        <section className="ec-section">
+          <header className="ec-section-head">
+            <span className="ec-section-icon ec-section-icon--capacity"><FaUsers /></span>
+            <div className="ec-section-text">
+              <h3 className="ec-section-title">Academic Capacity</h3>
+              <p className="ec-section-subtitle">Manage course credits and student enrollment limits</p>
+            </div>
+          </header>
+          <div className="ec-divider" />
+          <div className="ec-grid">
+            <Input label="Credits" type="number" name="credits" value={formData.credits} onChange={handleChange} />
+            <Input label="Max Students" type="number" name="maxStudents" value={formData.maxStudents} onChange={handleChange} min="1" step="1" />
           </div>
+        </section>
+
+        {/* ============ COURSE OVERVIEW ============ */}
+        <div className="ec-overview">
+          <div className="ec-overview-item">
+            <span className="ec-overview-label">Credits</span>
+            <span className="ec-overview-value">{formData.credits ?? "—"}</span>
+          </div>
+          <div className="ec-overview-item">
+            <span className="ec-overview-label">Program Duration</span>
+            <span className="ec-overview-value">{formData.durationSemesters ? `${formData.durationSemesters} sem` : "—"}</span>
+          </div>
+          <div className="ec-overview-item">
+            <span className="ec-overview-label">Max Student Capacity</span>
+            <span className="ec-overview-value">{formData.maxStudents ?? "—"}</span>
+          </div>
+        </div>
+
+        {/* ============ ACTIONS ============ */}
+        <div className="ec-actions">
+          <button className="ec-btn ec-btn-update" disabled={saving}>
+            <FaSave />
+            {saving ? "Updating..." : "Update Course"}
+          </button>
         </div>
       </form>
 
-      {/* CSS */}
       <style>{`
-        .gradient-header {
-          background: linear-gradient(180deg, #0f3a4a, #134952);
+        .edit-course-page {
+          --ec-navy: #0E3746;
+          --ec-navy-2: #164E63;
+          --ec-accent: #22B8E6;
+          --ec-accent-soft: #e8f7fd;
+          --ec-border: #DCE6EF;
+          --ec-text: #0f2b3a;
+          --ec-muted: #5b7183;
+          --ec-radius: 14px;
+          --ec-shadow: 0 1px 2px rgba(16,42,60,.05), 0 8px 24px rgba(16,42,60,.06);
         }
 
-        .blink {
-          animation: blink 1.5s infinite;
+        .edit-course-page .ec-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
         }
 
-        @keyframes blink {
-          0% {opacity:1}
-          50% {opacity:0.4}
-          100% {opacity:1}
+        .edit-course-page .ec-section {
+          background: #ffffff;
+          border: 1px solid var(--ec-border);
+          border-radius: var(--ec-radius);
+          box-shadow: var(--ec-shadow);
+          padding: 1.35rem 1.5rem 1.5rem;
+        }
+
+        .edit-course-page .ec-section-head {
+          display: flex;
+          align-items: center;
+          gap: 0.85rem;
+          margin-bottom: 0.85rem;
+        }
+
+        .edit-course-page .ec-section-icon {
+          flex-shrink: 0;
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.1rem;
+          color: var(--ec-accent);
+          background: var(--ec-accent-soft);
+          border: 1px solid #c6e7f7;
+        }
+
+        .edit-course-page .ec-section-icon--capacity {
+          color: var(--ec-navy);
+          background: #eef0fe;
+          border-color: #dcd9fb;
+        }
+
+        .edit-course-page .ec-section-text {
+          min-width: 0;
+        }
+
+        .edit-course-page .ec-section-title {
+          margin: 0;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--ec-navy);
+          line-height: 1.2;
+        }
+
+        .edit-course-page .ec-section-subtitle {
+          margin: 0.15rem 0 0;
+          font-size: 0.78rem;
+          color: var(--ec-muted);
+        }
+
+        .edit-course-page .ec-divider {
+          height: 1px;
+          background: var(--ec-border);
+          margin: 0.85rem 0 1.15rem;
+        }
+
+        .edit-course-page .ec-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1rem 1.25rem;
+        }
+
+        .edit-course-page .ec-field {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+          min-width: 0;
+        }
+
+        .edit-course-page .ec-label {
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: var(--ec-text);
+          letter-spacing: 0.01em;
+        }
+
+        .edit-course-page .ec-input,
+        .edit-course-page .ec-select {
+          width: 100%;
+          height: 42px;
+          padding: 0 0.85rem;
+          border: 1.5px solid var(--ec-border);
+          border-radius: 10px;
+          background: #f7fafc;
+          font-family: inherit;
+          font-size: 0.88rem;
+          color: var(--ec-text);
+          transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .edit-course-page .ec-input:focus,
+        .edit-course-page .ec-select:focus {
+          outline: none;
+          border-color: var(--ec-accent);
+          background: #ffffff;
+          box-shadow: 0 0 0 4px rgba(34, 184, 230, 0.14);
+        }
+
+        .edit-course-page .ec-select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.85rem center;
+          padding-right: 2.4rem;
+          cursor: pointer;
+        }
+
+        .edit-course-page .ec-warning {
+          margin-top: 0.5rem;
+          display: flex;
+          align-items: flex-start;
+          gap: 0.45rem;
+          padding: 0.6rem 0.75rem;
+          background: #fef3c7;
+          border: 1px solid #fcd34d;
+          border-radius: 8px;
+          color: #92400e;
+          font-size: 0.78rem;
+          line-height: 1.45;
+        }
+
+        .edit-course-page .ec-warning-icon {
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .edit-course-page .ec-overview {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 0.75rem;
+          padding: 0.9rem 1rem;
+          background: #eef3f8;
+          border: 1px solid var(--ec-border);
+          border-radius: 10px;
+        }
+
+        .edit-course-page .ec-overview-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.15rem;
+          padding: 0 0.6rem;
+          border-right: 1px solid var(--ec-border);
+        }
+
+        .edit-course-page .ec-overview-item:last-child {
+          border-right: none;
+        }
+
+        .edit-course-page .ec-overview-label {
+          font-size: 0.7rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--ec-muted);
+        }
+
+        .edit-course-page .ec-overview-value {
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: var(--ec-navy);
+          line-height: 1.1;
+        }
+
+        .edit-course-page .ec-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 1rem;
+          padding-top: 0.25rem;
+        }
+
+        .edit-course-page .ec-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.45rem;
+          height: 42px;
+          padding: 0 1.25rem;
+          border-radius: 10px;
+          font-family: inherit;
+          font-size: 0.88rem;
+          font-weight: 600;
+          cursor: pointer;
+          border: 1px solid transparent;
+          transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+        }
+
+        .edit-course-page .ec-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+
+        .edit-course-page .ec-btn-update {
+          background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(21, 128, 61, 0.28);
+        }
+
+        .edit-course-page .ec-btn-update:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(21, 128, 61, 0.36);
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 768px) {
+          .edit-course-page .ec-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .edit-course-page .ec-overview {
+            grid-template-columns: 1fr;
+          }
+
+          .edit-course-page .ec-overview-item {
+            border-right: none;
+            border-bottom: 1px solid var(--ec-border);
+            padding-bottom: 0.5rem;
+          }
+
+          .edit-course-page .ec-overview-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+          }
+
+          .edit-course-page .ec-actions {
+            justify-content: stretch;
+          }
+
+          .edit-course-page .ec-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .edit-course-page .ec-section {
+            padding: 1.1rem 1.15rem 1.25rem;
+          }
         }
       `}</style>
     </div>
@@ -236,15 +612,9 @@ export default function EditCourse() {
 /* INPUT */
 function Input({ label, ...props }) {
   return (
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">
-        {label}
-      </label>
-      <input
-        className="form-control"
-        {...props}
-        required
-      />
+    <div className="ec-field">
+      <label className="ec-label">{label}</label>
+      <input className="ec-input" {...props} required />
     </div>
   );
 }
@@ -252,11 +622,9 @@ function Input({ label, ...props }) {
 /* SELECT */
 function Select({ label, options, ...props }) {
   return (
-    <div className="col-md-6">
-      <label className="form-label fw-semibold">
-        {label}
-      </label>
-      <select className="form-control" {...props}>
+    <div className="ec-field">
+      <label className="ec-label">{label}</label>
+      <select className="ec-select" {...props}>
         {options.map((opt) => (
           <option key={opt}>{opt}</option>
         ))}

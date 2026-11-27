@@ -8,8 +8,8 @@
 .record-header {
    background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
    padding: 1.75rem;
-   border-radius: 16px;
-   margin-bottom: 1.5rem;
+   border-radius: 14px;
+   margin-bottom: 1.25rem;
    box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
    color: white;
    display: flex;

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useCallback, useMemo } from "react";
+import { useContext, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -9,6 +9,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
+import Loading from "../../../components/Loading";
 import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
@@ -39,7 +40,9 @@ import {
   FaInfoCircle,
   FaCopy,
   FaEdit,
-  FaUsers
+  FaUsers,
+  FaExternalLinkAlt,
+  FaUpload,
 } from "react-icons/fa";
 
 /* =========================================================
@@ -165,6 +168,13 @@ const getFileName = (filePath) => {
   return parts[parts.length - 1];
 };
 
+const formatFileSize = (bytes) => {
+  if (!bytes || typeof bytes !== "number") return null;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 /* =========================================================
    REUSABLE COMPONENTS
 ========================================================= */
@@ -238,6 +248,9 @@ function DocumentCard({
   documentId,
   mandatory,
   isUploaded,
+  originalFileName,
+  size,
+  mimeType,
   verificationStatus = "PENDING",
   rejectionReason,
   canAct = false,
@@ -245,14 +258,34 @@ function DocumentCard({
   onReject,
   isVerifying = false,
   isRejecting = false,
+  type,
+  onAdminUpload,
+  isUploading = false,
 }) {
-  const fileName = getFileName(path);
+  const fileInputRef = useRef(null);
+  const rawFileName = getFileName(path);
+  const displayFileName =
+    originalFileName ||
+    (rawFileName && rawFileName !== "download" ? rawFileName : `${label} File`);
+  const formattedSize = formatFileSize(size);
 
   const verifyConfig =
     DOC_VERIFICATION_CONFIG[verificationStatus] || DOC_VERIFICATION_CONFIG.PENDING;
   const VerifyIcon = verifyConfig.icon;
 
   const canVerifyNow = canAct && isUploaded && verificationStatus !== "VERIFIED";
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file && onAdminUpload) {
+      onAdminUpload(type, file);
+    }
+    if (e.target) e.target.value = "";
+  };
 
   return (
     <div className={`document-card-enterprise ${!isUploaded ? "document-card-empty" : ""}`}>
@@ -268,14 +301,29 @@ function DocumentCard({
         </div>
       </div>
       <div className="document-card-body">
-        <div className="document-filename" title={fileName}>
-          {isUploaded ? (fileName || 'Document') : 'Not uploaded'}
+        <div className="document-filename-wrapper">
+          <div className="document-filename" title={displayFileName}>
+            {isUploaded ? displayFileName : 'Not uploaded'}
+          </div>
+          {isUploaded && formattedSize && (
+            <span className="document-filesize-badge">{formattedSize}</span>
+          )}
         </div>
 
         {isUploaded && (
           <button
             className="btn-view-document"
-            onClick={() => onView(path, documentId)}
+            onClick={() =>
+              onView({
+                path,
+                documentId,
+                label,
+                originalFileName: displayFileName,
+                mimeType,
+                verificationStatus,
+                type,
+              })
+            }
             aria-label={`View ${label}`}
           >
             <FaEye className="me-1" />
@@ -325,37 +373,56 @@ function DocumentCard({
             </button>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
 
-// Skeleton Loader Component
-function SkeletonLoader() {
-  return (
-    <div className="view-student-page">
-      <div className="page-header-enterprise">
-        <div className="skeleton skeleton-title" style={{ width: '280px', height: '36px' }}></div>
-        <div className="skeleton skeleton-subtitle" style={{ width: '200px', height: '18px', marginTop: '10px' }}></div>
-      </div>
-
-      <div className="stats-grid-enterprise">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="skeleton-card" style={{ height: '120px' }}></div>
-        ))}
-      </div>
-
-      <div className="content-grid-enterprise">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="content-card-enterprise">
-            <div className="skeleton" style={{ width: '200px', height: '24px', margin: '1.5rem' }}></div>
-            <div className="skeleton" style={{ width: 'calc(100% - 3rem)', height: '160px', margin: '0 1.5rem 1.5rem' }}></div>
+        {/* 📤 Admin Upload / Replacement action (resolves missing / rejected re-upload deadlock) */}
+        {canAct && !isUploaded && (
+          <div className="doc-admin-upload-wrapper" style={{ marginTop: "10px" }}>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              style={{ display: "none" }}
+            />
+            <button
+              type="button"
+              className="btn-admin-upload"
+              onClick={handleUploadClick}
+              disabled={isUploading}
+              aria-label={`Upload ${label}`}
+            >
+              <FaUpload className="me-1" />
+              {isUploading ? "Uploading..." : "Upload Document"}
+            </button>
           </div>
-        ))}
+        )}
+
+        {canAct && isUploaded && verificationStatus === "REJECTED" && (
+          <div className="doc-admin-upload-wrapper" style={{ marginTop: "10px" }}>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+              style={{ display: "none" }}
+            />
+            <button
+              type="button"
+              className="btn-admin-replace"
+              onClick={handleUploadClick}
+              disabled={isUploading}
+              aria-label={`Replace ${label}`}
+            >
+              <FaUpload className="me-1" />
+              {isUploading ? "Uploading..." : "Upload Replacement"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
 
 // Error Display Component
 function ErrorDisplay({ error, onRetry }) {
@@ -407,6 +474,14 @@ export default function ViewStudent() {
   const [rejectingDocId, setRejectingDocId] = useState(null);
   const [showDocRejectModal, setShowDocRejectModal] = useState(false);
   const [docRejectReason, setDocRejectReason] = useState("");
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
+  const [previewBlobType, setPreviewBlobType] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
+  const [verifyingAll, setVerifyingAll] = useState(false);
+  const [uploadingDocType, setUploadingDocType] = useState(null);
+  const previewFileInputRef = useRef(null);
 
   // 🎓 Division assignment workflow
   const [showDivisionModal, setShowDivisionModal] = useState(false);
@@ -492,6 +567,92 @@ export default function ViewStudent() {
     }
   }, [student]);
 
+  /* ================= DOCUMENT PREVIEW BLOB EFFECT ================= */
+  useEffect(() => {
+    let createdBlobUrl = null;
+    let isCancelled = false;
+
+    if (!previewDoc) {
+      setPreviewBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setPreviewBlobType(null);
+      setPreviewError(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    const fetchBlob = async () => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        const endpoint = previewDoc.documentId
+          ? `/documents/${previewDoc.documentId}`
+          : previewDoc.path
+          ? `/students/documents/${getFileName(previewDoc.path)}`
+          : null;
+
+        if (!endpoint) {
+          throw new Error("Document identifier not found");
+        }
+
+        const res = await api.get(endpoint, { responseType: "blob" });
+        if (isCancelled) return;
+
+        const mime = res.data?.type || previewDoc.mimeType || "";
+        const blob = new Blob([res.data], {
+          type: mime || "application/octet-stream",
+        });
+        createdBlobUrl = URL.createObjectURL(blob);
+
+        setPreviewBlobUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return createdBlobUrl;
+        });
+        setPreviewBlobType(mime);
+      } catch (err) {
+        if (!isCancelled) {
+          logger.error("Error loading document preview blob:", err);
+          setPreviewError(
+            err.response?.data?.message ||
+              "Unable to load document preview directly. Please use 'New Tab'."
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setPreviewLoading(false);
+        }
+      }
+    };
+
+    fetchBlob();
+
+    return () => {
+      isCancelled = true;
+      if (createdBlobUrl) {
+        URL.revokeObjectURL(createdBlobUrl);
+      }
+    };
+  }, [previewDoc?.documentId, previewDoc?.path]);
+
+  const isPreviewPdf = useMemo(() => {
+    if (!previewDoc) return false;
+    const mime = (previewBlobType || previewDoc.mimeType || "").toLowerCase();
+    const name = (previewDoc.originalFileName || previewDoc.path || "").toLowerCase();
+    return mime === "application/pdf" || name.endsWith(".pdf");
+  }, [previewDoc, previewBlobType]);
+
+  const isPreviewImage = useMemo(() => {
+    if (!previewDoc) return false;
+    const mime = (previewBlobType || previewDoc.mimeType || "").toLowerCase();
+    const name = (previewDoc.originalFileName || previewDoc.path || "").toLowerCase();
+    return (
+      mime.startsWith("image/") ||
+      /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(name)
+    );
+  }, [previewDoc, previewBlobType]);
+
   /* ================= HELPER FUNCTIONS ================= */
   const has10thDetails = useMemo(() => {
     if (!student) return false;
@@ -533,6 +694,9 @@ export default function ViewStudent() {
         isUploaded: !!uploadedDoc,
         documentId: uploadedDoc?.documentId || null,
         path: uploadedDoc?.downloadUrl || null,
+        originalFileName: uploadedDoc?.originalFileName || null,
+        size: uploadedDoc?.size || null,
+        mimeType: uploadedDoc?.mimeType || null,
         verificationStatus: uploadedDoc?.verificationStatus || "PENDING",
         verifiedAt: uploadedDoc?.verifiedAt || null,
         verifiedBy: uploadedDoc?.verifiedBy?.name || null,
@@ -553,6 +717,9 @@ export default function ViewStudent() {
           isUploaded: !!uploadedDoc,
           documentId: uploadedDoc?.documentId || null,
           path: uploadedDoc?.downloadUrl || null,
+          originalFileName: uploadedDoc?.originalFileName || null,
+          size: uploadedDoc?.size || null,
+          mimeType: uploadedDoc?.mimeType || null,
           verificationStatus: uploadedDoc?.verificationStatus || "PENDING",
           verifiedAt: uploadedDoc?.verifiedAt || null,
           verifiedBy: uploadedDoc?.verifiedBy?.name || null,
@@ -573,6 +740,9 @@ export default function ViewStudent() {
             isUploaded: !!uploadedDoc,
             documentId: uploadedDoc?.documentId || null,
             path: uploadedDoc?.downloadUrl || null,
+            originalFileName: uploadedDoc?.originalFileName || null,
+            size: uploadedDoc?.size || null,
+            mimeType: uploadedDoc?.mimeType || null,
             verificationStatus: uploadedDoc?.verificationStatus || "PENDING",
             verifiedAt: uploadedDoc?.verifiedAt || null,
             verifiedBy: uploadedDoc?.verifiedBy?.name || null,
@@ -631,16 +801,76 @@ export default function ViewStudent() {
     ).length;
   }, [student, requiredDocTypes]);
 
-  /* ================= ACTION HANDLERS ================= */
-  const handleViewDocument = useCallback((path, documentId) => {
-    let url = null;
+  // List of uploaded required documents that are still PENDING verification
+  const pendingRequiredDocs = useMemo(() => {
+    return uploadedDocuments.filter(
+      (d) =>
+        d.mandatory &&
+        d.isUploaded &&
+        d.documentId &&
+        d.verificationStatus === "PENDING"
+    );
+  }, [uploadedDocuments]);
 
-    if (documentId) {
-      url = getDocumentViewUrl(documentId);
-    } else if (path) {
-      const fileName = getFileName(path);
-      if (fileName) {
-        url = `${api.defaults.baseURL}/students/documents/${fileName}`;
+  const handleVerifyAllRequired = useCallback(async () => {
+    if (pendingRequiredDocs.length === 0) return;
+    setVerifyingAll(true);
+    try {
+      for (const doc of pendingRequiredDocs) {
+        await api.put(
+          `/students/${studentId}/documents/${doc.documentId}/verify`
+        );
+      }
+      toast.success(
+        `All ${pendingRequiredDocs.length} required documents verified successfully!`,
+        { position: "top-right", autoClose: 3000 }
+      );
+      await fetchStudent();
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Failed to verify some documents"
+      );
+      fetchStudent();
+    } finally {
+      setVerifyingAll(false);
+    }
+  }, [pendingRequiredDocs, studentId, fetchStudent]);
+
+  /* ================= ACTION HANDLERS ================= */
+  const handleViewDocument = useCallback((docInput, maybeDocId) => {
+    let url = null;
+    let documentId = null;
+    let label = "Document";
+    let type = null;
+    let originalFileName = null;
+    let mimeType = null;
+    let verificationStatus = "PENDING";
+
+    if (typeof docInput === "object" && docInput !== null) {
+      documentId = docInput.documentId;
+      label = docInput.label || "Document";
+      type = docInput.type || null;
+      originalFileName = docInput.originalFileName;
+      mimeType = docInput.mimeType;
+      verificationStatus = docInput.verificationStatus || "PENDING";
+      if (documentId) {
+        url = getDocumentViewUrl(documentId);
+      } else if (docInput.path) {
+        const fileName = getFileName(docInput.path);
+        if (fileName) {
+          url = `${api.defaults.baseURL}/students/documents/${fileName}`;
+        }
+      }
+    } else {
+      const path = docInput;
+      documentId = maybeDocId;
+      if (documentId) {
+        url = getDocumentViewUrl(documentId);
+      } else if (path) {
+        const fileName = getFileName(path);
+        if (fileName) {
+          url = `${api.defaults.baseURL}/students/documents/${fileName}`;
+        }
       }
     }
 
@@ -648,7 +878,16 @@ export default function ViewStudent() {
       toast.error("Document not available for viewing");
       return;
     }
-    window.open(url, "_blank");
+
+    setPreviewDoc({
+      url,
+      documentId,
+      label,
+      type,
+      originalFileName,
+      mimeType,
+      verificationStatus,
+    });
   }, []);
 
   const handleApproveClick = useCallback(() => {
@@ -734,6 +973,11 @@ export default function ViewStudent() {
           response.data.message || "Document verified successfully",
           { position: "top-right", autoClose: 3000 }
         );
+        setPreviewDoc((prev) =>
+          prev && prev.documentId === documentId
+            ? { ...prev, verificationStatus: "VERIFIED" }
+            : prev
+        );
         fetchStudent();
       } catch (err) {
         toast.error(
@@ -759,13 +1003,13 @@ export default function ViewStudent() {
     }
     try {
       setShowDocRejectModal(false);
-      await api.put(
+      const res = await api.put(
         `/students/${studentId}/documents/${rejectingDocId}/reject`,
         { reason: docRejectReason.trim() }
       );
-      toast.success("Document rejected successfully", {
+      toast.success(res.data?.message || "Document rejected & re-upload link sent to student!", {
         position: "top-right",
-        autoClose: 3000,
+        autoClose: 4000,
       });
       fetchStudent();
     } catch (err) {
@@ -775,6 +1019,48 @@ export default function ViewStudent() {
       setDocRejectReason("");
     }
   }, [studentId, docRejectReason, rejectingDocId, fetchStudent]);
+
+  /* ================= ADMIN UPLOAD / REPLACE DOCUMENT ================= */
+  const handleAdminUpload = useCallback(
+    async (docType, file) => {
+      if (!file) return;
+
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size exceeds 10MB limit");
+        return;
+      }
+
+      try {
+        setUploadingDocType(docType);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await api.post(
+          `/students/${studentId}/documents/${docType}/admin-upload`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        toast.success(
+          response.data?.message || "Document uploaded and verified successfully!",
+          { position: "top-right", autoClose: 3500 }
+        );
+        fetchStudent();
+      } catch (err) {
+        logger.error("Admin upload failed:", err);
+        toast.error(
+          err.response?.data?.message || "Failed to upload document"
+        );
+      } finally {
+        setUploadingDocType(null);
+      }
+    },
+    [studentId, fetchStudent]
+  );
 
   /* ================= DIVISION ASSIGNMENT HANDLERS ================= */
   const handleOpenDivisionModal = useCallback(async () => {
@@ -858,9 +1144,22 @@ export default function ViewStudent() {
   if (shouldRedirectRole) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (loading) {
-    return <SkeletonLoader />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Student Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -1138,7 +1437,7 @@ export default function ViewStudent() {
                 <FaBook className="card-title-icon" />
                 <h3 className="card-title">Academic Information</h3>
               </div>
-              {isCollegeAdmin && ["APPROVED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(student.status) && (
+              {(isCollegeAdmin || user?.role === "ADMISSION_OFFICER") && ["APPROVED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(student.status) && (
                 <button
                   className="btn-assign-division"
                   onClick={handleOpenDivisionModal}
@@ -1201,9 +1500,23 @@ export default function ViewStudent() {
                    <FaClipboardCheck className="card-title-icon" />
                    <h3 className="card-title">Document Verification</h3>
                  </div>
-                 <span className="card-badge">
-                   {requiredVerifiedCount}/{requiredDocTypes.length} Verified
-                 </span>
+                 <div className="d-flex align-items-center gap-2">
+                   <span className="card-badge">
+                     {requiredVerifiedCount}/{requiredDocTypes.length} Verified
+                   </span>
+                   {canVerifyDocs && pendingRequiredDocs.length > 0 && (
+                     <button
+                       type="button"
+                       className="btn-verify-all-docs"
+                       onClick={handleVerifyAllRequired}
+                       disabled={verifyingAll}
+                       title="Verify all pending required documents at once"
+                     >
+                       <FaCheckCircle className="me-1" />
+                       {verifyingAll ? "Verifying..." : `Verify All (${pendingRequiredDocs.length})`}
+                     </button>
+                   )}
+                 </div>
                </div>
                <div className="card-body-enterprise">
                  <div className="doc-verification-progress">
@@ -1260,6 +1573,9 @@ export default function ViewStudent() {
                        onView={handleViewDocument}
                        mandatory={doc.mandatory}
                        isUploaded={doc.isUploaded}
+                       originalFileName={doc.originalFileName}
+                       size={doc.size}
+                       mimeType={doc.mimeType}
                        verificationStatus={doc.verificationStatus}
                        rejectionReason={doc.rejectionReason}
                        canAct={canVerifyDocs}
@@ -1267,6 +1583,9 @@ export default function ViewStudent() {
                        onReject={openDocReject}
                        isVerifying={verifyingDocId === doc.documentId}
                        isRejecting={rejectingDocId === doc.documentId}
+                       type={doc.type}
+                       onAdminUpload={handleAdminUpload}
+                       isUploading={uploadingDocType === doc.type}
                      />
                    ))}
                 </div>
@@ -1275,52 +1594,6 @@ export default function ViewStudent() {
           )}
         </div>
       </div>
-
-       {/* ================= STATUS ACTION CARD ================= */}
-       {student.status === STUDENT_STATUS.PENDING && canEdit('students') && (
-         <div className="action-card-enterprise">
-           <div className="action-card-header">
-             <div className="action-card-title-wrapper">
-               <FaClipboardCheck className="action-card-icon" />
-               <h3 className="action-card-title">Student Verification</h3>
-             </div>
-             <p className="action-card-subtitle">Review and approve or reject this student's registration</p>
-           </div>
-            
-              <div className="action-card-body">
-               {requiredDocTypes.length > 0 && !allRequiredDocsVerified && (
-                 <div className="doc-verification-gate-warning">
-                   <FaExclamationTriangle className="doc-verification-gate-icon" />
-                   <span>
-                     Verify all required documents before approving. Backend enforcement is active.
-                   </span>
-                 </div>
-               )}
-               <div className="action-card-buttons">
-                <button
-                  className="btn-approve-enterprise"
-                  onClick={handleApproveClick}
-                  disabled={
-                    approving ||
-                    (requiredDocTypes.length > 0 && !allRequiredDocsVerified)
-                  }
-                >
-                  <FaCheckCircle className="btn-icon" />
-                  {approving ? 'Approving...' : 'Approve Student'}
-                </button>
-
-                <button
-                  className="btn-reject-enterprise"
-                  onClick={handleRejectClick}
-                  disabled={rejecting}
-                >
-                  <FaTimesCircle className="btn-icon" />
-                  {rejecting ? 'Rejecting...' : 'Reject Student'}
-                </button>
-              </div>
-            </div>
-         </div>
-       )}
 
       {/* ================= META INFORMATION ================= */}
       <div className="meta-info-enterprise">
@@ -1349,7 +1622,10 @@ export default function ViewStudent() {
 
       <ConfirmModal
         isOpen={showRejectModal}
-        onClose={() => setShowRejectModal(false)}
+        onClose={() => {
+          setShowRejectModal(false);
+          setRejectionReason("");
+        }}
         onConfirm={handleRejectSubmit}
         title="Reject Student"
         message="Please enter the reason for rejecting this student's registration:"
@@ -1357,32 +1633,21 @@ export default function ViewStudent() {
         confirmText="Reject"
         cancelText="Cancel"
         isLoading={rejecting}
-        customContent={
-          <textarea
-            className="reject-reason-textarea"
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Enter rejection reason (required)..."
-            rows={4}
-            autoFocus
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: '2px solid #e2e8f0',
-              borderRadius: '8px',
-              fontSize: '0.9375rem',
-              fontFamily: 'inherit',
-              resize: 'vertical',
-              marginTop: '1rem'
-            }}
-          />
-        }
+        inputValue={rejectionReason}
+        onInputChange={setRejectionReason}
+        inputPlaceholder="Enter rejection reason (required)..."
+        inputRows={4}
+        maxChars={500}
+        confirmDisabled={!rejectionReason.trim()}
       />
 
       {/* ================= DOCUMENT REJECTION MODAL ================= */}
       <ConfirmModal
         isOpen={showDocRejectModal}
-        onClose={() => setShowDocRejectModal(false)}
+        onClose={() => {
+          setShowDocRejectModal(false);
+          setDocRejectReason("");
+        }}
         onConfirm={handleRejectDocument}
         title="Reject Document"
         message="Please enter the reason for rejecting this document:"
@@ -1390,26 +1655,12 @@ export default function ViewStudent() {
         confirmText="Reject Document"
         cancelText="Cancel"
         isLoading={!!rejectingDocId}
-        customContent={
-          <textarea
-            className="reject-reason-textarea"
-            value={docRejectReason}
-            onChange={(e) => setDocRejectReason(e.target.value)}
-            placeholder="Enter rejection reason (required)..."
-            rows={4}
-            autoFocus
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              border: "2px solid #e2e8f0",
-              borderRadius: "8px",
-              fontSize: "0.9375rem",
-              fontFamily: "inherit",
-              resize: "vertical",
-              marginTop: "1rem",
-            }}
-          />
-        }
+        inputValue={docRejectReason}
+        onInputChange={setDocRejectReason}
+        inputPlaceholder="Enter rejection reason (required)..."
+        inputRows={3}
+        maxChars={500}
+        confirmDisabled={!docRejectReason.trim()}
       />
 
        {/* ================= DIVISION ASSIGNMENT MODAL ================= */}
@@ -1614,6 +1865,232 @@ export default function ViewStudent() {
         </div>
       )}
 
+      {/* ================= IN-PAGE DOCUMENT PREVIEW MODAL ================= */}
+      {previewDoc && (
+        <div
+          className="doc-preview-modal-overlay"
+          onClick={() => setPreviewDoc(null)}
+        >
+          <div
+            className="doc-preview-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="doc-preview-modal-header">
+              <div className="doc-preview-title-box">
+                <FaFileAlt className="doc-preview-icon" />
+                <div>
+                  <h4 className="doc-preview-title">{previewDoc.label}</h4>
+                  <span className="doc-preview-subtitle">
+                    {previewDoc.originalFileName || previewDoc.label}
+                  </span>
+                </div>
+              </div>
+              <div className="doc-preview-header-actions">
+                <a
+                  href={previewBlobUrl || previewDoc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-open-external"
+                  title="Open in new tab"
+                >
+                  <FaExternalLinkAlt className="me-1" /> New Tab
+                </a>
+                <button
+                  type="button"
+                  className="doc-preview-close"
+                  onClick={() => setPreviewDoc(null)}
+                  aria-label="Close Preview"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <div className="doc-preview-modal-body">
+              {previewLoading ? (
+                <div className="doc-preview-loading">
+                  <div className="spinner-border text-primary mb-2" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <div>Loading document preview...</div>
+                </div>
+              ) : previewError ? (
+                <div className="doc-preview-error">
+                  <FaExclamationTriangle className="doc-preview-error-icon" />
+                  <p className="doc-preview-error-text">{previewError}</p>
+                  <a
+                    href={previewDoc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-outline-primary mt-2"
+                  >
+                    <FaExternalLinkAlt className="me-1" /> Open in New Tab
+                  </a>
+                </div>
+              ) : previewBlobUrl ? (
+                isPreviewPdf ? (
+                  <iframe
+                    src={previewBlobUrl}
+                    title={previewDoc.label}
+                    className="doc-preview-iframe"
+                  />
+                ) : isPreviewImage ? (
+                  <div className="doc-preview-image-wrapper">
+                    <img
+                      src={previewBlobUrl}
+                      alt={previewDoc.label}
+                      className="doc-preview-image"
+                    />
+                  </div>
+                ) : (
+                  <div className="doc-preview-unsupported">
+                    <FaFileAlt size={48} className="text-secondary mb-3" />
+                    <p className="mb-2">Preview is not available for this file type.</p>
+                    <a
+                      href={previewBlobUrl}
+                      download={previewDoc.originalFileName || `${previewDoc.label}`}
+                      className="btn btn-sm btn-primary"
+                    >
+                      <FaDownload className="me-1" /> Download File
+                    </a>
+                  </div>
+                )
+              ) : null}
+            </div>
+            <div className="doc-preview-modal-footer">
+              <div className="doc-preview-footer-left">
+                <span className="doc-preview-status-pill">
+                  Status: <strong>{previewDoc.verificationStatus}</strong>
+                </span>
+              </div>
+              <div className="doc-preview-footer-right">
+                {canVerifyDocs &&
+                  previewDoc.verificationStatus !== "VERIFIED" &&
+                  previewDoc.documentId && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-verify-document"
+                        onClick={() => {
+                          handleVerifyDocument(previewDoc.documentId);
+                        }}
+                        disabled={verifyingDocId === previewDoc.documentId}
+                      >
+                        <FaCheckCircle className="me-1" />
+                        {verifyingDocId === previewDoc.documentId
+                          ? "Verifying..."
+                          : "Verify Document"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-reject-document"
+                        onClick={() => {
+                          const docId = previewDoc.documentId;
+                          setPreviewDoc(null);
+                          openDocReject(docId);
+                        }}
+                      >
+                        <FaTimesCircle className="me-1" />
+                        Reject
+                      </button>
+                    </>
+                  )}
+                {canVerifyDocs && previewDoc.verificationStatus === "REJECTED" && previewDoc.type && (
+                  <>
+                    <input
+                      type="file"
+                      ref={previewFileInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleAdminUpload(previewDoc.type, file);
+                          setPreviewDoc(null);
+                        }
+                        if (e.target) e.target.value = "";
+                      }}
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      style={{ display: "none" }}
+                    />
+                    <button
+                      type="button"
+                      className="btn-admin-replace"
+                      onClick={() => previewFileInputRef.current?.click()}
+                      disabled={uploadingDocType === previewDoc.type}
+                      style={{ minWidth: "140px" }}
+                    >
+                      <FaUpload className="me-1" />
+                      {uploadingDocType === previewDoc.type ? "Uploading..." : "Replace Document"}
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  className="btn-preview-modal-close"
+                  onClick={() => setPreviewDoc(null)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= STICKY BOTTOM ACTION BAR ================= */}
+      {student.status === STUDENT_STATUS.PENDING && canEdit("students") && (
+        <div className="sticky-action-bar-enterprise">
+          <div className="sticky-action-content">
+            <div className="sticky-action-info">
+              <div className="sticky-student-title">
+                <strong>{student.fullName}</strong>
+                <span className="sticky-badge-pill">
+                  {allRequiredDocsVerified ? (
+                    <span className="text-success-badge">
+                      <FaCheckCircle className="me-1" /> All Docs Verified
+                    </span>
+                  ) : (
+                    <span className="text-warning-badge">
+                      <FaExclamationTriangle className="me-1" />{" "}
+                      {unverifiedRequiredDocs.length} Pending
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="sticky-sub-info">
+                {student.course_id?.name || "Course"} • Semester{" "}
+                {student.currentSemester || "1"}
+              </div>
+            </div>
+            <div className="sticky-action-buttons">
+              <button
+                className="btn-approve-sticky"
+                onClick={handleApproveClick}
+                disabled={
+                  approving ||
+                  (requiredDocTypes.length > 0 && !allRequiredDocsVerified)
+                }
+                title={
+                  !allRequiredDocsVerified
+                    ? "Verify all required documents before approval"
+                    : "Approve Student Admission"
+                }
+              >
+                <FaCheckCircle className="me-1" />
+                {approving ? "Approving..." : "Approve Student"}
+              </button>
+
+              <button
+                className="btn-reject-sticky"
+                onClick={handleRejectClick}
+                disabled={rejecting}
+              >
+                <FaTimesCircle className="me-1" />
+                {rejecting ? "Rejecting..." : "Reject Student"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ================= DESIGN SYSTEM CSS ================= */}
       <style>
         {`
@@ -1626,13 +2103,14 @@ export default function ViewStudent() {
         .view-student-page {
           background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
           padding: 2rem;
+          padding-bottom: 6.5rem;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
         
         /* Page Header */
         .page-header-enterprise {
           position: relative;
-          background: linear-gradient(135deg, #0f3a4a 0%, #134952 50%, #1a5a6a 100%);
+          background: #0E3746;
           border-radius: 20px;
           padding: 1.85rem 2rem;
           margin-bottom: 1.5rem;
@@ -2144,6 +2622,37 @@ export default function ViewStudent() {
          .btn-verify-document:hover:not(:disabled) { background: rgba(16, 185, 129, 0.2); }
          .btn-reject-document { background: rgba(239, 68, 68, 0.12); color: #7f1d1d; }
          .btn-reject-document:hover:not(:disabled) { background: rgba(239, 68, 68, 0.2); }
+
+         .btn-admin-upload, .btn-admin-replace {
+           width: 100%;
+           border: none;
+           padding: 0.45rem 0.65rem;
+           border-radius: 8px;
+           font-size: 0.75rem;
+           font-weight: 700;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           gap: 0.35rem;
+           cursor: pointer;
+           transition: all 0.2s ease;
+         }
+
+         .btn-admin-upload {
+           background: rgba(37, 99, 235, 0.12);
+           color: #1e40af;
+         }
+         .btn-admin-upload:hover:not(:disabled) {
+           background: rgba(37, 99, 235, 0.22);
+         }
+
+         .btn-admin-replace {
+           background: rgba(234, 88, 12, 0.12);
+           color: #9a3412;
+         }
+         .btn-admin-replace:hover:not(:disabled) {
+           background: rgba(234, 88, 12, 0.22);
+         }
 
          /* Approval gate warning */
          .doc-verification-gate-warning {
@@ -2672,6 +3181,416 @@ export default function ViewStudent() {
           gap: 0.4rem;
           font-size: 0.74rem;
           color: #64748b;
+        }
+
+        /* =====================================================
+           UX UPGRADE STYLES: FILENAME, PREVIEW MODAL, VERIFY ALL, STICKY BAR
+           ===================================================== */
+        .document-filename-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          margin-bottom: 0.5rem;
+        }
+
+        .document-filesize-badge {
+          display: inline-block;
+          align-self: flex-start;
+          font-size: 0.72rem;
+          color: #64748b;
+          background: #f1f5f9;
+          padding: 1px 6px;
+          border-radius: 4px;
+          border: 1px solid #e2e8f0;
+          font-weight: 500;
+        }
+
+        /* Verify All Button in Summary Header */
+        .btn-verify-all-docs {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          padding: 0.35rem 0.75rem;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-verify-all-docs:hover:not(:disabled) {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          transform: translateY(-1px);
+        }
+
+        .btn-verify-all-docs:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Document Preview Modal */
+        .doc-preview-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(15, 23, 42, 0.75);
+          backdrop-filter: blur(4px);
+          z-index: 1050;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1.5rem;
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .doc-preview-modal-dialog {
+          background: #ffffff;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 900px;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .doc-preview-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1rem 1.5rem;
+          background: #0E3746;
+          color: #ffffff;
+          border-bottom: 1px solid rgba(79, 195, 247, 0.2);
+        }
+
+        .doc-preview-title-box {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .doc-preview-icon {
+          font-size: 1.5rem;
+          color: #4fc3f7;
+        }
+
+        .doc-preview-title {
+          margin: 0;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .doc-preview-subtitle {
+          font-size: 0.8rem;
+          color: #94a3b8;
+        }
+
+        .doc-preview-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .btn-open-external {
+          color: #e2e8f0;
+          background: rgba(255, 255, 255, 0.1);
+          padding: 0.35rem 0.75rem;
+          border-radius: 6px;
+          font-size: 0.82rem;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          transition: background 0.2s;
+        }
+
+        .btn-open-external:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+        }
+
+        .doc-preview-close {
+          background: transparent;
+          border: none;
+          color: #cbd5e1;
+          font-size: 1.75rem;
+          cursor: pointer;
+          line-height: 1;
+        }
+
+        .doc-preview-close:hover {
+          color: #ffffff;
+        }
+
+        .doc-preview-modal-body {
+          padding: 1rem;
+          flex: 1;
+          overflow: auto;
+          min-height: 480px;
+          max-height: 60vh;
+          background: #f8fafc;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .doc-preview-loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: #64748b;
+          font-size: 0.95rem;
+          padding: 2rem;
+        }
+
+        .doc-preview-error {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          text-align: center;
+        }
+
+        .doc-preview-error-icon {
+          color: #f59e0b;
+          font-size: 2.5rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .doc-preview-error-text {
+          color: #475569;
+          font-size: 0.925rem;
+          max-width: 400px;
+          margin-bottom: 0.5rem;
+        }
+
+        .doc-preview-unsupported {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          text-align: center;
+          color: #475569;
+        }
+
+        .doc-preview-iframe {
+          width: 100%;
+          height: 520px;
+          border: none;
+          border-radius: 8px;
+          background: #ffffff;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .doc-preview-image-wrapper {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .doc-preview-image {
+          max-width: 100%;
+          max-height: 500px;
+          object-fit: contain;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .doc-preview-modal-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.85rem 1.5rem;
+          background: #ffffff;
+          border-top: 1px solid #e2e8f0;
+        }
+
+        .doc-preview-status-pill {
+          font-size: 0.85rem;
+          color: #475569;
+        }
+
+        .doc-preview-footer-right {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .btn-preview-modal-close {
+          background: #f1f5f9;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          padding: 0.45rem 1rem;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        /* Sticky Action Bar at Bottom - Sidebar Aware */
+        .sticky-action-bar-enterprise {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          background: #ffffff;
+          border-top: 1px solid #e2e8f0;
+          box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+          padding: 0.75rem 2rem;
+          z-index: 1000;
+          animation: slideUp 0.3s ease-out;
+          transition: left var(--sidebar-transition-duration, 0.3s) var(--sidebar-transition-timing, cubic-bezier(0.4, 0, 0.2, 1)),
+                      width var(--sidebar-transition-duration, 0.3s) var(--sidebar-transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+        }
+
+        @media (min-width: 768px) {
+          .sticky-action-bar-enterprise {
+            left: var(--erp-sidebar-width, 250px);
+            width: calc(100% - var(--erp-sidebar-width, 250px));
+          }
+
+          body.sidebar-collapsed .sticky-action-bar-enterprise,
+          .layout-wrapper.layout-collapsed .sticky-action-bar-enterprise {
+            left: var(--erp-sidebar-collapsed-width, 80px);
+            width: calc(100% - var(--erp-sidebar-collapsed-width, 80px));
+          }
+        }
+
+        @media (max-width: 767.98px) {
+          .sticky-action-bar-enterprise {
+            left: 0 !important;
+            width: 100% !important;
+            padding: 0.65rem 1rem;
+          }
+
+          .sticky-action-content {
+            gap: 0.75rem;
+          }
+
+          .sticky-student-title {
+            font-size: 0.9rem;
+          }
+        }
+
+        .sticky-action-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .sticky-action-info {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .sticky-student-title {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-size: 1rem;
+          color: #0f3a4a;
+        }
+
+        .sticky-badge-pill {
+          font-size: 0.8rem;
+          font-weight: 600;
+        }
+
+        .text-success-badge {
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.1);
+          padding: 2px 8px;
+          border-radius: 12px;
+        }
+
+        .text-warning-badge {
+          color: #d97706;
+          background: rgba(245, 158, 11, 0.1);
+          padding: 2px 8px;
+          border-radius: 12px;
+        }
+
+        .sticky-sub-info {
+          font-size: 0.8rem;
+          color: #64748b;
+        }
+
+        .sticky-action-buttons {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .btn-approve-sticky {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          padding: 0.55rem 1.25rem;
+          font-size: 0.9rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-approve-sticky:hover:not(:disabled) {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          transform: translateY(-1px);
+        }
+
+        .btn-approve-sticky:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+
+        .btn-reject-sticky {
+          background: #fff1f2;
+          color: #e11d48;
+          border: 1px solid #fecdd3;
+          border-radius: 8px;
+          padding: 0.55rem 1.25rem;
+          font-size: 0.9rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          transition: all 0.2s ease;
+        }
+
+        .btn-reject-sticky:hover:not(:disabled) {
+          background: #ffe4e6;
+        }
+
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         @keyframes spin {

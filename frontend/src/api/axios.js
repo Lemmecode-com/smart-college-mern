@@ -27,6 +27,23 @@ const AUTH_ERROR_CODES = new Set([
 
 let responseInterceptor401CallCount = 0;
 
+// In-flight guard to deduplicate auth invalidation broadcasts when
+// multiple API requests return 401 simultaneously. Prevents N
+// broadcastAuthInvalidation() calls and N AuthContext listener
+// executions for a single session-expiry event.
+let authInvalidationInProgress = false;
+let authInvalidationTimeoutId = null;
+
+const AUTH_INVALIDATION_TIMEOUT_MS = 30000;
+
+export function resetAuthInvalidationGuard() {
+  authInvalidationInProgress = false;
+  if (authInvalidationTimeoutId) {
+    clearTimeout(authInvalidationTimeoutId);
+    authInvalidationTimeoutId = null;
+  }
+}
+
 // Request interceptor - ensure credentials are always sent
 api.interceptors.request.use(
   (config) => {
@@ -73,10 +90,12 @@ api.interceptors.response.use(
           response.data = data[keys[0]];
         } else {
           // Keep the object structure for single object responses
+          // Preserve data.message if the entity itself contains a message property (e.g. Inquiry, Notification)
           response.data = {
             ...data,
             success,
-            message,
+            message: data.message !== undefined ? data.message : message,
+            apiMessage: message,
             pagination,
             error,
           };
@@ -96,13 +115,14 @@ api.interceptors.response.use(
   },
   (error) => {
     // 🔒 STANDARDIZE ERROR FORMAT
-    // Backend sends: { success: false, error: { code, message, details } }
-    // Transform to: { success: false, message, code, details }
+    // Backend sends: { success: false, error: { code, message, details, data } }
+    // Transform to: { success: false, message, code, details, data }
     if (error.response?.data?.error) {
       const { error: errorObj } = error.response.data;
       error.response.data.message = errorObj.message;
       error.response.data.code = errorObj.code;
       error.response.data.details = errorObj.details;
+      error.response.data.data = errorObj.data;
     }
 
     // Handle 401 errors globally
@@ -117,7 +137,18 @@ api.interceptors.response.use(
       );
 
       if (errorCode && AUTH_ERROR_CODES.has(errorCode) && !error.config?._skipAuthBroadcast) {
-        broadcastAuthInvalidation(errorCode);
+        if (authInvalidationInProgress) {
+          console.log(
+            `[AxiosResponseInterceptor] 401 deduplicated | URL=${requestUrl} | ErrorCode=${errorCode} | InFlightGuard=true`
+          );
+        } else {
+          authInvalidationInProgress = true;
+          authInvalidationTimeoutId = setTimeout(() => {
+            authInvalidationInProgress = false;
+            authInvalidationTimeoutId = null;
+          }, AUTH_INVALIDATION_TIMEOUT_MS);
+          broadcastAuthInvalidation(errorCode);
+        }
       }
     }
 

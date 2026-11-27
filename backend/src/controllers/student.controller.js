@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const Department = require("../models/department.model");
@@ -19,6 +20,12 @@ const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
+const { createPromotionDecision } = require("../services/promotionDecision.service");
+const { checkAlumniEligibility } = require("../services/alumniEligibility.service");
+const {
+  getActiveStudentFee,
+  mapAuthoritativeFeesByStudent,
+} = require("../services/studentFee.service");
 
 const {
   processUploadsWithStorage,
@@ -51,7 +58,7 @@ const resolveDocumentRef = async (student, fieldPath) => {
 
   return null;
 };
-
+ 
 // Resolve student's active documents from Document collection
 const resolveActiveStudentDocuments = async (student) => {
   if (!student || !student.documentRefs || student.documentRefs.length === 0) {
@@ -304,6 +311,9 @@ exports.registerStudent = async (req, res, next) => {
     if (!department) {
       throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
     }
+    if (department.status === "INACTIVE" || department.isActive === false) {
+      throw new AppError("Department is inactive and not accepting registrations", 400, "DEPARTMENT_INACTIVE");
+    }
 
     // Validate course
     const course = await Course.findOne({
@@ -313,6 +323,9 @@ exports.registerStudent = async (req, res, next) => {
     });
     if (!course) {
       throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
+    }
+    if (course.status === "INACTIVE" || course.isActive === false) {
+      throw new AppError("Course is inactive and not accepting registrations", 400, "COURSE_INACTIVE");
     }
 
     // 3️⃣ Prevent duplicate
@@ -550,7 +563,9 @@ exports.getMyFullProfile = async (req, res, next) => {
     const department = await Department.findById(student.department_id).select(
       "name code",
     );
-    const course = await Course.findById(student.course_id).select("name code");
+    const course = await Course.findById(student.course_id).select(
+      "name code durationSemesters durationYears yearLabels programLevel",
+    );
 
     // 3️⃣ Document Config (to determine which fields to show)
     const docConfig = await DocumentConfig.findOne({
@@ -613,7 +628,7 @@ exports.getMyFullProfile = async (req, res, next) => {
             foreignField: "_id",
             as: "subject",
           },
-        },
+        }, 
         {
           $unwind: {
             path: "$subject",
@@ -706,8 +721,9 @@ exports.getMyFullProfile = async (req, res, next) => {
 
       const timetableFilters = {
         college_id: student.college_id,
-        status: { $in: ["PUBLISHED", "DRAFT"] },
+        status: "PUBLISHED",
         semester,
+        academicYear: student.currentAcademicYear,
       };
 
       if (student.course_id) {
@@ -808,6 +824,7 @@ hscPassingYear: student.hscPassingYear,
         department,
         course,
         attendance: attendanceSummary,
+        todaysTimetable,
         documentConfig: (docConfig?.documents || []).map((doc) => {
           const docObj = doc.toObject ? doc.toObject() : doc;
           return {
@@ -895,7 +912,7 @@ exports.updateMyProfile = async (req, res, next) => {
 };
 
 /**
- * COLLEGE ADMIN: Update student profile (SAFE)
+ * COLLEGE ADMIN / ADMISSION_OFFICER: Update student profile (SAFE)
  */
 exports.updateStudentByAdmin = async (req, res, next) => {
   try {
@@ -1047,7 +1064,7 @@ exports.updateStudentByAdmin = async (req, res, next) => {
 };
 
 /**
- * COLLEGE ADMIN: Get valid divisions for a student's academic context
+ * COLLEGE ADMIN / ADMISSION_OFFICER: Get valid divisions for a student's academic context
  * GET /api/students/:id/valid-divisions
  */
 exports.getValidDivisionsForStudent = async (req, res, next) => {
@@ -1180,7 +1197,7 @@ exports.getApprovedStudents = async (req, res) => {
       college_id: req.college_id,
     });
 
-    const feeMap = new Map(fees.map((f) => [f.student_id.toString(), f]));
+    const feeMap = mapAuthoritativeFeesByStudent(fees);
 
     const studentsWithFee = students.map((student) => ({
       ...student.toObject(),
@@ -1219,10 +1236,11 @@ exports.getStudentById = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // 🔧 OPTIMIZATION: Use Promise.race to prevent hanging on fee query
-    const feePromise = StudentFee.findOne({
-      student_id: student._id,
-    }).select("totalFee paidAmount installments");
+    // Use authoritative reader for student fee details
+    const feePromise = getActiveStudentFee(student._id, student.college_id, {
+      student,
+      select: "totalFee paidAmount installments",
+    });
 
     // Timeout after 5 seconds to prevent hanging
     const timeoutPromise = new Promise((resolve) => {
@@ -1290,9 +1308,87 @@ exports.getRegisteredStudents = async (req, res, next) => {
       .skip(skip)
       .sort({ createdAt: -1 });
 
+    // Fetch required document types for the college
+    const requiredTypes = await DocumentService.getRequiredDocumentTypes(req.college_id);
+
+    // Batch query active documents belonging to this page of students
+    const studentIds = students.map((s) => s._id);
+    const allDocs = await Document.find({
+      ownerType: "Student",
+      ownerId: { $in: studentIds },
+      status: "ACTIVE",
+    }).select("ownerId documentType verificationStatus").lean();
+
+    const docsByStudent = {};
+    for (const doc of allDocs) {
+      const sid = doc.ownerId.toString();
+      if (!docsByStudent[sid]) docsByStudent[sid] = {};
+      docsByStudent[sid][doc.documentType] = doc;
+    }
+
+    const studentsWithSummary = students.map((s) => {
+      const studentObj = s.toObject();
+      const studentDocs = docsByStudent[s._id.toString()] || {};
+
+      const totalRequired = requiredTypes.length;
+      let uploadedRequired = 0;
+      let verifiedRequired = 0;
+      const missingTypes = [];
+      const unverifiedTypes = [];
+      let hasRejected = false;
+
+      for (const doc of Object.values(studentDocs)) {
+        if (doc.verificationStatus === "REJECTED") {
+          hasRejected = true;
+        }
+      }
+
+      if (totalRequired > 0) {
+        for (const type of requiredTypes) {
+          const doc = studentDocs[type];
+          if (doc) {
+            uploadedRequired++;
+            if (doc.verificationStatus === "VERIFIED") {
+              verifiedRequired++;
+            } else {
+              unverifiedTypes.push(type);
+            }
+          } else {
+            missingTypes.push(type);
+            unverifiedTypes.push(type);
+          }
+        }
+      } else {
+        const uploadedList = Object.values(studentDocs);
+        uploadedRequired = uploadedList.length;
+        verifiedRequired = uploadedList.filter((d) => d.verificationStatus === "VERIFIED").length;
+      }
+
+      let docStatus = "ALL_VERIFIED";
+      if (hasRejected) {
+        docStatus = "REJECTED";
+      } else if (missingTypes.length > 0) {
+        docStatus = "MISSING";
+      } else if (unverifiedTypes.length > 0 || (totalRequired > 0 && verifiedRequired < totalRequired)) {
+        docStatus = "PENDING_VERIFICATION";
+      }
+
+      studentObj.documentSummary = {
+        totalRequired,
+        uploadedRequired,
+        verifiedRequired,
+        missingTypes,
+        unverifiedTypes,
+        hasRejected,
+        status: docStatus,
+      };
+
+      return studentObj;
+    });
+
     ApiResponse.paginate(
       res,
-      students,
+      studentsWithSummary,
       {
         page,
         limit,
@@ -1467,7 +1563,7 @@ exports.moveToAlumni = async (req, res, next) => {
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).populate("course_id", "name code durationSemesters");
 
     if (!student) {
@@ -1488,6 +1584,20 @@ exports.moveToAlumni = async (req, res, next) => {
       );
     }
 
+    // Revalidate authoritative Alumni Eligibility using dedicated service
+    const eligibility = await checkAlumniEligibility(student._id, req.college_id);
+    if (!eligibility.eligible) {
+      const reasonMsg =
+        eligibility.blockers?.map((b) => b.message).join("; ") ||
+        eligibility.message ||
+        "Student is not eligible for Alumni status.";
+      throw new AppError(
+        `Student not eligible for Alumni: ${reasonMsg}`,
+        409,
+        "ALUMNI_ELIGIBILITY_FAILED",
+      );
+    }
+
     // Move to Alumni status
     student.status = "ALUMNI";
     student.alumniStatus = true;
@@ -1495,6 +1605,33 @@ exports.moveToAlumni = async (req, res, next) => {
     student.graduationYear = graduationYear || new Date().getFullYear();
 
     await student.save();
+
+    const attendanceMode = eligibility.checks?.attendance?.isFallback
+      ? "cumulative (fallback)"
+      : "final-semester";
+
+    auditLogService
+      .logAudit({
+        collegeId: req.college_id,
+        userId: req.user?.id || req.user?._id,
+        userEmail: req.user?.email || "admin@college.com",
+        userRole: req.user?.role || "COLLEGE_ADMIN",
+        ipAddress: req.ip || "127.0.0.1",
+        action: "UPDATE",
+        resourceType: "Student",
+        resourceId: student._id,
+        details: {
+          studentId: student._id,
+          graduationYear: student.graduationYear,
+          status: "ALUMNI",
+          attendanceMode,
+          attendancePercentage: eligibility.checks?.attendance?.actualPercentage,
+          attendanceStatus: eligibility.checks?.attendance?.status,
+        },
+      })
+      .catch((auditErr) => {
+        logger.warn(`Failed to create audit log for moveToAlumni: ${auditErr.message}`);
+      });
 
     ApiResponse.success(
       res,
@@ -1507,6 +1644,7 @@ exports.moveToAlumni = async (req, res, next) => {
           alumniDate: student.alumniDate,
           graduationYear: student.graduationYear,
           course_id: student.course_id,
+          attendanceMode,
         },
       },
       `${student.fullName} has been moved to Alumni successfully`,
@@ -1759,5 +1897,137 @@ exports.searchStudents = async (req, res) => {
       success: false,
       message: "Failed to search students"
     });
+  }
+};
+
+/**
+ * COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL: Get all distinct divisions defined in college timetables
+ * GET /api/students/college-divisions
+ */
+exports.getCollegeDivisions = async (req, res, next) => {
+  try {
+    const divisions = await Timetable.find({
+      college_id: req.college_id,
+      division: { $ne: null, $ne: "" },
+      status: { $ne: "ARCHIVED" },
+    }).distinct("division");
+
+    ApiResponse.success(
+      res,
+      { divisions: divisions.sort() },
+      "College divisions fetched successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL: Bulk assign division to students
+ * POST /api/students/bulk-assign-division
+ * Body: { studentIds: [...], division: "A" }
+ */
+exports.bulkAssignDivision = async (req, res, next) => {
+  try {
+    const { studentIds, division } = req.body;
+
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      throw new AppError("Provide studentIds array in request body", 400, "INVALID_INPUT");
+    }
+
+    if (studentIds.length > 200) {
+      throw new AppError("Cannot process more than 200 students at a time", 400, "BATCH_LIMIT_EXCEEDED");
+    }
+
+    const divisionValue = division?.toString().trim().toUpperCase() || null;
+    if (!divisionValue) {
+      throw new AppError("Division is required", 400, "INVALID_INPUT");
+    }
+
+    const validStudentIds = studentIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validStudentIds.length === 0) {
+      throw new AppError("No valid student IDs provided", 400, "INVALID_INPUT");
+    }
+
+    const students = await Student.find({
+      _id: { $in: validStudentIds },
+      college_id: req.college_id,
+      status: { $ne: "DELETED" },
+    });
+
+    if (students.length === 0) {
+      throw new AppError("No matching students found", 404, "STUDENT_NOT_FOUND");
+    }
+
+    const DIVISION_ASSIGNABLE_STATUSES = [
+      STUDENT_STATUS.APPROVED,
+      STUDENT_STATUS.OFFER_MADE,
+      STUDENT_STATUS.SEAT_CONFIRMED,
+    ];
+
+    const results = { updated: [], failed: [] };
+
+    for (const student of students) {
+      if (!DIVISION_ASSIGNABLE_STATUSES.includes(student.status)) {
+        results.failed.push({
+          studentId: student._id,
+          fullName: student.fullName,
+          reason: `Division can only be assigned to approved students. Current status: ${student.status}`,
+        });
+        continue;
+      }
+
+      // Check if student's course/semester has timetables configured
+      const courseTimetablesCount = await Timetable.countDocuments({
+        college_id: student.college_id,
+        course_id: student.course_id,
+        semester: student.currentSemester,
+        status: { $ne: "ARCHIVED" },
+      });
+
+      if (courseTimetablesCount > 0) {
+        const validTimetable = await Timetable.findOne({
+          college_id: student.college_id,
+          department_id: student.department_id,
+          course_id: student.course_id,
+          semester: student.currentSemester,
+          academicYear: student.currentAcademicYear,
+          division: divisionValue,
+          status: { $ne: "ARCHIVED" },
+        });
+
+        if (!validTimetable) {
+          results.failed.push({
+            studentId: student._id,
+            fullName: student.fullName,
+            reason: `Division "${divisionValue}" is not valid for timetable in this student's course/semester`,
+          });
+          continue;
+        }
+      }
+
+      student.division = divisionValue;
+      await student.save();
+
+      results.updated.push({
+        studentId: student._id,
+        fullName: student.fullName,
+        division: divisionValue,
+      });
+    }
+
+    ApiResponse.success(
+      res,
+      {
+        totalRequested: studentIds.length,
+        updatedCount: results.updated.length,
+        failedCount: results.failed.length,
+        updated: results.updated,
+        failed: results.failed,
+      },
+      `Successfully assigned Division ${divisionValue} to ${results.updated.length} student(s)`
+    );
+  } catch (error) {
+    next(error);
   }
 };

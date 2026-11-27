@@ -13,6 +13,7 @@ import {
   FaArrowLeft,
   FaCheckCircle,
   FaExclamationCircle,
+  FaExclamationTriangle,
   FaTimes,
   FaHome,
   FaArrowRight,
@@ -66,14 +67,21 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState("");
   const [lockRemaining, setLockRemaining] = useState(0);
+  const [attemptsRemaining, setAttemptsRemaining] = useState(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { formatTime: lockTime, reset: resetLockCountdown } = useCountdown(lockRemaining, () => {
+  const {
+    seconds: lockSeconds,
+    formatTime: lockTime,
+    reset: resetLockCountdown,
+  } = useCountdown(lockRemaining, () => {
     setError("");
     setLockRemaining(0);
   });
+
+  const isLocked = (typeof lockSeconds === "number" && lockSeconds > 0) || (typeof lockRemaining === "number" && lockRemaining > 0);
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -112,9 +120,12 @@ export default function Login() {
       }
 
       if (result.code === "ACCOUNT_LOCKED") {
+        setAttemptsRemaining(0);
         const lockedUntil = result.lockedUntil;
         let remaining = 0;
-        if (lockedUntil) {
+        if (result.retryAfter && typeof result.retryAfter === "number") {
+          remaining = result.retryAfter;
+        } else if (lockedUntil) {
           remaining = Math.max(0, Math.ceil((new Date(lockedUntil) - new Date()) / 1000));
         } else if (errorMsg) {
           const match = errorMsg.match(/(\d+)\s*minute/i);
@@ -122,17 +133,33 @@ export default function Login() {
             remaining = Math.max(0, parseInt(match[1], 10) * 60);
           }
         }
-        if (remaining > 0) {
-          resetLockCountdown(remaining);
+        if (remaining <= 0) {
+          remaining = 60; // fallback minimum 60s
         }
-        setError(`🔒 ${errorMsg}`);
+
+        setLockRemaining(remaining);
+        resetLockCountdown(remaining);
+        setError(errorMsg.startsWith("🔒") ? errorMsg : `🔒 ${errorMsg}`);
       } else if (errorMsg.includes("awaiting admin approval")) {
+        setAttemptsRemaining(null);
         setError("⏳ Your account is awaiting admin approval. Please check your email for approval confirmation.");
       } else if (errorMsg.includes("rejected")) {
+        setAttemptsRemaining(null);
         setError("❌ Your account has been rejected. Please contact the admin for more information.");
       } else if (errorMsg.includes("deactivated") || result.code === "ACCOUNT_DEACTIVATED") {
+        setAttemptsRemaining(null);
         setError("🚫 Your account has been deactivated. Please contact your administrator to request reactivation.");
       } else {
+        if (typeof result.attemptsRemaining === "number") {
+          setAttemptsRemaining(result.attemptsRemaining);
+        } else {
+          const match = errorMsg.match(/Only\s+(\d+)\s+login\s+attempt/i);
+          if (match) {
+            setAttemptsRemaining(parseInt(match[1], 10));
+          } else {
+            setAttemptsRemaining(null);
+          }
+        }
         setError(errorMsg);
       }
       setLoading(false);
@@ -141,6 +168,7 @@ export default function Login() {
 
     setPassword("");
     setError("");
+    setAttemptsRemaining(null);
     setLoading(false);
     showSuccess("Login successful. Welcome back!");
     navigate("/home");
@@ -284,7 +312,65 @@ export default function Login() {
 
           {/* Alerts */}
           <AnimatePresence mode="wait">
-            {error && (
+            {isLocked ? (
+              <motion.div
+                key="locked"
+                className="lp-alert lp-alert--error"
+                initial={{ opacity: 0, y: -10, maxHeight: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+                animate={{ opacity: 1, y: 0, maxHeight: 200, marginBottom: "1rem", paddingTop: "0.75rem", paddingBottom: "0.75rem" }}
+                exit={{ opacity: 0, y: -10, maxHeight: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <FaLock className="lp-alert__icon" />
+                <div className="lp-alert__body">
+                  <span className="lp-alert__text" style={{ fontWeight: 600 }}>
+                    {error || "Account locked due to multiple failed login attempts."}
+                  </span>
+                  <div className="lp-alert__countdown">
+                    ⏱ Cooldown: Try again in <span className="lp-alert__time">{lockTime}</span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : attemptsRemaining !== null &&
+              (attemptsRemaining === 1 || attemptsRemaining === 2) ? (
+              <motion.div
+                key="caution"
+                className="lp-alert lp-alert--caution"
+                initial={{ opacity: 0, y: -10, maxHeight: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+                animate={{ opacity: 1, y: 0, maxHeight: 200, marginBottom: "1rem", paddingTop: "0.75rem", paddingBottom: "0.75rem" }}
+                exit={{ opacity: 0, y: -10, maxHeight: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ overflow: "hidden" }}
+              >
+                <FaExclamationTriangle className="lp-alert__icon" />
+                <div className="lp-alert__body">
+                  <span className="lp-alert__text" style={{ fontWeight: 600 }}>
+                    Caution: Only {attemptsRemaining} login attempt{attemptsRemaining > 1 ? "s" : ""} remaining!
+                  </span>
+                  <span className="lp-alert__subtext">
+                    Invalid credentials. Your account will be locked for 15 minutes if repeated. Click{" "}
+                    <Link
+                      to="/forgot-password"
+                      style={{ color: "inherit", textDecoration: "underline", fontWeight: 600 }}
+                    >
+                      Forgot Password
+                    </Link>{" "}
+                    if you cannot recall your credentials.
+                  </span>
+                </div>
+                <button
+                  className="lp-alert__close"
+                  onClick={() => {
+                    setAttemptsRemaining(null);
+                    setError("");
+                  }}
+                  aria-label="Dismiss alert"
+                >
+                  <FaTimes />
+                </button>
+              </motion.div>
+            ) : error ? (
               <motion.div
                 key="err"
                 className="lp-alert lp-alert--error"
@@ -297,18 +383,12 @@ export default function Login() {
                 <FaExclamationCircle className="lp-alert__icon" />
                 <div className="lp-alert__body">
                   <span className="lp-alert__text">{error}</span>
-                  {lockRemaining > 0 && (
-                    <div className="lp-alert__countdown">
-                      Try again in <span className="lp-alert__time">{lockTime}</span>
-                    </div>
-                  )}
                 </div>
-                {lockRemaining <= 0 && (
-                  <button className="lp-alert__close" onClick={() => setError("")}><FaTimes /></button>
-                )}
+                <button className="lp-alert__close" onClick={() => setError("")} aria-label="Dismiss error">
+                  <FaTimes />
+                </button>
               </motion.div>
-            )}
-            {successMsg && (
+            ) : successMsg ? (
               <motion.div
                 key="ok"
                 className="lp-alert lp-alert--success"
@@ -320,9 +400,11 @@ export default function Login() {
               >
                 <FaCheckCircle className="lp-alert__icon" />
                 <span>{successMsg}</span>
-                <button className="lp-alert__close" onClick={() => setSuccessMsg("")}><FaTimes /></button>
+                <button className="lp-alert__close" onClick={() => setSuccessMsg("")} aria-label="Dismiss message">
+                  <FaTimes />
+                </button>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
 
           {/* Form */}
@@ -401,8 +483,8 @@ export default function Login() {
             >
                <button
                  type="submit"
-                 className={`lp-submit ${loading ? "lp-submit--loading" : ""}`}
-                 disabled={loading || lockRemaining > 0}
+                 className={`lp-submit ${loading ? "lp-submit--loading" : ""} ${isLocked ? "lp-submit--locked" : ""}`}
+                 disabled={loading || isLocked}
                >
                 <span className="lp-submit__bg" />
                 <span className="lp-submit__shine" />
@@ -412,7 +494,7 @@ export default function Login() {
                       <span className="lp-spinner" />
                       <span>Processing…</span>
                     </>
-                  ) : lockRemaining > 0 ? (
+                  ) : isLocked ? (
                     <>
                       <FaLock size={14} />
                       <span>Locked — try again in {lockTime}</span>
@@ -725,6 +807,8 @@ export default function Login() {
         }
         .lp-alert--error  { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); color: #dc2626; }
         .lp-alert--success{ background: rgba(16,185,129,.07); border: 1px solid rgba(16,185,129,.2); color: #059669; }
+        .lp-alert--caution{ background: rgba(245,158,11,.08); border: 1.5px solid rgba(245,158,11,.35); color: #b45309; }
+        .lp-alert__subtext { display: block; font-size: 0.76rem; color: #92400e; margin-top: 0.2rem; line-height: 1.35; }
         .lp-alert__icon { flex-shrink: 0; font-size: .95rem; margin-top: 1px; }
         .lp-alert__body { flex: 1; min-width: 0; }
         .lp-alert__text { display: block; }
@@ -798,7 +882,9 @@ export default function Login() {
         .lp-submit:hover:not(:disabled) .lp-submit__shine { opacity: 1; }
         .lp-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(61,181,230,.42); }
         .lp-submit:active:not(:disabled) { transform: translateY(0); }
-        .lp-submit:disabled { opacity: .5; cursor: not-allowed; }
+        .lp-submit:disabled { opacity: .65; cursor: not-allowed; }
+        .lp-submit--locked .lp-submit__bg { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); }
+        .lp-submit--locked { box-shadow: 0 4px 18px rgba(239,68,68,.3); }
         .lp-submit__content {
           position: relative; z-index: 1;
           display: flex; align-items: center; justify-content: center;

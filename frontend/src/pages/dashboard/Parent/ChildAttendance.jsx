@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import Loading from "../../../components/Loading";
 import {
   FaArrowLeft,
   FaCalendarCheck,
@@ -12,8 +15,8 @@ import {
   FaChartBar,
   FaCalendarAlt,
   FaUserGraduate,
-  FaExclamationTriangle,
-  FaSyncAlt
+  FaExclamationTriangle, 
+  FaSyncAlt,
 } from "react-icons/fa";
 import api from "../../../api/axios";
 
@@ -65,38 +68,6 @@ const fadeInVariants = {
     y: 0,
     transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
   })
-};
-
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
-};
-
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: {
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
-
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: {
-      duration: 1,
-      repeat: Infinity,
-      ease: "linear"
-    }
-  }
 };
 
 export default function ChildAttendance() {
@@ -151,62 +122,39 @@ export default function ChildAttendance() {
 
   if (loading) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
-          <div className="parent-loading-state">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="parent-loading-spinner"
-              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Attendance...</h4>
-          </div>
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-attendance">
+        <div
+          className="parent-portal-container parent-child-attendance-page parent-loading-container"
+          style={{ minHeight: "70vh", width: "100%", maxWidth: "none" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Attendance..."
+          />
         </div>
       </div>
     );
   }
-
   if (error) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaExclamationTriangle />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">Error Loading Attendance</h1>
-                  <p className="parent-header-subtitle">{error}</p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="parent-btn-primary"
-                  onClick={() => navigate("/dashboard/parent")}
-                >
-                  <FaArrowLeft className="parent-me-2" />
-                  Back to Dashboard
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-attendance">
+        <div className="parent-portal-container parent-child-attendance-page" style={{ width: "100%", maxWidth: "none" }}>
+          <PageHeader
+            icon={FaExclamationTriangle}
+            title="Error Loading Attendance"
+            subtitle={error}
+            actions={
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard/parent")}
+                className="parent-btn-primary"
+              >
+                <FaArrowLeft className="parent-me-2" />
+                Back to Dashboard
+              </button>
+            }
+          />
         </div>
       </div>
     );
@@ -218,9 +166,9 @@ export default function ChildAttendance() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper erp-viewport-min-100"
+        className="parent-portal-wrapper parent-portal-wrapper--child-attendance erp-viewport-min-100"
       >
-        <div className="parent-portal-container">
+        <div className="parent-portal-container parent-child-attendance-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -231,36 +179,11 @@ export default function ChildAttendance() {
           />
 
           {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaCalendarCheck />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    Attendance Records
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    Track your child's attendance performance and history
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-              </div>
-            </div>
-          </motion.div>
+          <PageHeader
+            icon={FaCalendarCheck}
+            title="Attendance Records"
+            subtitle="Track your child's attendance performance and history"
+          />
 
           {/* ================= ATTENDANCE STATS ================= */}
           <motion.div
@@ -328,7 +251,14 @@ export default function ChildAttendance() {
                 />
               ) : (
                 <div className="parent-table-responsive">
-                  <table className="parent-table">
+                  <table className="parent-table parent-attendance-detail-table">
+                    <colgroup>
+                      <col className="col-date" />
+                      <col className="col-subject" />
+                      <col className="col-status" />
+                      <col className="col-session" />
+                      <col className="col-slot" />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th>Date</th>
@@ -413,7 +343,9 @@ export default function ChildAttendance() {
 }
 
 /* ================= STAT CARD ================= */
-function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
+function StatCard({ icon: IconComp, label, value, gradient, subtitle }) {
+  // eslint-disable-next-line no-unused-vars
+  const Icon = IconComp;
   return (
     <motion.div
       whileHover={{ y: -3, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)' }}

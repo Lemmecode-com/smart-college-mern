@@ -126,9 +126,9 @@ exports.yearValidatorMessage = (minYear = 1900, maxYearOffset = 5) => {
  * Centralized password policy for all password entry points
  * Policy: min 8 characters, with uppercase, lowercase, number, and special character
  */
-exports.validatePassword = (password) => {
+exports.validatePassword = (password, minLength = 8) => {
   if (!password || typeof password !== 'string') return false;
-  if (password.length < 8) return false;
+  if (password.length < (minLength || 8)) return false;
   if (!/[A-Z]/.test(password)) return false;
   if (!/[a-z]/.test(password)) return false;
   if (!/[0-9]/.test(password)) return false;
@@ -136,7 +136,10 @@ exports.validatePassword = (password) => {
   return true;
 };
 
-exports.passwordValidationMessage = 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character';
+exports.getPasswordValidationMessage = (minLength = 8) =>
+  `Password must be at least ${minLength || 8} characters long and include uppercase, lowercase, number, and special character`;
+
+exports.passwordValidationMessage = exports.getPasswordValidationMessage(8);
 
 /**
  * 9. Joining Date Validator

@@ -190,7 +190,7 @@ exports.handleStripeWebhook = async (req, res) => {
           try {
             const student = await Student.findById(studentId).populate(
               "college_id",
-              "name email",
+              "name email gstin state",
             );
 
             if (student && !installment.receiptEmailSentAt) {
@@ -200,6 +200,9 @@ exports.handleStripeWebhook = async (req, res) => {
                 installment: {
                   name: installment.name,
                   amount: installment.amount,
+                  baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
+                  gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+                  taxBreakdown: installment.taxBreakdown || null,
                   paidAt: installment.paidAt,
                   transactionId: installment.transactionId,
                 },
@@ -207,6 +210,7 @@ exports.handleStripeWebhook = async (req, res) => {
                 paidAmount: studentFee.paidAmount,
                 remainingAmount: studentFee.totalFee - studentFee.paidAmount,
                 collegeId: student.college_id?._id || student.college_id,
+                collegeGstin: student.college_id?.gstin || null,
               });
 
               // Mark email as sent
@@ -311,7 +315,7 @@ exports.handleStripeWebhook = async (req, res) => {
         try {
           const student = await Student.findById(studentId).populate(
             "college_id",
-            "name email",
+            "name email gstin state",
           );
           if (student) {
             await sendPaymentReceiptEmail({
@@ -320,6 +324,9 @@ exports.handleStripeWebhook = async (req, res) => {
               installment: {
                 name: installment.name,
                 amount: installment.amount,
+                baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
+                gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+                taxBreakdown: installment.taxBreakdown || null,
                 paidAt: new Date(),
                 transactionId: session.payment_intent,
               },
@@ -327,6 +334,7 @@ exports.handleStripeWebhook = async (req, res) => {
               paidAmount: updatedFee.paidAmount,
               remainingAmount: updatedFee.totalFee - updatedFee.paidAmount,
               collegeId: student.college_id?._id || student.college_id,
+              collegeGstin: student.college_id?.gstin || null,
             });
 
             // Mark email as sent in database (tracks that webhook sent it)

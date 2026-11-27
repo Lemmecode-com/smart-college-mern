@@ -399,6 +399,16 @@ const studentSchema = new mongoose.Schema(
     lastPromotionDate: {
       type: Date,
     },
+
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+
+    deactivationReason: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true },
 );
@@ -427,6 +437,10 @@ studentSchema.index({ college_id: 1, currentSemester: 1 });
 studentSchema.index({ college_id: 1, currentYear: 1 });
 studentSchema.index({ status: 1, admissionYear: 1 });
 studentSchema.index({ college_id: 1, course_id: 1, currentSemester: 1, division: 1 });
+studentSchema.index(
+  { college_id: 1, status: 1, currentSemester: 1, fullName: 1 },
+  { background: true }
+);
 studentSchema.index({ "documentRefs.documentId": 1 });
 studentSchema.index({ "documentRefs.documentType": 1 });
 

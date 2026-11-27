@@ -5,6 +5,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const { ROLE } = require("../utils/constants");
+const checkDataExport = require("../middlewares/checkDataExport.middleware");
 const {
   getAuditLogs,
   getAuditLogById,
@@ -35,6 +36,6 @@ router.get("/:id", getAuditLogById);
 router.put("/:id/review", markAsReviewed);
 
 // Export logs
-router.get("/export/download", exportAuditLogs);
+router.get("/export/download", checkDataExport, exportAuditLogs);
 
 module.exports = router;

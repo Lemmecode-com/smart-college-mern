@@ -176,4 +176,10 @@ attendanceSessionSchema.index({ college_id: 1, status: 1 });
 // Course-wise sessions
 attendanceSessionSchema.index({ college_id: 1, course_id: 1, lectureDate: -1 });
 
+// Promotion attendance evaluation: scoped closed sessions with slots
+attendanceSessionSchema.index(
+  { college_id: 1, course_id: 1, status: 1, slot_id: 1 },
+  { background: true }
+);
+
 module.exports = mongoose.model("AttendanceSession", attendanceSessionSchema);

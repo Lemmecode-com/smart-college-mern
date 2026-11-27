@@ -110,20 +110,28 @@ const authLimiter = rateLimit({
     const windowMinutes = Math.max(1, Math.round(windowMs / 60000));
     const windowLabel = windowMinutes === 1 ? "minute" : "minutes";
     const max = typeof options?.max === 'number' ? options.max : 5;
+    const retryAfter = Math.ceil(windowMs / 1000);
     logger.logWarning(`RATE LIMIT HIT - Auth endpoint from ${identifierType}: ${identifier}`, {
       identifier,
       type: identifierType,
       window: `${windowMinutes} minutes`,
       max,
       endpoint: "auth",
+      retryAfter,
     });
     res.status(429).json({
       success: false,
       message:
         process.env.NODE_ENV === "development"
-          ? "Too many login attempts, please wait 1 minute (Development Mode)"
-          : `Too many login attempts, please try again after ${windowMinutes} ${windowLabel}`,
+          ? "Too many attempts, please wait 1 minute (Development Mode)"
+          : `Too many attempts, please try again after ${windowMinutes} ${windowLabel}`,
       code: "RATE_LIMIT_EXCEEDED",
+      retryAfter,
+      attemptsRemaining: 0,
+      data: {
+        retryAfter,
+        attemptsRemaining: 0,
+      },
     });
   },
 });
@@ -149,19 +157,32 @@ const passwordResetLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => `ip:${normalizeIp(req)}`,
   handler: (req, res, next, options) => {
+    const windowMs = typeof options?.windowMs === "number" ? options.windowMs : 60 * 60 * 1000;
+    const retryAfter = Math.ceil(windowMs / 1000);
+    const windowMinutes = Math.max(1, Math.round(windowMs / 60000));
+    const windowLabel = windowMinutes === 1 ? "minute" : windowMinutes === 60 ? "hour" : "minutes";
+    const windowDisplay = windowMinutes === 60 ? "1 hour" : `${windowMinutes} ${windowLabel}`;
+
     logger.logWarning(`RATE LIMIT HIT - Password Reset from IP: ${req.ip}`, {
       ip: req.ip,
-      window: `${options.windowMs / 60000} minutes`,
-      max: options.max,
+      window: windowDisplay,
+      max: options?.max || 3,
       endpoint: "password-reset",
+      retryAfter,
     });
-    res.status(options.statusCode).json({
+    res.status(options?.statusCode || 429).json({
       success: false,
+      code: "RATE_LIMIT_EXCEEDED",
       message:
         process.env.NODE_ENV === "development"
           ? "Too many password reset requests, please wait 1 minute (Development Mode)"
-          : "Too many password reset requests, please try again after 1 hour",
-      code: "RATE_LIMIT_EXCEEDED",
+          : `Too many password reset requests, please try again after ${windowDisplay}`,
+      retryAfter,
+      attemptsRemaining: 0,
+      data: {
+        retryAfter,
+        attemptsRemaining: 0,
+      },
     });
   },
 });
@@ -206,25 +227,6 @@ const paymentLimiter = rateLimit({
 });
 
 /**
- * Payment Status Polling Limiter - Higher limit for polling
- * Allows frequent polling (every 2-3 seconds) without hitting rate limit
- * For development: 500 requests per minute
- * For production: 200 requests per 5 minutes
- */
-const paymentStatusLimiter = rateLimit({
-  windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : 5 * 60 * 1000,
-  max: process.env.NODE_ENV === "development" ? 500 : 200,
-  message: {
-    success: false,
-    message: "Payment status polling rate limit exceeded, please wait",
-    code: "RATE_LIMIT_EXCEEDED",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => generateRateLimitKey(req),
-});
-
-/**
  * Health Check Rate Limiter - Higher limit for monitoring
  * Always tracks by IP (health checks don't have authentication)
  */
@@ -239,23 +241,6 @@ const healthCheckLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => `ip:${normalizeIp(req)}`,
-});
-
-/**
- * API Limiter - For general API routes (slightly higher than global)
- * For production: 100 requests per 5 minutes
- */
-const apiLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 100, // Limit each user/IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: "Too many API requests, please try again after 5 minutes",
-    code: "RATE_LIMIT_EXCEEDED",
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => generateRateLimitKey(req),
 });
 
 /**
@@ -352,14 +337,62 @@ const sessionLimiter = rateLimit({
   skipSuccessfulRequests: false,
   keyGenerator: (req) => `ip:${normalizeIp(req)}`,
   handler: (req, res, next, options) => {
+    const windowMs = typeof options?.windowMs === "number" ? options.windowMs : 5 * 60 * 1000;
+    const retryAfter = Math.ceil(windowMs / 1000);
     logger.logWarning(`RATE LIMIT HIT - Session endpoint from IP: ${req.ip}`, {
       ip: req.ip,
       endpoint: req.originalUrl,
+      retryAfter,
     });
-    res.status(options.statusCode).json({
+    res.status(options?.statusCode || 429).json({
       success: false,
-      message: "Too many auth requests, please try again after 5 minutes",
       code: "RATE_LIMIT_EXCEEDED",
+      message: "Too many auth requests, please try again after 5 minutes",
+      retryAfter,
+      attemptsRemaining: 0,
+      data: {
+        retryAfter,
+        attemptsRemaining: 0,
+      },
+    });
+  },
+});
+
+/**
+ * Public Document Re-upload Limiter
+ * Guards student public re-upload endpoints against DoS and memory exhaustion.
+ *
+ * For development: 30 requests per minute
+ * For production: 10 requests per 15 minutes
+ * Always tracks by IP.
+ */
+const documentReuploadLimiter = rateLimit({
+  windowMs: process.env.NODE_ENV === "development" ? 60 * 1000 : 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "development" ? 30 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `ip:${normalizeIp(req)}`,
+  handler: (req, res, next, options) => {
+    const windowMs = typeof options?.windowMs === "number" ? options.windowMs : 15 * 60 * 1000;
+    const retryAfter = Math.ceil(windowMs / 1000);
+    const windowMinutes = Math.max(1, Math.round(windowMs / 60000));
+    const windowLabel = windowMinutes === 1 ? "minute" : "minutes";
+
+    logger.logWarning(`RATE LIMIT HIT - Public Document Re-upload from IP: ${req.ip}`, {
+      ip: req.ip,
+      endpoint: req.originalUrl,
+      window: `${windowMinutes} ${windowLabel}`,
+      retryAfter,
+    });
+
+    res.status(429).json({
+      success: false,
+      code: "RATE_LIMIT_EXCEEDED",
+      message:
+        process.env.NODE_ENV === "development"
+          ? "Too many document upload attempts, please wait 1 minute (Development Mode)"
+          : `Too many document upload attempts from this network. Please try again after ${windowMinutes} ${windowLabel}.`,
+      retryAfter,
     });
   },
 });
@@ -369,10 +402,9 @@ module.exports = {
   authLimiter,
   passwordResetLimiter,
   paymentLimiter,
-  paymentStatusLimiter,
   healthCheckLimiter,
-  apiLimiter,
   publicLimiter,
   webhookLimiter,
   sessionLimiter,
+  documentReuploadLimiter,
 };

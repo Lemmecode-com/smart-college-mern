@@ -13,7 +13,7 @@ const notificationReadSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PRINCIPAL", "PARENT_GUARDIAN"],
+      enum: ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PRINCIPAL", "PARENT_GUARDIAN", "SUPER_ADMIN"],
       required: true,
     },
     readAt: {
@@ -29,5 +29,8 @@ notificationReadSchema.index(
   { notification_id: 1, user_id: 1 },
   { unique: true }
 );
+
+// Index for user-wise read records query (optimizes student dashboard / unread lookups)
+notificationReadSchema.index({ user_id: 1 });
 
 module.exports = mongoose.model("NotificationRead", notificationReadSchema);

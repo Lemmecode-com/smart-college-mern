@@ -38,6 +38,7 @@ exports.sendPaymentReceiptEmail = async ({
   paidAmount,
   remainingAmount,
   collegeId,
+  collegeGstin = null,
   attachments = [],
 }) => {
   if (!collegeId) {
@@ -46,10 +47,172 @@ exports.sendPaymentReceiptEmail = async ({
   
   const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
 
+  if (!collegeGstin && collegeId) {
+    try {
+      const College = require("../models/college.model");
+      const collegeDoc = await College.findById(collegeId).select("gstin");
+      if (collegeDoc?.gstin) {
+        collegeGstin = collegeDoc.gstin;
+      }
+    } catch (_) {}
+  }
+
+  const effectiveTax = installment.taxBreakdown || installment.taxDetails;
+  const isTaxApplicable = Boolean(effectiveTax && effectiveTax.isTaxApplicable);
+  const hasValidGstin = Boolean(collegeGstin && typeof collegeGstin === "string" && collegeGstin.trim().length === 15);
+
+  let taxRows = "";
+  let complianceRows = "";
+  if (isTaxApplicable) {
+    if (collegeGstin) {
+      complianceRows += `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>College GSTIN:</b></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${collegeGstin}</td>
+        </tr>
+      `;
+    }
+    const sacCode = effectiveTax.sacCode || "999299";
+    complianceRows += `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>SAC Code:</b></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${sacCode}</td>
+      </tr>
+    `;
+    const placeOfSupply = effectiveTax.placeOfSupply || "Maharashtra (27)";
+    complianceRows += `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Place of Supply:</b></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${placeOfSupply}</td>
+      </tr>
+    `;
+
+    const base = effectiveTax.baseAmount !== undefined
+      ? effectiveTax.baseAmount
+      : effectiveTax.taxableBase !== undefined
+      ? effectiveTax.taxableBase
+      : (installment.amount - effectiveTax.totalTax);
+    const taxSplit = effectiveTax.taxSplit || {};
+
+    taxRows += `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Base Fee:</b></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${base.toLocaleString("en-IN")}</td>
+      </tr>
+    `;
+
+    let isUniform = taxSplit.isUniformRate;
+    if (isUniform === undefined) {
+      if (Array.isArray(effectiveTax.lineItems) && effectiveTax.lineItems.length > 0) {
+        const taxable = effectiveTax.lineItems.filter(l => Number(l.gstRate) > 0 || Number(l.gstAmount) > 0);
+        const unique = [...new Set(taxable.map(l => Number(l.gstRate)))];
+        isUniform = unique.length === 1;
+      } else if (taxSplit.cgstRate != null || taxSplit.igstRate != null) {
+        isUniform = true;
+      } else {
+        isUniform = false;
+      }
+    }
+
+    if (taxSplit.type === "INTER_STATE" || taxSplit.igstAmount > 0) {
+      const hasUniform = Boolean(isUniform && taxSplit.igstRate);
+      const igstLabel = hasUniform ? `IGST (${taxSplit.igstRate}%):` : "IGST:";
+      taxRows += `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>${igstLabel}</b></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${(taxSplit.igstAmount || effectiveTax.totalTax).toLocaleString("en-IN")}</td>
+        </tr>
+      `;
+    } else {
+      const hasUniform = Boolean(isUniform && taxSplit.cgstRate);
+      const cgstLabel = hasUniform ? `CGST (${taxSplit.cgstRate}%):` : "CGST:";
+      const sgstLabel = hasUniform ? `SGST (${taxSplit.sgstRate}%):` : "SGST:";
+      taxRows += `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>${cgstLabel}</b></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${(taxSplit.cgstAmount || (effectiveTax.totalTax / 2)).toLocaleString("en-IN")}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>${sgstLabel}</b></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${(taxSplit.sgstAmount || (effectiveTax.totalTax / 2)).toLocaleString("en-IN")}</td>
+        </tr>
+      `;
+    }
+
+    const totalTaxVal = effectiveTax.totalTax !== undefined
+      ? effectiveTax.totalTax
+      : ((taxSplit.cgstAmount || 0) + (taxSplit.sgstAmount || 0) + (taxSplit.igstAmount || 0));
+    taxRows += `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Total GST:</b></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${totalTaxVal.toLocaleString("en-IN")}</td>
+      </tr>
+    `;
+  }
+
+  let lineItemsHtml = "";
+  if (isTaxApplicable && Array.isArray(effectiveTax.lineItems) && effectiveTax.lineItems.length > 0) {
+    const isInterState = effectiveTax.taxSplit?.type === "INTER_STATE" || effectiveTax.taxSplit?.igstAmount > 0;
+    lineItemsHtml = `
+      <div style="margin: 20px 0;">
+        <h4 style="margin: 0 0 10px 0; color: #1e293b; font-size: 14px; text-transform: uppercase;">Fee Component & GST Breakdown</h4>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #e2e8f0; color: #1e293b;">
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Component</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Base Amount</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">GST Rate</th>
+              ${isInterState ? `
+                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">IGST</th>
+              ` : `
+                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">CGST</th>
+                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">SGST</th>
+              `}
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${effectiveTax.lineItems.map(item => {
+              if (isInterState) {
+                const iRate = item.igstRate !== undefined ? item.igstRate : item.gstRate;
+                const iAmt = item.igstAmount !== undefined ? item.igstAmount : item.gstAmount;
+                return `
+                  <tr>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.name}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(item.baseAmount) || 0).toLocaleString("en-IN")}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">${item.gstRate}%</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(iAmt) || 0).toLocaleString("en-IN")} <span style="font-size:11px;color:#64748b;">(${iRate}%)</span></td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(item.totalAmount) || 0).toLocaleString("en-IN")}</td>
+                  </tr>
+                `;
+              }
+              const cRate = item.cgstRate !== undefined ? item.cgstRate : (item.gstRate / 2);
+              const cAmt = item.cgstAmount !== undefined ? item.cgstAmount : (item.gstAmount / 2);
+              const sRate = item.sgstRate !== undefined ? item.sgstRate : (item.gstRate / 2);
+              const sAmt = item.sgstAmount !== undefined ? item.sgstAmount : (item.gstAmount / 2);
+              return `
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.name}</td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(item.baseAmount) || 0).toLocaleString("en-IN")}</td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">${item.gstRate}%</td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(cAmt) || 0).toLocaleString("en-IN")} <span style="font-size:11px;color:#64748b;">(${cRate}%)</span></td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(sAmt) || 0).toLocaleString("en-IN")} <span style="font-size:11px;color:#64748b;">(${sRate}%)</span></td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(item.totalAmount) || 0).toLocaleString("en-IN")}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   const mailOptions = {
     from: `"${fromName}" <${fromEmail}>`,
     to,
-    subject: "Payment Receipt - College Fee",
+    subject: (isTaxApplicable && hasValidGstin)
+      ? "Payment Receipt / Tax Invoice - College Fee"
+      : "Payment Receipt - College Fee",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #28a745;">✅ Payment Successful!</h2>
@@ -64,6 +227,8 @@ exports.sendPaymentReceiptEmail = async ({
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Installment:</b></td>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${installment.name}</td>
             </tr>
+            ${complianceRows}
+            ${taxRows}
             <tr>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Amount Paid:</b></td>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${installment.amount.toLocaleString("en-IN")}</td>
@@ -77,6 +242,7 @@ exports.sendPaymentReceiptEmail = async ({
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${installment.transactionId}</td>
             </tr>
           </table>
+          ${lineItemsHtml}
         </div>
         
         <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
@@ -1247,3 +1413,307 @@ exports.sendCollegeEmailChangeConfirmation = async ({ to, newEmail, collegeName,
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Send Document Rejection Email with Secure Re-upload Link
+ */
+exports.sendDocumentRejectionEmail = async ({
+  to,
+  studentName,
+  collegeName,
+  collegeId,
+  documentTypeLabel,
+  reason,
+  reuploadUrl,
+  expiresAt,
+}) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const formattedExpiry = expiresAt
+    ? new Date(expiresAt).toLocaleDateString("en-IN", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "72 hours";
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: `Action Required: Re-upload ${documentTypeLabel} - ${collegeName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; line-height: 1.6;">
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; padding: 25px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h2 style="margin: 0; font-size: 22px;">Document Verification Update</h2>
+          <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">${collegeName}</p>
+        </div>
+
+        <div style="background: #ffffff; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px;">
+          <p style="font-size: 16px;">Dear <b>${studentName}</b>,</p>
+
+          <p>
+            During the admission verification process for your application at <b>${collegeName}</b>,
+            your submitted document <b>"${documentTypeLabel}"</b> was not accepted and requires replacement.
+          </p>
+
+          <div style="background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 8px; padding: 15px; margin: 20px 0;">
+            <h4 style="margin: 0 0 6px; color: #9f1239; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">
+              ⚠️ Reason for Document Rejection:
+            </h4>
+            <p style="margin: 0; color: #be123c; font-size: 15px; font-weight: 500;">
+              ${reason || "Please provide a clearer and valid copy of this document."}
+            </p>
+          </div>
+
+          <p style="font-size: 15px;">
+            Please click the button below to upload a fresh, clear copy of this document directly from your phone or computer. 
+            <b>No login or password is required.</b>
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${reuploadUrl}"
+               style="background: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);">
+              📤 Upload Corrected Document
+            </a>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; font-size: 13px; color: #64748b;">
+            <p style="margin: 0 0 6px;"><b>⏳ Link Validity:</b> This secure link is valid until <b>${formattedExpiry}</b>.</p>
+            <p style="margin: 0 0 6px;"><b>📄 Supported Formats:</b> PDF, JPG, JPEG, PNG, DOC, DOCX (Max 10MB).</p>
+            <p style="margin: 0;">If the button above does not work, copy and paste this link into your browser:<br/>
+              <a href="${reuploadUrl}" style="color: #2563eb; word-break: break-all;">${reuploadUrl}</a>
+            </p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;" />
+
+          <p style="font-size: 13px; color: #64748b; margin: 0; text-align: center;">
+            This is an automated notification from the Admission Office of ${collegeName}. Please do not reply directly to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Document rejection email sent with re-upload link", {
+      recipient: to.split("@")[0] + "@***",
+      messageId: info.messageId,
+    });
+    return { success: true };
+  } catch (error) {
+    logger.logError("❌ Failed to send document rejection email", {
+      error: error.message,
+      code: error.code,
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send Super Admin email alert when a new inquiry is submitted
+ */
+exports.sendSuperAdminInquiryAlert = async ({ inquiry }) => {
+  try {
+    let superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+    if (!superAdminEmail) {
+      const User = require("../models/user.model");
+      const superAdmin = await User.findOne({ role: "SUPER_ADMIN" }).select("email").lean();
+      if (superAdmin?.email) {
+        superAdminEmail = superAdmin.email;
+      }
+    }
+
+    if (!superAdminEmail) {
+      logger.logWarn("⚠️ No Super Admin email found for inquiry alert");
+      return { success: false, reason: "SUPER_ADMIN_EMAIL_NOT_CONFIGURED" };
+    }
+
+    const { transporter, fromName, fromEmail } = await getGlobalTransporter();
+
+    const mailOptions = {
+      from: `"${fromName || "Smart College System"}" <${fromEmail}>`,
+      to: superAdminEmail,
+      subject: `🔔 New College Enquiry: ${inquiry.institutionName} [${inquiry.inquiryNumber}]`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
+          <div style="border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 20px;">
+            <h2 style="color: #1e293b; margin: 0; font-size: 20px;">📬 New College Enquiry Received</h2>
+            <p style="color: #64748b; margin: 4px 0 0; font-size: 14px;">Reference: <strong style="color: #2563eb;">${inquiry.inquiryNumber}</strong></p>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+            <tr>
+              <td style="padding: 8px 0; color: #64748b; width: 140px;"><b>Institution:</b></td>
+              <td style="padding: 8px 0; color: #1e293b; font-weight: bold;">${inquiry.institutionName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #64748b;"><b>Contact Name:</b></td>
+              <td style="padding: 8px 0; color: #1e293b;">${inquiry.firstName} ${inquiry.lastName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #64748b;"><b>Role / Designation:</b></td>
+              <td style="padding: 8px 0; color: #1e293b; text-transform: capitalize;">${inquiry.role}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #64748b;"><b>Email Address:</b></td>
+              <td style="padding: 8px 0; color: #1e293b;"><a href="mailto:${inquiry.email}" style="color: #2563eb;">${inquiry.email}</a></td>
+            </tr>
+            ${inquiry.phone ? `
+            <tr>
+              <td style="padding: 8px 0; color: #64748b;"><b>Phone Number:</b></td>
+              <td style="padding: 8px 0; color: #1e293b;">${inquiry.phone}</td>
+            </tr>
+            ` : ""}
+            <tr>
+              <td style="padding: 8px 0; color: #64748b;"><b>Submitted At:</b></td>
+              <td style="padding: 8px 0; color: #1e293b;">${new Date(inquiry.createdAt || Date.now()).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
+            </tr>
+          </table>
+
+          <div style="background: #f8fafc; border-left: 4px solid #2563eb; padding: 12px 16px; border-radius: 4px; margin-bottom: 20px;">
+            <p style="margin: 0 0 6px; color: #475569; font-weight: bold; font-size: 13px;">Message / Enquiry Details:</p>
+            <p style="margin: 0; color: #1e293b; font-size: 14px; white-space: pre-wrap; line-height: 1.5;">${inquiry.message}</p>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #94a3b8; margin: 0; text-align: center;">
+            This is an automated alert generated by Smart College Portal when a visitor submits the Contact Us form on the landing page.
+          </p>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Super Admin enquiry alert email sent", {
+      inquiryNumber: inquiry.inquiryNumber,
+      messageId: info.messageId,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    logger.logError("❌ Failed to send Super Admin enquiry alert email", {
+      error: error.message,
+      inquiryNumber: inquiry?.inquiryNumber,
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send automated acknowledgement confirmation email to the applicant who submitted the enquiry
+ */
+exports.sendInquiryAcknowledgementEmail = async ({ inquiry }) => {
+  try {
+    if (!inquiry || !inquiry.email) {
+      logger.logWarn("⚠️ Cannot send enquiry acknowledgement email: missing recipient email");
+      return { success: false, reason: "MISSING_RECIPIENT_EMAIL" };
+    }
+
+    const { transporter, fromName, fromEmail } = await getGlobalTransporter();
+
+    const senderName = fromName || "NOVAA Smart College ERP";
+    const recipientName = `${inquiry.firstName || ""} ${inquiry.lastName || ""}`.trim() || "Valued Educator";
+    const institutionName = inquiry.institutionName || "your institution";
+    const refNumber = inquiry.inquiryNumber || "N/A";
+
+    const mailOptions = {
+      from: `"${senderName}" <${fromEmail}>`,
+      to: inquiry.email,
+      subject: `Thank you for contacting NOVAA Smart College [${refNumber}]`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; color: #1e293b;">
+          <!-- Header Banner -->
+          <div style="border-bottom: 2px solid #0f3a4a; padding-bottom: 16px; margin-bottom: 20px;">
+            <h1 style="color: #0f3a4a; margin: 0 0 6px 0; font-size: 22px; font-weight: 700;">NOVAA Smart College ERP</h1>
+            <p style="color: #64748b; margin: 0; font-size: 14px;">Enquiry Acknowledgement & Confirmation</p>
+          </div>
+
+          <!-- Greeting -->
+          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+            Dear <strong>${recipientName}</strong>,
+          </p>
+
+          <p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 16px 0;">
+            Thank you for your interest in <strong>NOVAA Smart College ERP</strong>. We have successfully received your enquiry regarding <strong>${institutionName}</strong>.
+          </p>
+
+          <!-- Reference Callout -->
+          <div style="background: #f0fdfa; border: 1px solid #ccfbf1; border-left: 4px solid #0d9488; padding: 14px 18px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; text-transform: uppercase; color: #0f766e; letter-spacing: 0.05em;">Your Enquiry Reference Number</p>
+            <p style="margin: 0; font-size: 18px; font-weight: 700; color: #115e59; font-family: monospace;">${refNumber}</p>
+          </div>
+
+          <!-- Summary Table -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #0f3a4a; text-transform: uppercase; letter-spacing: 0.03em;">Submission Summary</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; width: 130px;"><b>Institution:</b></td>
+                <td style="padding: 6px 0; color: #1e293b; font-weight: 600;">${institutionName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b;"><b>Role / Title:</b></td>
+                <td style="padding: 6px 0; color: #1e293b; text-transform: capitalize;">${inquiry.role || "Administrator"}</td>
+              </tr>
+              ${inquiry.phone ? `
+              <tr>
+                <td style="padding: 6px 0; color: #64748b;"><b>Contact Phone:</b></td>
+                <td style="padding: 6px 0; color: #1e293b;">${inquiry.phone}</td>
+              </tr>
+              ` : ""}
+              <tr>
+                <td style="padding: 6px 0; color: #64748b;"><b>Submitted On:</b></td>
+                <td style="padding: 6px 0; color: #1e293b;">${new Date(inquiry.createdAt || Date.now()).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Next Steps & SLA -->
+          <div style="margin-bottom: 24px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: #0f3a4a;">What happens next?</h3>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 8px 0;">
+              1. Our institutional onboarding team is reviewing your requirements.
+            </p>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 8px 0;">
+              2. A product specialist will contact you within <strong>24 business hours</strong> to schedule a live demonstration, discuss module fit, and answer any questions.
+            </p>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569; margin: 0;">
+              3. If you have any immediate questions or priority requirements, feel free to reply directly to this email.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0 16px 0;" />
+          <div style="font-size: 12px; color: #94a3b8; line-height: 1.5; text-align: center;">
+            <p style="margin: 0 0 4px 0;">© ${new Date().getFullYear()} NOVAA Smart College ERP. All rights reserved.</p>
+            <p style="margin: 0;">This is an automated confirmation sent to ${inquiry.email}.</p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Enquiry acknowledgement email sent to applicant", {
+      inquiryNumber: inquiry.inquiryNumber,
+      recipientEmail: inquiry.email,
+      messageId: info.messageId,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    logger.logError("❌ Failed to send enquiry acknowledgement email to applicant", {
+      error: error.message,
+      inquiryNumber: inquiry?.inquiryNumber,
+      recipientEmail: inquiry?.email,
+    });
+    return { success: false, error: error.message };
+  }
+};
+

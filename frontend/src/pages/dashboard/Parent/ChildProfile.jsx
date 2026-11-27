@@ -125,28 +125,41 @@ export default function ChildProfile() {
 
   if (loading) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
-          <div className="parent-loading-state">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="parent-loading-spinner"
-              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Profile...</h4>
-          </div>
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-profile">
+        <div
+          className="parent-portal-container parent-child-profile-page parent-loading-container"
+          style={{ minHeight: "50vh", width: "100%", maxWidth: "none" }}
+        >
+        <div className="parent-loading-state">
+          <motion.div
+            variants={spinVariants}
+            animate="animate"
+            className="parent-loading-spinner"
+            style={{
+              fontSize: "3rem",
+              color: "var(--parent-primary)",
+              borderTopColor: "var(--parent-primary)",
+            }}
+          >
+            <FaSyncAlt />
+          </motion.div>
+
+          <h4
+            className="parent-loading-text"
+            style={{ color: "var(--parent-primary)" }}
+          >
+            Loading Profile...
+          </h4>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-profile">
+        <div className="parent-portal-container parent-child-profile-page" style={{ width: "100%", maxWidth: "none" }}>
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
@@ -188,8 +201,8 @@ export default function ChildProfile() {
 
   if (!student) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-profile">
+        <div className="parent-portal-container parent-child-profile-page" style={{ width: "100%", maxWidth: "none" }}>
           <EmptyState
             icon={<FaUser style={{ color: BRAND_COLORS.secondary.main }} />}
             title="Profile Not Found"
@@ -232,9 +245,9 @@ export default function ChildProfile() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper erp-viewport-min-100"
+        className="parent-portal-wrapper parent-portal-wrapper--child-profile erp-viewport-min-100"
       >
-        <div className="parent-portal-container">
+        <div className="parent-portal-container parent-child-profile-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}

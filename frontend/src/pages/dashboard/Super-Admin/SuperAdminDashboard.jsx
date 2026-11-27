@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Loading from "../../../components/Loading";
@@ -32,10 +33,23 @@ import {
   FaFilter,
   FaClock,
   FaTimes,
+  FaEnvelopeOpenText,
+  FaInbox,
 } from "react-icons/fa";
 
 // Constants
 const INITIAL_COLLEGES_DISPLAY = 3;
+
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -45,19 +59,8 @@ export default function SuperAdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  const AUTH_ERROR_CODES = new Set([
-    "TOKEN_MISSING",
-    "TOKEN_EXPIRED",
-    "INVALID_TOKEN",
-    "TOKEN_BLACKLISTED",
-    "TOKEN_INVALIDATED",
-    "USER_NOT_FOUND",
-    "ACCOUNT_DEACTIVATED",
-    "UNAUTHORIZED",
-  ]);
-
   /* ================= FETCH DASHBOARD DATA ================= */
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -88,11 +91,11 @@ export default function SuperAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
@@ -116,14 +119,7 @@ export default function SuperAdminDashboard() {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [navigate]);
-
-  /* ================= HELPER FUNCTIONS ================= */
-  const safeDivide = (numerator, denominator) => {
-    if (!denominator || denominator === 0) return "N/A";
-    const result = numerator / denominator;
-    return Number.isInteger(result) ? result : result.toFixed(1);
-  };
+  }, [navigate, fetchDashboardData]);
 
   /* ================= CALCULATED METRICS ================= */
   const stats = useMemo(
@@ -132,6 +128,8 @@ export default function SuperAdminDashboard() {
         totalColleges: 0,
         totalStudents: 0,
         totalTeachers: 0,
+        totalInquiries: 0,
+        newInquiries: 0,
         collegeGrowth: 0,
         studentGrowth: 0,
         teacherGrowth: 0,
@@ -140,6 +138,7 @@ export default function SuperAdminDashboard() {
   );
 
   const colleges = useMemo(() => data?.colleges || [], [data]);
+  const recentInquiries = useMemo(() => data?.recentInquiries || [], [data]);
   const collegeCount = colleges.length;
 
   // Filtered colleges
@@ -175,12 +174,18 @@ export default function SuperAdminDashboard() {
   /* ================= LOADING STATE ================= */
   if (loading || !data) {
     return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading Super Admin Dashboard..."
-        variant="spinner"
-      />
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Super Admin Dashboard..."
+          />
+        </div>
+      </div>
     );
   }
 
@@ -191,8 +196,9 @@ export default function SuperAdminDashboard() {
 
       {/* HEADER */}
       <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse" aria-hidden="true">
+        {/* Top row: icon on left, title and description beside it; last-refreshed time below description */}
+        <div className="erp-header-top">
+          <div className="erp-header-icon" aria-hidden="true">
             <FaUniversity />
           </div>
           <div className="erp-header-text">
@@ -200,32 +206,38 @@ export default function SuperAdminDashboard() {
             <p className="erp-page-subtitle">
               Centralized management portal for all registered colleges
             </p>
-            <p className="erp-page-meta">
+            <div className="erp-page-meta">
               <FaClock className="meta-icon" aria-hidden="true" />
-              Last refreshed: {lastRefresh.toLocaleTimeString()}
-              <span className="keyboard-hint">(Ctrl+R to refresh)</span>
-            </p>
+              <span>Last refreshed: {lastRefresh.toLocaleTimeString()}</span>
+            </div>
           </div>
         </div>
-        <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={fetchDashboardData}
-            title="Refresh dashboard data (Ctrl+R)"
-            aria-label="Refresh dashboard"
-          >
-            <FaSyncAlt className="erp-btn-icon spin" aria-hidden="true" />
-            <span>Refresh</span>
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={() => navigate("/super-admin/create-college")}
-            title="Add new college (Ctrl+N)"
-            aria-label="Add new college"
-          >
-            <FaPlus className="erp-btn-icon" aria-hidden="true" />
-            <span>Add College</span>
-          </button>
+
+        {/* Subtle horizontal divider */}
+        <div className="erp-header-divider" aria-hidden="true" />
+
+        {/* Bottom row: Refresh and Add College buttons aligned right */}
+        <div className="erp-header-bottom">
+          <div className="erp-header-actions">
+            <button
+              className="erp-btn erp-btn-secondary"
+              onClick={fetchDashboardData}
+              title="Refresh dashboard data (Ctrl+R)"
+              aria-label="Refresh dashboard"
+            >
+              <FaSyncAlt className="erp-btn-icon" aria-hidden="true" />
+              <span>Refresh</span>
+            </button>
+            <button
+              className="erp-btn erp-btn-primary"
+              onClick={() => navigate("/super-admin/create-college")}
+              title="Add new college (Ctrl+N)"
+              aria-label="Add new college"
+            >
+              <FaPlus className="erp-btn-icon" aria-hidden="true" />
+              <span>Add College</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -239,7 +251,7 @@ export default function SuperAdminDashboard() {
           <FaDatabase className="pulse" />
         </div>
         <div className="info-content">
-          <strong>System Overview:</strong> This dashboard provides a
+          <strong>System Overview: </strong> This dashboard provides a
           centralized view of all registered colleges, student populations, and
           faculty statistics across your educational network. Data is updated in
           real-time.
@@ -388,86 +400,148 @@ export default function SuperAdminDashboard() {
               <div className="quick-action-title">Security Audit</div>
               <div className="quick-action-description">
                 Monitor system activity
-               </div>
-           </div>
-         </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* STATS GRID */}
       <div
-        className="stats-grid animate-fade-in"
+        className="kpi-section stats-grid animate-fade-in"
         role="region"
         aria-label="Dashboard statistics"
       >
         {/* TOTAL COLLEGES */}
-        <div className="stat-card stat-card-colleges">
-          <div className="stat-card-header">
-            <div
-              className="stat-icon-wrapper stat-icon-colleges"
-              aria-hidden="true"
-            >
-              <FaUniversity className="stat-icon" />
+        <div
+          className="stat-card stat-card-colleges"
+          onClick={() => navigate("/super-admin/colleges-list")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/super-admin/colleges-list");
+            }
+          }}
+          aria-label="View all colleges"
+        >
+          <div className="stat-card-inner">
+            <div className="stat-icon-row">
+              <div
+                className="stat-icon-wrapper stat-icon-colleges"
+                aria-hidden="true"
+              >
+                <FaUniversity className="stat-icon" />
+              </div>
+              <FaChevronRight className="stat-arrow" aria-hidden="true" />
             </div>
-            <div className="stat-title">Total Colleges</div>
-          </div>
-          <div className="stat-card-body">
             <div className="stat-value">
               {stats.totalColleges?.toLocaleString() || "0"}
             </div>
-          </div>
-          <div className="stat-card-footer">
-            <div className="stat-trend">
-              <FaBuilding className="trend-icon" aria-hidden="true" />
-              <span>Registered institutions</span>
-            </div>
+            <div className="stat-label">Total Colleges</div>
+            <div className="stat-description">Registered institutions</div>
           </div>
         </div>
 
         {/* TOTAL STUDENTS */}
-        <div className="stat-card stat-card-students">
-          <div className="stat-card-header">
-            <div
-              className="stat-icon-wrapper stat-icon-students"
-              aria-hidden="true"
-            >
-              <FaUsers className="stat-icon" />
+        <div
+          className="stat-card stat-card-students"
+          onClick={() => navigate("/super-admin/reports")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/super-admin/reports");
+            }
+          }}
+          aria-label="View student reports"
+        >
+          <div className="stat-card-inner">
+            <div className="stat-icon-row">
+              <div
+                className="stat-icon-wrapper stat-icon-students"
+                aria-hidden="true"
+              >
+                <FaUsers className="stat-icon" />
+              </div>
+              <FaChevronRight className="stat-arrow" aria-hidden="true" />
             </div>
-            <div className="stat-title">Total Students</div>
-          </div>
-          <div className="stat-card-body">
             <div className="stat-value">
               {stats.totalStudents?.toLocaleString() || "0"}
             </div>
-          </div>
-          <div className="stat-card-footer">
-            <div className="stat-trend stat-trend-success">
-              <FaGraduationCap className="trend-icon" aria-hidden="true" />
-              <span>Across all colleges</span>
-            </div>
+            <div className="stat-label">Total Students</div>
+            <div className="stat-description">Across all colleges</div>
           </div>
         </div>
 
         {/* TOTAL TEACHERS */}
-        <div className="stat-card stat-card-teachers">
-          <div className="stat-card-header">
-            <div
-              className="stat-icon-wrapper stat-icon-teachers"
-              aria-hidden="true"
-            >
-              <FaUserGraduate className="stat-icon" />
+        <div
+          className="stat-card stat-card-teachers"
+          onClick={() => navigate("/super-admin/colleges-list")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/super-admin/colleges-list");
+            }
+          }}
+          aria-label="View colleges to manage teachers"
+        >
+          <div className="stat-card-inner">
+            <div className="stat-icon-row">
+              <div
+                className="stat-icon-wrapper stat-icon-teachers"
+                aria-hidden="true"
+              >
+                <FaUserGraduate className="stat-icon" />
+              </div>
+              <FaChevronRight className="stat-arrow" aria-hidden="true" />
             </div>
-            <div className="stat-title">Total Teachers</div>
-          </div>
-          <div className="stat-card-body">
             <div className="stat-value">
               {stats.totalTeachers?.toLocaleString() || "0"}
             </div>
+            <div className="stat-label">Total Teachers</div>
+            <div className="stat-description">Faculty members</div>
           </div>
-          <div className="stat-card-footer">
-            <div className="stat-trend stat-trend-success">
-              <FaUserGraduate className="trend-icon" aria-hidden="true" />
-              <span>Faculty members</span>
+        </div>
+
+        {/* COLLEGE ENQUIRIES */}
+        <div
+          className="stat-card stat-card-inquiries"
+          onClick={() => navigate("/super-admin/enquiries")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/super-admin/enquiries");
+            }
+          }}
+          aria-label="View all enquiries"
+        >
+          <div className="stat-card-inner">
+            <div className="stat-icon-row">
+              <div
+                className="stat-icon-wrapper stat-icon-inquiries"
+                aria-hidden="true"
+              >
+                <FaEnvelopeOpenText className="stat-icon" />
+              </div>
+              <FaChevronRight className="stat-arrow" aria-hidden="true" />
+            </div>
+            <div className="stat-value">
+              {stats.totalInquiries?.toLocaleString() || "0"}
+            </div>
+            <div className="stat-label">College Enquiries</div>
+            <div className="stat-description">
+              {stats.newInquiries > 0 ? (
+                <span className="stat-badge-new">{stats.newInquiries} New</span>
+              ) : (
+                "Landing Page Enquiries"
+              )}
             </div>
           </div>
         </div>
@@ -519,73 +593,156 @@ export default function SuperAdminDashboard() {
               )}
             </div>
           ) : (
-            <div className="row g-3 g-md-4">
+            <div className="colleges-grid">
               {collegesToDisplay.map((college, index) => (
-                <div className="col-12 col-md-6 col-lg-4" key={college._id}>
-                  <div
-                    className="college-card card border-0 shadow-sm h-100"
-                    onClick={() =>
-                      navigate(`/super-admin/college/${college._id}`)
+                <div
+                  className="college-card-vertical"
+                  key={college._id}
+                  onClick={() =>
+                    navigate(`/super-admin/college/${college._id}`)
+                  }
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View details for ${college.name}`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate(`/super-admin/college/${college._id}`);
                     }
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`View details for ${college.name}`}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        navigate(`/super-admin/college/${college._id}`);
-                      }
-                    }}
-                  >
-                    <div className="college-card-header p-3">
-                      <div className="college-badge">
-                        <span>{index + 1}</span>
-                      </div>
-                      <div className="college-status">
-                        <span
-                          className={`status-badge status-${college.status?.toLowerCase() || "active"}`}
-                        >
-                          {college.status || "Active"}
+                  }}
+                >
+                  <div className="college-card-header">
+                    <div className="college-badge">
+                      <span>{index + 1}</span>
+                    </div>
+                    <div className="college-status">
+                      <span
+                        className={`status-badge status-${college.status?.toLowerCase() || "active"}`}
+                      >
+                        {college.status || "Active"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="college-card-body">
+                    <h4 className="college-name">
+                      {college.name || "Unnamed College"}
+                    </h4>
+                    <div className="college-divider" />
+                    <div className="college-meta">
+                      <div className="meta-item">
+                        <FaMapMarkerAlt className="meta-icon" aria-hidden="true" />
+                        <span>
+                          {college.address || "Location not available"}
                         </span>
                       </div>
-                    </div>
-
-                    <div className="college-card-body p-3">
-                      <h4 className="college-name h6 mb-2 fw-bold">
-                        {college.name || "Unnamed College"}
-                      </h4>
-                      <div className="college-meta d-flex flex-wrap gap-2">
-                        <div className="meta-item d-flex align-items-center gap-1">
-                          <FaMapMarkerAlt
-                            className="text-muted"
-                            aria-hidden="true"
-                          />
-                          <span className="small text-muted">
-                            {college.location ||
-                              college.city ||
-                              college.address ||
-                              "Location not available"}
-                          </span>
-                        </div>
-                        <div className="meta-item d-flex align-items-center gap-1">
-                          <FaCalendarAlt
-                            className="text-muted"
-                            aria-hidden="true"
-                          />
-                          <span className="small text-muted">
-                            {college.establishedYear
-                              ? `Since ${college.establishedYear}`
-                              : college.registeredAt
-                                ? `Since ${new Date(college.registeredAt).getFullYear()}`
-                                : "Date unknown"}
-                          </span>
-                        </div>
+                      <div className="meta-item">
+                        <FaCalendarAlt className="meta-icon" aria-hidden="true" />
+                        <span>
+                          {college.establishedYear
+                            ? `Since ${college.establishedYear}`
+                            : college.createdAt
+                            ? `Since ${new Date(college.createdAt).getFullYear()}`
+                            : "Date unknown"}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* RECENT ENQUIRIES SECTION */}
+      <div
+        className="erp-card animate-fade-in mb-4"
+        role="region"
+        aria-label="Recent college enquiries"
+      >
+        <div className="erp-card-header d-flex justify-content-between align-items-center">
+          <h3 className="mb-0">
+            <FaEnvelopeOpenText className="erp-card-icon me-2" aria-hidden="true" />
+            Recent Enquiries ({recentInquiries.length})
+          </h3>
+          <button
+            className="view-more-btn"
+            onClick={() => navigate("/super-admin/enquiries")}
+            aria-label="View all enquiries"
+          >
+            View All Enquiries
+            <FaChevronRight className="view-more-icon" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="erp-card-body p-0" style={{ overflowX: "auto" }}>
+          {recentInquiries.length === 0 ? (
+            <div className="empty-state py-4 text-center">
+              <div className="empty-icon text-muted mb-2" aria-hidden="true">
+                <FaInbox size={32} />
+              </div>
+              <p className="text-muted mb-0">No enquiries received yet.</p>
+            </div>
+          ) : (
+            <table className="table table-hover align-middle mb-0" style={{ minWidth: "650px" }}>
+              <thead className="table-light">
+                <tr>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Ref No.</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Institution</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Contact Person</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Role</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Status</th>
+                  <th style={{ fontSize: "0.8rem", textTransform: "uppercase" }}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentInquiries.map((inq) => (
+                  <tr
+                    key={inq._id || inq.inquiryNumber}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => navigate(`/super-admin/enquiry/${inq._id}`)}
+                    title="Click to view enquiry details"
+                  >
+                    <td>
+                      <span className="badge bg-light text-dark font-monospace border" style={{ fontSize: "0.8rem" }}>
+                        {inq.inquiryNumber}
+                      </span>
+                    </td>
+                    <td className="fw-semibold">{inq.institutionName}</td>
+                    <td>
+                      <div>{inq.firstName} {inq.lastName}</div>
+                      <div className="text-muted small">{inq.email}</div>
+                    </td>
+                    <td>
+                      <span className="badge bg-secondary text-capitalize" style={{ fontSize: "0.75rem" }}>
+                        {inq.role}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          inq.status === "NEW"
+                            ? "bg-warning text-dark"
+                            : inq.status === "CONTACTED"
+                            ? "bg-info text-dark"
+                            : "bg-success"
+                        }`}
+                        style={{ fontSize: "0.75rem" }}
+                      >
+                        {inq.status}
+                      </span>
+                    </td>
+                    <td className="text-muted small">
+                      {new Date(inq.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
@@ -678,15 +835,18 @@ export default function SuperAdminDashboard() {
 
         /* ================= PAGE HEADER ================= */
         .erp-page-header {
-          background: var(--sidebar-gradient);
-          padding: var(--spacing-xl);
-          border-radius: var(--radius-xl);
-          margin-bottom: var(--spacing-xl);
-          box-shadow: var(--shadow-sidebar), 0 0 0 1px rgba(61, 181, 230, 0.2);
-          color: white;
+          background: linear-gradient(135deg, #0E3746 0%, #164E63 100%);
+          padding: 24px 28px;
+          border-radius: 14px;
+          margin-bottom: 1.25rem;
+          border: 1px solid rgba(34, 184, 230, 0.22);
+          box-shadow: 0 8px 24px -4px rgba(14, 55, 70, 0.4), 0 2px 6px -1px rgba(14, 55, 70, 0.2);
+          color: #ffffff;
           display: flex;
+          flex-direction: column;
           justify-content: space-between;
-          align-items: center;
+          min-height: 175px;
+          box-sizing: border-box;
           animation: slideDown 0.5s ease;
           position: relative;
           overflow: hidden;
@@ -699,141 +859,226 @@ export default function SuperAdminDashboard() {
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, transparent 50%, rgba(61, 181, 230, 0.05) 100%);
+          background: radial-gradient(circle at 10% 20%, rgba(34, 184, 230, 0.12) 0%, transparent 60%),
+                      linear-gradient(135deg, rgba(34, 184, 230, 0.08) 0%, transparent 50%);
           pointer-events: none;
         }
 
+        /* Top row: icon on left, title & description beside it, last-refreshed below */
+        .erp-header-top,
         .erp-header-content {
           display: flex;
-          align-items: center;
-          gap: var(--spacing-lg);
+          align-items: flex-start;
+          gap: 20px;
           position: relative;
           z-index: 1;
+          width: 100%;
+          min-width: 0;
         }
 
         .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(61, 181, 230, 0.25);
-          border-radius: var(--radius-lg);
+          width: 58px;
+          height: 58px;
+          min-width: 58px;
+          min-height: 58px;
+          background: rgba(34, 184, 230, 0.15);
+          border: 1px solid rgba(34, 184, 230, 0.35);
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.75rem;
-          box-shadow: 0 4px 16px rgba(61, 181, 230, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          font-size: 26px;
+          color: #22B8E6;
+          box-shadow: 0 4px 14px rgba(34, 184, 230, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .erp-header-text {
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+          flex: 1;
         }
 
         .erp-page-title {
           margin: 0;
-          font-size: 1.75rem;
+          font-size: 28px;
           font-weight: 700;
-          letter-spacing: -0.5px;
+          letter-spacing: -0.02em;
+          line-height: 1.15;
+          color: #ffffff;
         }
 
         .erp-page-subtitle {
-          margin: 0.25rem 0 0 0;
-          opacity: 0.9;
-          font-size: 0.95rem;
+          margin: 3px 0 0 0;
+          color: rgba(230, 242, 245, 0.88);
+          font-size: 16px;
           font-weight: 400;
+          line-height: 1.25;
         }
 
         .erp-page-meta {
-          margin-top: 0.5rem;
-          font-size: 0.85rem;
-          opacity: 0.85;
-          display: flex;
+          margin-top: 6px;
+          font-size: 14px;
+          color: rgba(230, 242, 245, 0.78);
+          display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 6px;
+          line-height: 1.2;
         }
 
         .meta-icon {
-          font-size: 0.9rem;
+          font-size: 14px;
+          color: #22B8E6;
+          flex-shrink: 0;
         }
 
-        .keyboard-hint {
-          margin-left: 0.5rem;
-          padding: 0.125rem 0.5rem;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 4px;
-          font-size: 0.75rem;
-          font-weight: 500;
-        }
-
-        .erp-header-actions {
-          display: flex;
-          gap: 0.75rem;
+        /* Subtle Horizontal Divider */
+        .erp-header-divider {
+          width: 100%;
+          height: 2px;
+          background: linear-gradient(90deg, rgba(34, 184, 230, 0.25) 0%, rgba(34, 184, 230, 0.08) 70%, transparent 100%);
+          margin: 6px 0 8px 0;
           position: relative;
           z-index: 1;
         }
 
-        .erp-btn {
-          padding: 0.75rem 1.25rem;
-          font-weight: 600;
-          border-radius: var(--radius-md);
-          transition: all var(--transition-base);
+        /* Bottom Row: buttons aligned right */
+        .erp-header-bottom {
           display: flex;
+          justify-content: flex-end;
           align-items: center;
-          gap: 0.5rem;
+          width: 100%;
+          position: relative;
+          z-index: 1;
+          gap: 16px;
+          height: 1.3rem;
+        }
+
+        .erp-header-shortcut {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13.5px;
+          color: rgba(230, 242, 245, 0.78);
+          font-weight: 500;
+        }
+
+        .meta-kbd {
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 2px 7px;
+          background: rgba(34, 184, 230, 0.12);
+          border: 1px solid rgba(34, 184, 230, 0.28);
+          border-radius: 4px;
+          color: #ffffff;
+          line-height: 1.2;
+        }
+
+        .shortcut-label {
+          color: rgba(230, 242, 245, 0.75);
+        }
+
+        .erp-header-actions {
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .erp-btn {
+          height: 44px;
+          padding: 0 18px;
+          font-weight: 600;
+          border-radius: 9px;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
           cursor: pointer;
-          border: none;
-          font-size: 0.9rem;
+          border: 1px solid transparent;
+          font-size: 15px;
+          line-height: 1;
+          white-space: nowrap;
+          box-sizing: border-box;
         }
 
         .erp-btn-secondary {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
+          background: rgba(22, 78, 99, 0.65);
+          color: #ffffff;
+          border: 1px solid rgba(34, 184, 230, 0.35);
+          box-shadow: 0 2px 6px rgba(14, 55, 70, 0.25);
         }
 
         .erp-btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.25);
-          transform: translateY(-2px);
+          background: #164E63;
+          border-color: #22B8E6;
+          color: #ffffff;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(14, 55, 70, 0.35), 0 0 0 1px rgba(34, 184, 230, 0.3);
+        }
+
+        .erp-btn-secondary:hover .erp-btn-icon {
+          transform: rotate(180deg);
         }
 
         .erp-btn-primary {
-          background: var(--accent-gradient);
-          color: white;
-          box-shadow: 0 4px 16px rgba(61, 181, 230, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          background: #22B8E6;
+          color: #0E3746;
+          font-weight: 700;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          box-shadow: 0 3px 12px rgba(34, 184, 230, 0.35);
         }
 
         .erp-btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(61, 181, 230, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          background: #38c5f0;
+          color: #0E3746;
+          transform: translateY(-1px);
+          box-shadow: 0 5px 16px rgba(34, 184, 230, 0.48);
+        }
+
+        .erp-btn-primary .erp-btn-icon {
+          color: #0E3746;
         }
 
         .erp-btn-icon {
-          font-size: 1rem;
+          font-size: 15px;
+          transition: transform 0.4s ease;
         }
 
         /* ================= INFO BANNER ================= */
         .info-banner {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.08) 0%, rgba(79, 195, 247, 0.12) 100%);
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.07) 0%, rgba(79, 195, 247, 0.1) 100%);
           border-radius: var(--radius-lg);
-          padding: var(--spacing-md) var(--spacing-lg);
+          padding: 0.75rem 1.25rem;
           display: flex;
           align-items: center;
-          gap: var(--spacing-md);
-          margin-bottom: var(--spacing-xl);
+          gap: 0.875rem;
+          margin-bottom: 1.1rem;
           border-left: 4px solid var(--sidebar-accent);
           box-shadow: var(--shadow-sm);
         }
 
         .info-icon {
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
-          background: rgba(61, 181, 230, 0.2);
+          background: rgba(61, 181, 230, 0.18);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--sidebar-accent);
           flex-shrink: 0;
+          font-size: 1rem;
         }
 
         .info-content {
           flex: 1;
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           color: var(--text-secondary);
-          line-height: 1.5;
+          line-height: 1.45;
         }
 
         .info-content strong {
@@ -849,7 +1094,7 @@ export default function SuperAdminDashboard() {
           display: flex;
           align-items: center;
           gap: var(--spacing-lg);
-          margin-bottom: var(--spacing-xl);
+          margin-bottom: 15px;
           box-shadow: var(--shadow-md);
           flex-wrap: wrap;
           border: 1px solid var(--border-light);
@@ -1018,160 +1263,257 @@ export default function SuperAdminDashboard() {
           color: var(--warning);
         }
 
-        /* ================= STATS GRID ================= */
-        .stats-grid {
+        /* ================= KPI STATISTICS SECTION ================= */
+        .kpi-section.stats-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: var(--spacing-lg);
-          margin-bottom: var(--spacing-lg);
+          grid-template-columns: repeat(4, 1fr);
+          gap: var(--spacing-md);
+          margin-bottom: 1.1rem;
           width: 100%;
+          overflow: visible;
         }
 
-        .stat-card {
-          background: var(--card-gradient);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-md);
-          overflow: visible;
-          transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
-          display: flex;
-          flex-direction: column;
+        .kpi-section .stat-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+          border: 1px solid #DCE6EF;
           animation: fadeIn 0.5s ease forwards;
-          border: 1px solid var(--border-light);
           position: relative;
           width: 100%;
+          min-height: 140px;
+          padding: 1rem 1.25rem;
+          transition: border-color 150ms ease, background-color 150ms ease;
+          cursor: pointer;
         }
 
-        .stat-card::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 4px;
-          height: 100%;
-          background: var(--accent-gradient);
-          opacity: 0;
-          transition: opacity var(--transition-base);
-          border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+        .kpi-section .stat-card:focus-visible {
+          outline: 2px solid #19A9DC;
+          outline-offset: 2px;
         }
 
-        .stat-card-colleges::before {
-          background: var(--sidebar-gradient);
+        .kpi-section .stat-card.stat-card-colleges:focus-visible {
+          outline-color: #19A9DC;
+        }
+        .kpi-section .stat-card.stat-card-students:focus-visible {
+          outline-color: #8964E8;
+        }
+        .kpi-section .stat-card.stat-card-teachers:focus-visible {
+          outline-color: #16A879;
+        }
+        .kpi-section .stat-card.stat-card-inquiries:focus-visible {
+          outline-color: #2563EB;
         }
 
-        .stat-card-students::before {
-          background: var(--accent-gradient);
+        .kpi-section .stat-card.stat-card-colleges:hover {
+          border-color: #19A9DC;
+          background-color: rgba(25, 169, 220, 0.02);
+        }
+        .kpi-section .stat-card.stat-card-students:hover {
+          border-color: #8964E8;
+          background-color: rgba(137, 100, 232, 0.02);
+        }
+        .kpi-section .stat-card.stat-card-teachers:hover {
+          border-color: #16A879;
+          background-color: rgba(22, 168, 121, 0.02);
+        }
+        .kpi-section .stat-card.stat-card-inquiries:hover {
+          border-color: #2563EB;
+          background-color: rgba(37, 99, 235, 0.02);
         }
 
-        .stat-card-teachers::before {
-          background: linear-gradient(180deg, #0c2d3a 0%, #09516d 100%);
-        }
+        .kpi-section .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .kpi-section .stat-card:nth-child(2) { animation-delay: 0.15s; }
+        .kpi-section .stat-card:nth-child(3) { animation-delay: 0.2s; }
+        .kpi-section .stat-card:nth-child(4) { animation-delay: 0.25s; }
 
-        .stat-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-md);
-          border-color: var(--sidebar-accent);
-        }
-
-        .stat-card:hover::before {
-          opacity: 1;
-        }
-
-        .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stat-card:nth-child(2) { animation-delay: 0.15s; }
-        .stat-card:nth-child(3) { animation-delay: 0.2s; }
-
-        .stat-card-header {
-          padding: var(--spacing-sm) var(--spacing-md);
+        .kpi-section .stat-card-inner {
           display: flex;
-          align-items: center;
-          gap: var(--spacing-sm);
-          background: transparent;
-          flex-shrink: 0;
+          flex-direction: column;
+          height: 100%;
+          justify-content: space-between;
         }
 
-        .stat-icon-wrapper {
+        .kpi-section .stat-icon-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 0.75rem;
+        }
+
+        .kpi-section .stat-icon-wrapper {
           width: 40px;
           height: 40px;
-          border-radius: var(--radius-sm);
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          font-size: 1.1rem;
-          transition: transform var(--transition-base);
-          overflow: hidden;
+          font-size: 1rem;
         }
 
-        .stat-card:hover .stat-icon-wrapper {
-          transform: scale(1.05);
+        .kpi-section .stat-icon-wrapper.stat-icon-colleges {
+          background: rgba(25, 169, 220, 0.12);
+          color: #19A9DC;
         }
 
-        .stat-icon-wrapper.stat-icon-colleges {
-          background: linear-gradient(135deg, rgba(15, 58, 74, 0.1) 0%, rgba(12, 45, 58, 0.15) 100%);
-          color: var(--sidebar-primary);
-          box-shadow: 0 2px 6px rgba(15, 58, 74, 0.2);
+        .kpi-section .stat-icon-wrapper.stat-icon-students {
+          background: rgba(137, 100, 232, 0.12);
+          color: #8964E8;
         }
 
-        .stat-icon-wrapper.stat-icon-students {
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, rgba(79, 195, 247, 0.15) 100%);
-          color: var(--sidebar-accent);
-          box-shadow: 0 2px 6px rgba(61, 181, 230, 0.2);
+        .kpi-section .stat-icon-wrapper.stat-icon-teachers {
+          background: rgba(22, 168, 121, 0.12);
+          color: #16A879;
         }
 
-        .stat-icon-wrapper.stat-icon-teachers {
-          background: linear-gradient(135deg, rgba(12, 45, 58, 0.1) 0%, rgba(24, 73, 92, 0.15) 100%);
-          color: var(--sidebar-primary);
-          box-shadow: 0 2px 6px rgba(12, 45, 58, 0.2);
+        .kpi-section .stat-icon-wrapper.stat-icon-inquiries {
+          background: rgba(37, 99, 235, 0.12);
+          color: #2563EB;
         }
 
-        .stat-icon {
+        .kpi-section .stat-icon {
           font-size: 1.1rem;
         }
 
-        .stat-title {
-          font-weight: 500;
-          color: var(--text-muted);
-          font-size: 0.8rem;
-          flex: 1;
+        .kpi-section .stat-arrow {
+          font-size: 0.85rem;
+          color: #A0ADBA;
+          flex-shrink: 0;
+          margin-top: 2px;
         }
 
-        .stat-card-body {
-          padding: 0 var(--spacing-md);
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-start;
-          gap: 0.25rem;
-        }
-
-        .stat-value {
-          font-size: 1.75rem;
+        .kpi-section .stat-value {
+          font-size: 30px;
           font-weight: 700;
-          color: var(--sidebar-primary);
-          line-height: 1.15;
+          color: #0E3746;
+          line-height: 1.1;
           letter-spacing: -0.02em;
+          margin-bottom: 0.25rem;
         }
 
-        .stat-card-footer {
-          border-top: 1px solid var(--border-light);
-          padding: var(--spacing-xs) var(--spacing-md) var(--spacing-sm);
-        }
-
-        .stat-trend {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          font-size: 0.78rem;
+        .kpi-section .stat-label {
+          font-size: 13px;
           font-weight: 500;
-          color: var(--text-muted);
+          color: #4A5A6A;
+          letter-spacing: 0.01em;
+          text-transform: uppercase;
+          line-height: 1.3;
+          margin-bottom: 0.375rem;
         }
 
-        .stat-trend-success {
-          color: var(--success);
+        .kpi-section .stat-description {
+          font-size: 13px;
+          font-weight: 400;
+          color: #8493A5;
+          line-height: 1.4;
         }
 
-        .trend-icon {
-          font-size: 0.75rem;
+        .kpi-section .stat-badge-new {
+          display: inline-block;
+          background: #EFF6FF;
+          color: #2563EB;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 3px 8px;
+          border-radius: 10px;
+          line-height: 1;
+        }
+
+        /* Tablet: 2 columns */
+        @media (max-width: 991.98px) {
+          .kpi-section.stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+          }
+
+          .kpi-section .stat-card {
+            min-height: 135px;
+            padding: 0.875rem 1rem;
+          }
+
+          .kpi-section .stat-icon-row {
+            margin-bottom: 0.625rem;
+          }
+
+          .kpi-section .stat-icon-wrapper {
+            width: 38px;
+            height: 38px;
+            font-size: 0.95rem;
+          }
+
+          .kpi-section .stat-icon {
+            font-size: 1.05rem;
+          }
+
+          .kpi-section .stat-arrow {
+            font-size: 0.8rem;
+          }
+
+          .kpi-section .stat-value {
+            font-size: 28px;
+          }
+
+          .kpi-section .stat-label {
+            font-size: 12px;
+          }
+
+          .kpi-section .stat-description {
+            font-size: 12px;
+          }
+
+          .kpi-section .stat-badge-new {
+            font-size: 10px;
+            padding: 2px 7px;
+          }
+        }
+
+        /* Mobile: 1 column */
+        @media (max-width: 767.98px) {
+          .kpi-section.stats-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+          }
+
+          .kpi-section .stat-card {
+            min-height: 130px;
+            padding: 0.875rem 1rem;
+          }
+
+          .kpi-section .stat-icon-row {
+            margin-bottom: 0.5rem;
+          }
+
+          .kpi-section .stat-icon-wrapper {
+            width: 36px;
+            height: 36px;
+            font-size: 0.9rem;
+          }
+
+          .kpi-section .stat-icon {
+            font-size: 1rem;
+          }
+
+          .kpi-section .stat-arrow {
+            font-size: 0.75rem;
+          }
+
+          .kpi-section .stat-value {
+            font-size: 28px;
+          }
+
+          .kpi-section .stat-label {
+            font-size: 12px;
+          }
+
+          .kpi-section .stat-description {
+            font-size: 12px;
+          }
+
+          .kpi-section .stat-badge-new {
+            font-size: 10px;
+            padding: 2px 7px;
+          }
         }
 
         /* ================= COLLEGES SECTION ================= */
@@ -1244,300 +1586,354 @@ export default function SuperAdminDashboard() {
           padding: var(--spacing-lg);
         }
 
-        .college-card {
-          background: var(--card-gradient);
-          border-radius: var(--radius-lg);
-          padding: var(--spacing-xl);
-          cursor: pointer;
-          transition: all var(--transition-base);
-          border: 1px solid var(--border-light);
-          position: relative;
-          overflow: visible;
-          height: 100%;
+        .college-card-body {
+          margin-bottom: 0;
+          flex: 1;
+        }
+
+        .college-name {
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin: 0 0 0.5rem 0;
+          line-height: 1.3;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          letter-spacing: -0.2px;
+        }
+
+        .college-meta {
           display: flex;
           flex-direction: column;
+          gap: 0.3rem;
         }
 
-        .college-card::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 4px;
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          font-size: 0.8rem;
+          color: var(--text-muted);
+        }
+
+        .meta-item .meta-icon {
+          color: var(--sidebar-accent);
+          font-size: 0.8rem;
+        }
+
+        /* Registered Colleges Grid */
+        .colleges-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+
+        .college-card-vertical {
+          background: #ffffff;
+          border: 1px solid #DCE6EF;
+          border-radius: 12px;
+          padding: 1.125rem;
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          cursor: pointer;
           height: 100%;
-          background: var(--accent-gradient);
-          opacity: 0;
-          transition: opacity var(--transition-base);
         }
 
-        .college-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-colored);
+        .college-card-vertical:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
           border-color: var(--sidebar-accent);
-        }
-
-        .college-card:hover::before {
-          opacity: 1;
         }
 
         .college-card-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: var(--spacing-md);
-          padding-bottom: var(--spacing-sm);
-          border-bottom: 1px solid var(--border-light);
+          margin-bottom: 0.875rem;
         }
 
         .college-badge {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
+          width: 26px;
+          height: 26px;
+          border-radius: 6px;
           background: var(--accent-gradient);
           color: white;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
-          font-size: 0.9rem;
+          font-size: 0.75rem;
           flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
         }
 
         .college-status {
           background: var(--success-light);
           color: var(--success);
-          padding: 0.25rem 0.75rem;
+          padding: 0.1875rem 0.625rem;
           border-radius: 20px;
           font-weight: 600;
-          font-size: 0.85rem;
-          display: flex;
+          font-size: 0.7rem;
+          display: inline-flex;
           align-items: center;
-          gap: 0.375rem;
-        }
-
-        .college-status::before {
-          content: "";
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: currentColor;
+          gap: 0.25rem;
         }
 
         .college-card-body {
-          margin-bottom: var(--spacing-md);
+          display: flex;
+          flex-direction: column;
           flex: 1;
         }
 
         .college-name {
-          font-size: 1.15rem;
-          font-weight: 700;
+          margin: 0 0 0.5rem;
+          font-size: 0.9375rem;
+          font-weight: 600;
           color: var(--text-primary);
-          margin: 0 0 var(--spacing-sm) 0;
-          line-height: 1.3;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          letter-spacing: -0.3px;
+          line-height: 1.35;
+          word-wrap: break-word;
+        }
+
+        .college-divider {
+          height: 1px;
+          background: var(--border-light);
+          margin: 0.375rem 0;
         }
 
         .college-meta {
           display: flex;
           flex-direction: column;
-          gap: var(--spacing-sm);
+          gap: 0.3rem;
+          margin-top: auto;
         }
 
         .meta-item {
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: var(--spacing-xs);
-          font-size: 0.875rem;
+          gap: 0.5rem;
+          font-size: 0.78rem;
           color: var(--text-muted);
+          line-height: 1.4;
         }
 
-        .meta-item .meta-icon {
+        .meta-icon {
+          font-size: 0.8rem;
           color: var(--sidebar-accent);
-          font-size: 0.9rem;
+          flex-shrink: 0;
+          width: 1rem;
+          text-align: center;
+        }
+
+        /* Tablet: 2 columns */
+        @media (max-width: 991.98px) {
+          .colleges-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.875rem;
+          }
+
+          .college-card-vertical {
+            padding: 1rem;
+          }
+
+          .college-badge {
+            width: 24px;
+            height: 24px;
+            font-size: 0.7rem;
+          }
+
+          .college-status {
+            padding: 0.15rem 0.5rem;
+            font-size: 0.68rem;
+          }
+
+          .college-name {
+            font-size: 0.9rem;
+          }
+
+          .meta-item {
+            font-size: 0.75rem;
+          }
+        }
+
+        /* Mobile: 1 column */
+        @media (max-width: 767.98px) {
+          .colleges-grid {
+            grid-template-columns: 1fr;
+            gap: 0.875rem;
+          }
+
+          .college-card-vertical {
+            padding: 1rem;
+          }
+
+          .college-card-header {
+            margin-bottom: 0.75rem;
+          }
+
+          .college-badge {
+            width: 22px;
+            height: 22px;
+            font-size: 0.68rem;
+          }
+
+          .college-status {
+            padding: 0.125rem 0.45rem;
+            font-size: 0.65rem;
+          }
+
+          .college-name {
+            font-size: 0.875rem;
+          }
+
+          .college-divider {
+            margin: 0.3rem 0;
+          }
+
+          .meta-item {
+            font-size: 0.72rem;
+          }
         }
 
         /* ================= QUICK ACTIONS SECTION ================= */
         .quick-actions-section {
           background: var(--bg-secondary);
           border-radius: var(--radius-lg);
-          padding: var(--spacing-lg);
-          margin-bottom: var(--spacing-xl);
+          padding: 0.625rem 1rem 0.5rem;
+          margin-bottom: 0.875rem;
           box-shadow: var(--shadow-md);
           border: 1px solid var(--border-light);
           animation: fadeIn 0.5s ease;
         }
 
         .quick-actions-header {
-          margin-bottom: var(--spacing-lg);
-          padding-bottom: var(--spacing-md);
+          margin-bottom: 0.5rem;
+          padding-bottom: 0.375rem;
           border-bottom: 1px solid var(--border-light);
         }
 
         .quick-actions-header h3 {
           margin: 0;
-          font-size: 1.25rem;
+          font-size: 1.125rem;
           font-weight: 700;
           color: var(--sidebar-primary);
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.625rem;
           letter-spacing: -0.3px;
         }
 
         .quick-actions-icon {
           color: var(--sidebar-accent);
-          font-size: 1.25rem;
+          font-size: 1.125rem;
         }
 
         .quick-actions-subtitle {
-          margin: 0.5rem 0 0 0;
-          font-size: 0.9rem;
+          margin: 0.25rem 0 0 0;
+          font-size: 0.825rem;
           color: var(--text-muted);
           font-weight: 400;
         }
 
-        /* QUICK ACTIONS GRID */
+        /* QUICK ACTIONS GRID - Desktop: single row, 4 equal cards */
         .quick-actions-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: var(--spacing-lg);
+          display: flex;
+          gap: 14px;
         }
 
         .quick-action-card {
-          background: var(--card-gradient);
-          border-radius: var(--radius-lg);
-          padding: var(--spacing-lg);
+          flex: 1;
+          background: #FFFFFF;
+          border-radius: 12px;
+          padding: 14px 16px;
           cursor: pointer;
-          transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
-          border: 1px solid var(--border-light);
+          transition: border-color 150ms ease, background-color 150ms ease;
+          border: 1px solid #DCE6EF;
           display: flex;
-          align-items: center;
-          gap: var(--spacing-md);
-          position: relative;
-          overflow: visible;
-          height: 100%;
-          z-index: 0;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 12px;
+          min-height: 110px;
+          max-height: 120px;
         }
 
-        .quick-action-card::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 4px;
-          height: 100%;
-          background: var(--accent-gradient);
-          opacity: 0;
-          transition: opacity var(--transition-base);
-          z-index: 1;
-          border-radius: var(--radius-lg) 0 0 var(--radius-lg);
-        }
-
-        .quick-action-card::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: rgba(61, 181, 230, 0.06);
-          border-radius: var(--radius-lg);
-          opacity: 0;
-          transition: opacity var(--transition-base);
-          z-index: -1;
-          pointer-events: none;
-        }
-
-        .quick-action-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-colored);
-          border-color: var(--sidebar-accent);
-        }
-
-        .quick-action-card:hover::before {
-          opacity: 1;
-        }
-
-        .quick-action-card:hover::after {
-          opacity: 1;
-        }
-
-        .quick-action-card:focus {
+        .quick-action-card:focus-visible {
           outline: 2px solid var(--sidebar-accent);
           outline-offset: 2px;
         }
 
+        .quick-action-card:hover {
+          border-color: inherit;
+        }
+
+        .quick-action-card.add-college:hover {
+          border-color: #10b981;
+          background-color: rgba(16, 185, 129, 0.02);
+        }
+        .quick-action-card.view-colleges:hover {
+          border-color: var(--sidebar-accent);
+          background-color: rgba(61, 181, 230, 0.02);
+        }
+        .quick-action-card.reports:hover {
+          border-color: #8b5cf6;
+          background-color: rgba(139, 92, 246, 0.02);
+        }
+        .quick-action-card.security:hover {
+          border-color: #f97316;
+          background-color: rgba(249, 115, 22, 0.02);
+        }
+
         .quick-action-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--radius-md);
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.5rem;
+          font-size: 1.15rem;
           flex-shrink: 0;
-          transition: transform var(--transition-base);
-          overflow: hidden;
-        }
-
-        .quick-action-card:hover .quick-action-icon {
-          transform: scale(1.08);
         }
 
         .quick-action-icon.add-college {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+          background: rgba(16, 185, 129, 0.12);
+          color: #10b981;
         }
 
         .quick-action-icon.view-colleges {
-          background: var(--accent-gradient);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.3);
+          background: rgba(61, 181, 230, 0.12);
+          color: var(--sidebar-accent);
         }
 
         .quick-action-icon.reports {
-          background: var(--sidebar-gradient);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.3);
+          background: rgba(139, 92, 246, 0.12);
+          color: #8b5cf6;
         }
 
         .quick-action-icon.security {
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-        }
-
-        .quick-action-icon.support {
-          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+          background: rgba(249, 115, 22, 0.12);
+          color: #f97316;
         }
 
         .quick-action-content {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
           flex: 1;
           min-width: 0;
         }
 
         .quick-action-title {
-          font-weight: 700;
+          font-weight: 600;
           color: var(--sidebar-primary);
-          font-size: 1rem;
-          margin-bottom: 0.25rem;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          font-size: 0.9rem;
+          line-height: 1.25;
         }
 
         .quick-action-description {
-          font-size: 0.85rem;
+          font-size: 0.78rem;
           color: var(--text-muted);
           line-height: 1.3;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
 
         /* EMPTY STATE */
@@ -1595,26 +1991,27 @@ export default function SuperAdminDashboard() {
         .footer-note {
           background: var(--card-hover-gradient);
           border-radius: var(--radius-md);
-          padding: var(--spacing-md) var(--spacing-lg);
+          padding: 0.65rem 1.1rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: var(--spacing-md);
           margin-top: var(--spacing-md);
           border-left: 4px solid var(--sidebar-accent);
-          font-size: 0.9rem;
+          font-size: 0.82rem;
           color: var(--text-secondary);
         }
 
         .footer-note-content {
           display: flex;
           align-items: center;
-          gap: var(--spacing-sm);
+          gap: 0.5rem;
           flex: 1;
+          line-height: 1.4;
         }
 
         .note-icon {
-          font-size: 1.25rem;
+          font-size: 1rem;
           flex-shrink: 0;
           color: var(--sidebar-accent);
         }
@@ -1622,8 +2019,8 @@ export default function SuperAdminDashboard() {
         .refresh-btn {
           background: rgba(61, 181, 230, 0.15);
           border: none;
-          width: 36px;
-          height: 36px;
+          width: 30px;
+          height: 30px;
           border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
@@ -1641,7 +2038,7 @@ export default function SuperAdminDashboard() {
         }
 
         .refresh-icon {
-          font-size: 1.1rem;
+          font-size: 0.9rem;
         }
 
         /* SCREEN READER ONLY */
@@ -1777,43 +2174,110 @@ export default function SuperAdminDashboard() {
           animation: fadeIn 0.6s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
+        /* =========================================================
+          SUPER ADMIN DASHBOARD
+          MOBILE + TABLET RESPONSIVE
+          DESKTOP REMAINS UNCHANGED
+          ========================================================= */
+
+        /* ================= TABLET ================= */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+
+          .erp-page {
+            padding: 1rem !important;
+          }
+
+          /* Breadcrumb */
+          .erp-page > :first-child {
+            margin-bottom: 1rem;
+          }
+
+          /* Header */
+          .erp-page-header {
+            padding: 20px 24px !important;
+            margin-bottom: 1.15rem !important;
+            border-radius: 12px !important;
+            min-height: auto !important;
+          }
+
+          .erp-header-top,
+          .erp-header-content {
+            gap: 16px !important;
+          }
+
+          .erp-header-icon {
+            width: 50px !important;
+            height: 50px !important;
+            min-width: 50px !important;
+            min-height: 50px !important;
+            font-size: 22px !important;
+            border-radius: 10px !important;
+            flex-shrink: 0;
+          }
+
+          .erp-page-title {
+            font-size: 24px !important;
+            line-height: 1.2 !important;
+          }
+
+          .erp-page-subtitle {
+            font-size: 15px !important;
+            line-height: 1.35 !important;
+          }
+
+          .erp-page-meta {
+            font-size: 13px !important;
+            gap: 6px !important;
+          }
+
+          .erp-header-divider {
+            margin: 8px 0 !important;
+          }
+
+          .erp-header-bottom {
+            display: flex !important;
+            justify-content: flex-end !important;
+            align-items: center !important;
+          }
+
+          .erp-header-shortcut {
+            font-size: 13px !important;
+          }
+
           .erp-header-actions {
-            flex-direction: column;
-            width: 100%;
+            display: inline-flex !important;
+            gap: 10px !important;
           }
 
           .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
+            height: 42px !important;
+            min-height: 42px !important;
+            padding: 0 16px !important;
+            font-size: 14px !important;
           }
 
+
+          /* Info banner */
           .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
+            padding: 0.75rem 1rem !important;
+            margin-bottom: 1rem !important;
           }
 
+          .info-content {
+            font-size: 0.85rem !important;
+            line-height: 1.5 !important;
+          }
+
+
+          /* Search / filter */
           .filter-bar {
-            flex-direction: column;
-            align-items: stretch;
+            padding: 1rem !important;
+            gap: 0.75rem !important;
+            margin-bottom: 1.25rem !important;
           }
 
           .search-box {
-            min-width: 100%;
-          }
-
-          .filter-group {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .filter-wrapper {
-            flex: 1;
-          }
-
-          .filter-select {
+            min-width: 0 !important;
             width: 100%;
           }
 
@@ -1822,194 +2286,511 @@ export default function SuperAdminDashboard() {
             text-align: center;
           }
 
+
+          /* Stats */
           .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          }
-
-          .colleges-grid,
-          .quick-actions-grid {
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          }
-
-          .view-more-btn {
-            width: 100%;
-            justify-content: center;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-
-          .erp-page-meta {
-            flex-wrap: wrap;
-          }
-
-          .keyboard-hint {
-            display: none;
-          }
-
-          .erp-header-actions {
-            width: 100%;
-            flex-direction: row;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-          }
-
-          .erp-header-actions .erp-btn {
-            flex: 1;
-            min-width: 120px;
-            justify-content: center;
-          }
-
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .filter-bar {
-            padding: 1rem;
-          }
-
-          .quick-actions-section {
-            padding: 1.25rem;
-          }
-
-          .quick-actions-grid {
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-          }
-
-          .quick-action-card {
-            padding: 1rem;
-          }
-
-          .quick-action-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 1.25rem;
-          }
-
-          .filter-group {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .filter-reset {
-            width: 100%;
-          }
-
-          .footer-note {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-
-          .footer-note-content {
-            flex-direction: column;
-            align-items: center;
-          }
-
-          .refresh-btn {
-            align-self: center;
-          }
-
-          .colleges-grid,
-          .quick-actions-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .college-name {
-            font-size: 1.1rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .stat-value {
-            font-size: 1.5rem;
-          }
-
-          .stat-icon-wrapper {
-            width: 36px;
-            height: 36px;
-            font-size: 1rem;
-          }
-
-          .stat-icon {
-            font-size: 1rem;
-          }
-
-          .stat-title {
-            font-size: 0.75rem;
-          }
-
-          .stat-trend {
-            font-size: 0.72rem;
-          }
-
-          .trend-icon {
-            font-size: 0.7rem;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.65rem !important;
           }
 
           .stat-card-header {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            gap: var(--spacing-xs);
+            padding: 0.8rem !important;
+          }
+
+          .stat-icon-wrapper {
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 1rem !important;
+          }
+
+          .stat-title {
+            font-size: 0.72rem !important;
           }
 
           .stat-card-body {
-            padding: 0 var(--spacing-sm);
+            padding: 0 0.8rem !important;
+          }
+
+          .stat-value {
+            font-size: 1.45rem !important;
           }
 
           .stat-card-footer {
-            padding: var(--spacing-xs) var(--spacing-sm) 0.5rem;
+            padding: 0.5rem 0.8rem !important;
           }
 
-          .erp-card-header h3 {
-            font-size: 1.25rem;
+          .stat-trend {
+            font-size: 0.68rem !important;
           }
 
-          .erp-page-title {
-            font-size: 1.5rem;
+
+          /* Quick actions */
+          .quick-actions-section {
+            padding: 0.625rem 0.875rem 0.5rem !important;
+            margin-bottom: 0.875rem !important;
           }
 
-          .college-card {
-            padding: 1.25rem;
+          .quick-actions-header {
+            margin-bottom: 0.5rem !important;
+            padding-bottom: 0.375rem !important;
           }
 
-          .college-name {
-            font-size: 1rem;
+          .quick-actions-header h3 {
+            font-size: 1rem !important;
+            gap: 0.5rem !important;
           }
 
-          .view-details-btn {
-            font-size: 0.85rem;
-            padding: 0.5rem;
+          .quick-actions-icon {
+            font-size: 1rem !important;
+          }
+
+          .quick-actions-subtitle {
+            margin-top: 0.25rem !important;
+            font-size: 0.75rem !important;
+          }
+
+          .quick-actions-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
           }
 
           .quick-action-card {
-            flex-direction: column;
-            text-align: center;
-            padding: 1.25rem;
+            padding: 12px 14px !important;
+            min-height: 105px !important;
+            max-height: 115px !important;
+            gap: 10px !important;
           }
 
           .quick-action-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 1.5rem;
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 1.1rem !important;
           }
 
           .quick-action-title {
-            font-size: 1rem;
+            font-size: 0.85rem !important;
+          }
+
+          .quick-action-description {
+            font-size: 0.72rem !important;
+          }
+
+
+          /* Registered colleges */
+          .erp-card {
+            margin-bottom: 1.25rem !important;
+          }
+
+          .erp-card-header {
+            padding: 1rem 1.25rem !important;
+          }
+
+          .erp-card-header h3 {
+            font-size: 1.05rem !important;
+          }
+
+          .erp-card-body {
+            padding: 1rem !important;
+          }
+
+          .college-name {
+            font-size: 1rem !important;
+          }
+
+          .meta-item {
+            font-size: 0.78rem !important;
+          }
+
+
+          /* Footer */
+          .footer-note {
+            padding: 0.85rem 1rem !important;
+            font-size: 0.78rem !important;
+          }
+        }
+
+
+        /* ================= MOBILE ================= */
+        @media (max-width: 767.98px) {
+
+          .erp-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0.65rem !important;
+            overflow-x: hidden !important;
+          }
+
+
+          /* Breadcrumb */
+          .erp-page > :first-child {
+            margin-bottom: 0.75rem;
+          }
+
+
+          /* ================= HEADER ================= */
+
+          .erp-page-header {
+            padding: 16px 18px !important;
+            margin-bottom: 1rem !important;
+            border-radius: 12px !important;
+            min-height: auto !important;
+          }
+
+          .erp-header-top,
+          .erp-header-content {
+            width: 100% !important;
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 14px !important;
+          }
+
+          .erp-header-icon {
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+            font-size: 20px !important;
+            border-radius: 10px !important;
+            flex-shrink: 0;
+          }
+
+          .erp-header-text {
+            min-width: 0 !important;
+            flex: 1;
+          }
+
+          .erp-page-title {
+            font-size: 20px !important;
+            line-height: 1.2 !important;
+            letter-spacing: -0.2px !important;
+          }
+
+          .erp-page-subtitle {
+            font-size: 14px !important;
+            line-height: 1.35 !important;
+            margin-top: 2px !important;
+          }
+
+          .erp-page-meta {
+            margin-top: 5px !important;
+            font-size: 12.5px !important;
+            line-height: 1.3 !important;
+            gap: 5px !important;
+          }
+
+          .erp-header-divider {
+            margin: 10px 0 !important;
+          }
+
+          .erp-header-bottom {
+            width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+
+          .erp-header-shortcut {
+            font-size: 12.5px !important;
+            justify-content: flex-start !important;
+          }
+
+          /* Header buttons */
+          .erp-header-actions {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+
+          .erp-header-actions .erp-btn {
+            width: 100% !important;
+            height: 42px !important;
+            min-height: 42px !important;
+            padding: 0 12px !important;
+            justify-content: center !important;
+            font-size: 14px !important;
+            gap: 6px !important;
+          }
+
+          .erp-btn-icon {
+            font-size: 14px !important;
+          }
+
+
+          /* ================= INFO BANNER ================= */
+          .info-banner {
+            padding: 0.9rem !important;
+            margin-bottom: 1rem !important;
+            gap: 0.7rem !important;
+            align-items: flex-start !important;
+          }
+
+          .info-icon {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            font-size: 0.9rem !important;
+          }
+
+          .info-content {
+            font-size: 0.76rem !important;
+            line-height: 1.5 !important;
+          }
+
+
+          /* ================= SEARCH ================= */
+
+          .filter-bar {
+            padding: 0.8rem !important;
+            margin-bottom: 1rem !important;
+            gap: 0.65rem !important;
+            border-radius: 12px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+
+          .search-box {
+            width: 100% !important;
+            min-width: 0 !important;
           }
 
           .search-input {
-            font-size: 0.9rem;
+            width: 100% !important;
+            min-height: 46px !important;
+            padding: 0.65rem 2.3rem !important;
+            font-size: 0.82rem !important;
+            box-sizing: border-box !important;
           }
 
-          .filter-select {
-            font-size: 0.9rem;
+          .search-icon {
+            left: 0.85rem !important;
+            font-size: 0.85rem !important;
+          }
+
+          .filter-results {
+            width: 100% !important;
+            padding: 0.6rem !important;
+            text-align: center !important;
+            font-size: 0.72rem !important;
+          }
+
+
+          /* ================= STATS ================= */
+
+          .stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.65rem !important;
+            margin-bottom: 1rem !important;
+          }
+
+          .stat-card {
+            min-height: auto !important;
+          }
+
+          .stat-card-header {
+            padding: 0.75rem 0.85rem !important;
+            gap: 0.65rem !important;
+          }
+
+          .stat-icon-wrapper {
+            width: 38px !important;
+            height: 38px !important;
+            font-size: 1rem !important;
+          }
+
+          .stat-title {
+            font-size: 0.75rem !important;
+          }
+
+          .stat-card-body {
+            padding: 0 0.85rem !important;
+          }
+
+          .stat-value {
+            font-size: 1.45rem !important;
+          }
+
+          .stat-card-footer {
+            padding: 0.45rem 0.85rem 0.65rem !important;
+          }
+
+          .stat-trend {
+            font-size: 0.7rem !important;
+          }
+
+
+          /* ================= QUICK ACTIONS ================= */
+
+          .quick-actions-section {
+            padding: 0.5rem 0.75rem 0.375rem !important;
+            margin-bottom: 0.75rem !important;
+            border-radius: 12px !important;
+          }
+
+          .quick-actions-header {
+            margin-bottom: 0.375rem !important;
+            padding-bottom: 0.25rem !important;
+          }
+
+          .quick-actions-header h3 {
+            font-size: 0.9rem !important;
+            gap: 0.5rem !important;
+          }
+
+          .quick-actions-icon {
+            font-size: 0.9rem !important;
+          }
+
+          .quick-actions-subtitle {
+            font-size: 0.675rem !important;
+            margin-top: 0.125rem !important;
+          }
+
+          .quick-actions-grid {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+
+          .quick-action-card {
+            min-height: 100px !important;
+            padding: 12px 14px !important;
+            gap: 10px !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            text-align: left !important;
+          }
+
+          .quick-action-icon {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            font-size: 1.1rem !important;
+          }
+
+          .quick-action-content {
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+
+          .quick-action-title {
+            font-size: 0.85rem !important;
+          }
+
+          .quick-action-description {
+            font-size: 0.72rem !important;
+          }
+
+
+          /* ================= REGISTERED COLLEGES ================= */
+
+          .erp-card {
+            margin-bottom: 1rem !important;
+            border-radius: 12px !important;
+          }
+
+          .erp-card-header {
+            padding: 0.85rem !important;
+            flex-wrap: wrap !important;
+            gap: 0.65rem !important;
+          }
+
+          .erp-card-header h3 {
+            font-size: 0.95rem !important;
+            line-height: 1.3 !important;
+          }
+
+          .view-more-btn {
+            padding: 0.45rem 0.7rem !important;
+            font-size: 0.72rem !important;
+          }
+
+          .erp-card-body {
+            padding: 0.75rem !important;
+          }
+
+          .erp-card-body .row {
+            margin-left: -0.3rem !important;
+            margin-right: -0.3rem !important;
+          }
+
+          .erp-card-body .row > [class*="col-"] {
+            padding-left: 0.3rem !important;
+            padding-right: 0.3rem !important;
+          }
+
+          .meta-item span {
+            overflow-wrap: anywhere !important;
+          }
+
+
+          /* ================= FOOTER ================= */
+
+          .footer-note {
+            padding: 0.75rem !important;
+            margin-top: 0.75rem !important;
+            font-size: 0.7rem !important;
+            line-height: 1.4 !important;
+            text-align: center !important;
+          }
+
+          .footer-note-content {
+            gap: 0.5rem !important;
+          }
+
+          .note-icon {
+            font-size: 1rem !important;
+          }
+
+          .refresh-btn {
+            width: 34px !important;
+            height: 34px !important;
+          }
+        }
+
+
+        /* ================= SMALL MOBILE ================= */
+        @media (max-width: 400px) {
+
+          .erp-page {
+            padding: 0.5rem !important;
+          }
+
+          .erp-page-header {
+            padding: 14px !important;
+            border-radius: 10px !important;
+          }
+
+          .erp-page-title {
+            font-size: 18px !important;
+          }
+
+          .erp-page-subtitle {
+            font-size: 13px !important;
+          }
+
+          .erp-header-actions {
+            grid-template-columns: 1fr !important;
+          }
+
+          .erp-header-actions .erp-btn {
+            height: 42px !important;
+            min-height: 42px !important;
+          }
+
+          .info-content {
+            font-size: 0.72rem !important;
+          }
+
+          .search-input {
+            font-size: 0.78rem !important;
+          }
+
+          .quick-actions-section,
+          .erp-card {
+            border-radius: 10px !important;
           }
         }
       `}</style>

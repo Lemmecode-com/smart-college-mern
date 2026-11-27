@@ -47,6 +47,8 @@ router.get(
 // ──────────────────────────────────────────────────────────────
 // SECURE COLLEGE OFFICIAL EMAIL CHANGE
 // These endpoints change College.email (not User.email).
+const { authLimiter } = require("../middlewares/rateLimit.middleware");
+
 // Requires auth + COLLEGE_ADMIN + collegeMiddleware.
 // ──────────────────────────────────────────────────────────────
 router.post(
@@ -63,6 +65,7 @@ router.post(
   auth,
   role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
+  authLimiter,
   validateEmailChangeVerify,
   verifyCollegeEmailChange
 );

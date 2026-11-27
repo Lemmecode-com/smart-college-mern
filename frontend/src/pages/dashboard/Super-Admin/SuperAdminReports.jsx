@@ -4,6 +4,7 @@ import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import {
@@ -144,23 +145,22 @@ export default function SuperAdminReports() {
   /* ================= LOADING STATE ================= */
   if (loading || !data) {
     return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading admission reports..."
+          />
         </div>
-        <h4 className="erp-loading-text">Loading admission reports...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
-        </div>
-        {renderSkeleton()}
       </div>
     );
   }
-
   return (
-    <div className="erp-container">
+    <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -170,29 +170,21 @@ export default function SuperAdminReports() {
       />
 
       {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse">
-            <FaChartPie />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Admission Analytics Dashboard</h1>
-            <p className="erp-page-subtitle">
-              Real-time admission status and analytics across all colleges
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
+      <PageHeader
+        icon={FaChartPie}
+        title="Admission Analytics Dashboard"
+        subtitle="Real-time admission status and analytics across all colleges"
+        actions={
           <button
-            className="erp-btn erp-btn-secondary"
+            className="rpt-refresh-btn"
             onClick={fetchSummary}
             title="Refresh report data"
           >
-            <FaSyncAlt className="erp-btn-icon spin" />
+            <FaSyncAlt className="rpt-btn-icon" />
             <span>Refresh</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* INFO BANNER */}
       <div className="info-banner animate-fade-in">
@@ -324,9 +316,10 @@ export default function SuperAdminReports() {
           <div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Active Colleges</span>
-              <span className="footer-value positive">
-                <FaCheckCircle /> {data.activeColleges || 0}
-              </span>
+              <div className="footer-value-group positive">
+                <FaCheckCircle className="footer-icon" />
+                <span className="footer-value">{data.activeColleges || 0}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -352,11 +345,11 @@ export default function SuperAdminReports() {
               {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '+0%'} vs last month
             </div>
           </div>
-<div className="stat-card-footer">
-            <div className="stat-footer-item">
+          <div className="stat-card-footer">
+            <div className="stat-footer-item monthly-footer">
               <span className="footer-label">Current Month</span>
-              <span className="footer-value monthly-footer-value">
-                <FaCalendarAlt />
+              <div className="footer-selectors">
+                <FaCalendarAlt className="footer-icon" />
                 <select
                   className="month-selector"
                   value={selectedMonth}
@@ -389,7 +382,7 @@ export default function SuperAdminReports() {
                     </option>
                   ))}
                 </select>
-              </span>
+              </div>
             </div>
           </div>
         </div>
@@ -483,90 +476,34 @@ export default function SuperAdminReports() {
           animation: fadeIn 0.6s ease;
         }
         
-        .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-        }
-        
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-        
-        .erp-header-icon {
-          width: 56px;
-          height: 56px;
+        /* ================= PAGE HEADER REFRESH BUTTON ================= */
+        .rpt-refresh-btn {
+          min-height: 48px;
+          padding: 0 20px;
+          border: none;
+          border-radius: 10px;
           background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
-          display: flex;
+          color: #ffffff;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.75rem;
-        }
-        
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-        }
-        
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
-        
-        .erp-header-actions {
-          display: flex;
-          gap: 0.75rem;
-        }
-        
-        .erp-header-actions .erp-btn {
-          background: white;
-          color: #1a4b6d;
-          border: none;
-          padding: 0.75rem 1.25rem;
+          gap: 8px;
+          font-size: 14px;
           font-weight: 600;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+          border: 1px solid rgba(255, 255, 255, 0.25);
         }
-        
-        .erp-header-actions .erp-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
-        
-        .erp-btn-outline-primary {
-          background: transparent;
-          border: 2px solid white;
-          color: white;
-        }
-        
-        .erp-btn-outline-primary:hover {
-          background: rgba(255, 255, 255, 0.15);
-        }
-        
-        .erp-btn-secondary {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
-          border: none;
-        }
-        
-        .erp-btn-secondary:hover {
+
+        .rpt-refresh-btn:hover {
           background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-2px);
+        }
+
+        .rpt-btn-icon {
+          font-size: 14px;
+          flex-shrink: 0;
         }
         
         /* INFO BANNER */
@@ -608,51 +545,52 @@ export default function SuperAdminReports() {
         /* STATS GRID */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 0.5rem;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 0.75rem;
           margin-bottom: 1.5rem;
         }
         
         .stat-card {
           background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          border-radius: 12px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
           overflow: hidden;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
           display: flex;
           flex-direction: column;
-          animation: fadeIn 0.5s ease forwards;
+          animation: fadeIn 0.4s ease forwards;
+          min-height: 160px;
         }
         
         .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         }
         
-        .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stat-card:nth-child(2) { animation-delay: 0.2s; }
-        .stat-card:nth-child(3) { animation-delay: 0.3s; }
-        .stat-card:nth-child(4) { animation-delay: 0.4s; }
-        .stat-card:nth-child(5) { animation-delay: 0.5s; }
-        .stat-card:nth-child(6) { animation-delay: 0.6s; }
+        .stat-card:nth-child(1) { animation-delay: 0.05s; }
+        .stat-card:nth-child(2) { animation-delay: 0.1s; }
+        .stat-card:nth-child(3) { animation-delay: 0.15s; }
+        .stat-card:nth-child(4) { animation-delay: 0.2s; }
+        .stat-card:nth-child(5) { animation-delay: 0.25s; }
+        .stat-card:nth-child(6) { animation-delay: 0.3s; }
         
         .stat-card-header {
-          padding: 1.25rem 1.5rem;
+          padding: 0.7rem 0.9rem;
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.65rem;
           border-bottom: 1px solid #f0f2f5;
         }
         
         .stat-icon-wrapper {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
+          width: 38px;
+          height: 38px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          font-size: 1.5rem;
+          font-size: 1.15rem;
         }
         
         .stat-icon-wrapper.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
@@ -664,29 +602,31 @@ export default function SuperAdminReports() {
         
         .stat-icon {
           color: white;
-          font-size: 1.4rem;
+          font-size: 1.1rem;
         }
         
         .stat-title {
           font-weight: 600;
           color: #2c3e50;
-          font-size: 1.05rem;
+          font-size: 0.88rem;
+          line-height: 1.25;
         }
         
         .stat-card-body {
-          padding: 1.25rem 1.5rem;
+          padding: 0.65rem 0.9rem;
           flex: 1;
           display: flex;
           flex-direction: column;
           justify-content: center;
+          min-height: 0;
         }
         
         .stat-value {
-          font-size: 2.25rem;
+          font-size: 1.85rem;
           font-weight: 800;
           color: #1a4b6d;
-          line-height: 1;
-          margin-bottom: 0.5rem;
+          line-height: 1.1;
+          margin-bottom: 0.3rem;
         }
         
         .stat-value.approved { color: #4CAF50; }
@@ -696,8 +636,8 @@ export default function SuperAdminReports() {
         .stat-trend {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          font-size: 0.9rem;
+          gap: 0.3rem;
+          font-size: 0.78rem;
           font-weight: 500;
         }
         
@@ -707,54 +647,83 @@ export default function SuperAdminReports() {
         .stat-trend.neutral { color: #6c757d; }
         
         .trend-icon {
-          font-size: 0.95rem;
+          font-size: 0.8rem;
         }
         
         .stat-card-footer {
-          padding: 0.75rem 1.5rem;
-          background: #f8f9fa;
-          border-top: 1px solid #e9ecef;
-          font-size: 0.875rem;
+          padding: 0.55rem 1rem;
+          background: #fafbfc;
+          border-top: 1px solid #f0f2f5;
+          font-size: 0.78rem;
         }
         
         .stat-footer-item {
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+          min-height: 28px;
         }
         
         .footer-label {
           color: #6c757d;
+          font-weight: 500;
+          white-space: nowrap;
         }
         
         .footer-value {
           font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
+          color: #1a4b6d;
         }
         
         .footer-value.positive { color: #4CAF50; }
         .footer-value.warning { color: #FF9800; }
         .footer-value.negative { color: #F44336; }
         
-        .monthly-footer-value {
-          gap: 0.5rem;
+        .footer-icon {
+          font-size: 0.85rem;
+          flex-shrink: 0;
+        }
+        
+        .footer-value-group {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+        
+        .footer-value-group.positive .footer-icon { color: #4CAF50; }
+        .footer-value-group.warning .footer-icon { color: #FF9800; }
+        .footer-value-group.negative .footer-icon { color: #F44336; }
+        
+        .monthly-footer {
+          width: 100%;
+        }
+        
+        .footer-selectors {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          flex-wrap: wrap;
+        }
+        
+        .footer-selectors .footer-icon {
+          color: #1a4b6d;
         }
         
         .month-selector {
           background: #f8f9fa;
           border: 1px solid #dee2e6;
-          border-radius: 6px;
-          padding: 0.15rem 0.4rem;
-          font-size: 0.8rem;
+          border-radius: 5px;
+          padding: 0.15rem 0.5rem;
+          font-size: 0.75rem;
           font-weight: 600;
           color: #1a4b6d;
           cursor: pointer;
           outline: none;
-          margin-left: 0.375rem;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
           appearance: auto;
+          min-width: 80px;
         }
         
         .month-selector:hover {
@@ -1159,83 +1128,562 @@ export default function SuperAdminReports() {
           animation: fadeIn 0.6s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          }
-          
-          .erp-header-actions {
-            flex-direction: column;
-            width: 100%;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            flex-direction: row;
-          }
-          
-          .erp-header-actions .erp-btn {
-            flex: 1;
-            justify-content: center;
-          }
-          
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .footer-note {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-          
-          .refresh-btn {
-            align-self: center;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .stat-value {
-            font-size: 1.75rem;
-          }
-          
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
-          
-          .metric-value {
-            font-size: 1.25rem;
-          }
-          
-          .erp-page-title {
-            font-size: 1.5rem;
-          }
-        }
+/* =========================================================
+   RESPONSIVE DESIGN
+   Desktop layout remains unchanged
+   Tablet + Mobile only
+   ========================================================= */
+
+/* =========================
+   TABLET
+   769px - 991px
+   ========================= */
+@media (min-width: 769px) and (max-width: 991.98px) {
+
+  .erp-container {
+    padding: 1.25rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Info banner */
+  .info-banner {
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    gap: 0.9rem;
+  }
+
+  .info-content {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  /* Stats - 2 columns */
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.875rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    min-width: 0;
+  }
+
+  .stat-card-header {
+    padding: 0.85rem 1rem;
+    gap: 0.7rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 1.15rem;
+  }
+
+  .stat-title {
+    font-size: 0.88rem;
+    line-height: 1.25;
+  }
+
+  .stat-card-body {
+    padding: 0.7rem 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.85rem;
+  }
+
+  .stat-trend {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  .stat-card-footer {
+    padding: 0.5rem 0.9rem;
+  }
+
+  .stat-footer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    min-height: 26px;
+  }
+
+  .footer-label {
+    font-size: 0.72rem;
+  }
+
+  .footer-value {
+    font-size: 0.74rem;
+  }
+
+  .footer-icon {
+    font-size: 0.8rem;
+  }
+
+  .footer-value-group {
+    gap: 0.3rem;
+  }
+
+  .monthly-footer {
+    width: 100%;
+  }
+
+  .footer-selectors {
+    gap: 0.35rem;
+  }
+
+  .month-selector {
+    font-size: 0.7rem;
+    padding: 0.125rem 0.4rem;
+    min-width: 70px;
+  }
+
+  /* Detailed metrics */
+  .erp-card {
+    margin-bottom: 1.25rem;
+  }
+
+  .erp-card-header {
+    padding: 1.2rem 1.4rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .erp-card-body {
+    padding: 1.25rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .metric-item {
+    padding: 1rem;
+    gap: 0.8rem;
+  }
+
+  .metric-description {
+    font-size: 0.82rem;
+  }
+
+  /* Footer note */
+  .footer-note {
+    padding: 0.9rem 1.1rem;
+    gap: 0.75rem;
+  }
+}
+
+
+/* =========================
+   MOBILE
+   0px - 768px
+   ========================= */
+@media (max-width: 768px) {
+
+  .erp-container {
+    padding: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* INFO BANNER */
+  .info-banner {
+    padding: 1rem;
+    margin-bottom: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    text-align: center;
+    gap: 0.65rem;
+
+    border-radius: 12px;
+  }
+
+  .info-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: 0.9rem;
+  }
+
+  .info-content {
+    width: 100%;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  /* =========================
+STATS
+      ========================= */
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+    border-radius: 12px;
+  }
+
+  .stat-card-header {
+    padding: 0.8rem 0.9rem;
+    gap: 0.65rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+  }
+
+  .stat-title {
+    font-size: 0.9rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .stat-card-body {
+    padding: 0.7rem 0.9rem;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+    line-height: 1.1;
+    margin-bottom: 0.35rem;
+  }
+
+  .stat-trend {
+    font-size: 0.78rem;
+    line-height: 1.3;
+    flex-wrap: wrap;
+  }
+
+  .trend-icon {
+    font-size: 0.8rem;
+  }
+
+  .stat-card-footer {
+    padding: 0.55rem 0.9rem;
+  }
+
+  .stat-footer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    min-height: 26px;
+  }
+
+  .footer-label {
+    font-size: 0.72rem;
+  }
+
+  .footer-value {
+    font-size: 0.74rem;
+  }
+
+  .footer-icon {
+    font-size: 0.78rem;
+  }
+
+  .footer-value-group {
+    gap: 0.3rem;
+  }
+
+  .monthly-footer {
+    width: 100%;
+  }
+
+  .footer-selectors {
+    gap: 0.35rem;
+    justify-content: flex-end;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+
+  .month-selector {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.35rem;
+    min-width: 70px;
+  }
+
+  /* =========================
+     DETAILED METRICS
+     ========================= */
+
+  .erp-card {
+    border-radius: 14px;
+    margin-bottom: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem 1.1rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  .erp-card-icon {
+    font-size: 1.05rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .metric-item {
+    padding: 0.9rem;
+    gap: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .metric-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 1.1rem;
+  }
+
+  .metric-label {
+    font-size: 0.82rem;
+  }
+
+  .metric-value {
+    font-size: 1.25rem;
+  }
+
+  .metric-description {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  /* =========================
+     FOOTER NOTE
+     ========================= */
+
+  .footer-note {
+    padding: 0.9rem 1rem;
+    margin-top: 0.75rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    text-align: center;
+    gap: 0.65rem;
+
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .note-icon {
+    font-size: 1.05rem;
+  }
+
+  .refresh-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+
+  /* Loading */
+  .erp-loading-container {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+
+  .erp-loading-text {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .loading-progress {
+    width: 200px;
+  }
+
+  .skeleton-container {
+    padding: 0.75rem;
+  }
+
+  .skeleton-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .skeleton-stat-card {
+    padding: 1rem;
+  }
+}
+
+
+/* =========================
+   SMALL MOBILE
+   0px - 480px
+   ========================= */
+@media (max-width: 480px) {
+
+  .erp-container {
+    padding: 0.6rem;
+  }
+
+  /* Info */
+  .info-banner {
+    padding: 0.85rem;
+    gap: 0.55rem;
+  }
+
+  .info-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+
+  .info-content {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  /* Stats */
+  .stats-grid {
+    gap: 0.6rem;
+  }
+
+  .stat-card {
+    border-radius: 10px;
+  }
+
+  .stat-card-header {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  .stat-title {
+    font-size: 0.82rem;
+  }
+
+  .stat-card-body {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.55rem;
+  }
+
+  .stat-trend {
+    font-size: 0.72rem;
+  }
+
+  .stat-card-footer {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .stat-footer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    min-height: 24px;
+  }
+
+  .footer-label,
+  .footer-value {
+    font-size: 0.68rem;
+  }
+
+  .footer-icon {
+    font-size: 0.75rem;
+  }
+
+  .footer-value-group {
+    gap: 0.25rem;
+  }
+
+  .monthly-footer {
+    width: 100%;
+  }
+
+  .footer-selectors {
+    gap: 0.3rem;
+    justify-content: flex-end;
+    width: 100%;
+    margin-top: 0.2rem;
+  }
+
+  .month-selector {
+    padding: 0.1rem 0.25rem;
+    font-size: 0.68rem;
+    min-width: 65px;
+  }
+
+  /* Detailed metrics */
+  .erp-card-header {
+    padding: 0.9rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+  }
+
+  .erp-card-body {
+    padding: 0.85rem;
+  }
+
+  .metric-item {
+    padding: 0.8rem;
+  }
+
+  .metric-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+
+  .metric-value {
+    font-size: 1.15rem;
+  }
+
+  .metric-description {
+    font-size: 0.75rem;
+  }
+
+  /* Footer */
+  .footer-note {
+    padding: 0.8rem;
+    font-size: 0.76rem;
+  }
+}
       `}</style>
     </div>
   );

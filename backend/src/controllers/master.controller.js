@@ -18,6 +18,7 @@ const securityAuditService = require("../services/securityAudit.service");
 const AuditService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
 const DocumentService = require("../services/document.service");
+const { processCollegeLogo } = require("../utils/logoProcessor");
 
 exports.createCollege = async (req, res, next) => {
   try {
@@ -31,6 +32,7 @@ exports.createCollege = async (req, res, next) => {
       adminName,
       adminEmail,
       adminPassword,
+      inquiryId,
     } = req.body;
 
     // 1️⃣ Check college code uniqueness
@@ -62,22 +64,28 @@ exports.createCollege = async (req, res, next) => {
     }
 
     // 2️⃣ Generate Registration URL + QR FIRST
-    const { registrationUrl, registrationQr } =
+    const { registrationUrl, registrationQr, qrDataUrl } =
       await generateCollegeQR(collegeCode);
 
     // 3️⃣ Upload logo to storage if provided
     let logoPath = null;
     let logoDocumentId = null;
+    let processedLogo = null;
     if (req.file) {
-      const storageService = getStorageProvider().getAdapter();
-      const uploadResult = await storageService.uploadFile(
+      processedLogo = await processCollegeLogo(
         req.file.buffer,
         req.file.originalname,
+        req.file.mimetype
+      );
+      const storageService = getStorageProvider().getAdapter();
+      const uploadResult = await storageService.uploadFile(
+        processedLogo.buffer,
+        processedLogo.originalName,
         "college-logo",
         {
-          originalName: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
+          originalName: processedLogo.originalName,
+          mimetype: processedLogo.mimeType,
+          size: processedLogo.size,
         }
       );
       logoPath = uploadResult.storagePath;
@@ -95,18 +103,33 @@ exports.createCollege = async (req, res, next) => {
       logoDocumentId,
       registrationUrl,
       registrationQr,
+      sourceInquiryId: inquiryId || null,
     });
 
+    // 4.5️⃣ Link and convert originating inquiry if onboarding from a lead
+    if (inquiryId) {
+      try {
+        const Inquiry = require("../models/inquiry.model");
+        await Inquiry.findByIdAndUpdate(inquiryId, {
+          status: "CONVERTED",
+          convertedCollegeId: college._id,
+          convertedAt: new Date(),
+        });
+      } catch (inqErr) {
+        console.error("Failed to update linked inquiry status:", inqErr.message);
+      }
+    }
+
     // 5️⃣ Create Document records NOW that college exists
-    if (logoPath) {
+    if (logoPath && processedLogo) {
       const logoDocument = await DocumentService.createDocument({
         ownerType: "College",
         ownerId: college._id,
         documentType: "logo",
-        fileBuffer: req.file.buffer,
-        originalFileName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        size: req.file.size,
+        fileBuffer: processedLogo.buffer,
+        originalFileName: processedLogo.originalName,
+        mimeType: processedLogo.mimeType,
+        size: processedLogo.size,
         uploadedBy: req.user.id,
         category: "college-logo",
         storageKey: logoPath,
@@ -194,7 +217,8 @@ NOVAA (SUPERADMIN)`,
         name: college.name,
         code: college.code,
         registrationUrl,
-        registrationQr,
+        registrationQr: qrDataUrl || registrationQr,
+        sourceInquiryId: college.sourceInquiryId,
       },
       collegeAdmin: {
         id: collegeAdmin._id,
@@ -522,6 +546,7 @@ exports.getCollegeById = async (req, res, next) => {
         establishedYear: college.establishedYear,
         logo: college.logo,
         logoDocumentId: college.logoDocumentId,
+        logoUrl: college.logoDocumentId ? `/api/documents/${college.logoDocumentId}` : null,
         registrationUrl: college.registrationUrl,
         registrationQr: college.registrationQr,
         registrationQrDocumentId: college.registrationQrDocumentId,

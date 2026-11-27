@@ -120,8 +120,9 @@ exports.verifyOTP = async (email, otp) => {
     if (record.failedAttempts >= record.maxAttempts) {
       return {
         valid: false,
-        message: "OTP blocked",
+        message: "OTP blocked due to too many failed attempts. Please request a new OTP.",
         code: "OTP_MAX_ATTEMPTS",
+        attemptsRemaining: 0,
       };
     }
 
@@ -137,15 +138,21 @@ exports.verifyOTP = async (email, otp) => {
         await PasswordReset.findByIdAndUpdate(record._id, { isUsed: true });
         return {
           valid: false,
-          message: "OTP blocked",
+          message: "OTP blocked due to too many failed attempts. Please request a new OTP.",
           code: "OTP_MAX_ATTEMPTS",
+          attemptsRemaining: 0,
         };
       }
 
+      const remaining = Math.max(0, updated.maxAttempts - updated.failedAttempts);
       return {
         valid: false,
-        message: "Invalid OTP",
+        message:
+          remaining <= 2
+            ? `Invalid OTP. Caution: Only ${remaining} attempt${remaining > 1 ? "s" : ""} remaining before this OTP is permanently blocked!`
+            : "Invalid OTP",
         code: "INVALID_OTP",
+        attemptsRemaining: remaining,
       };
     }
 
@@ -181,24 +188,43 @@ exports.markOTPAsUsed = async (otpId) => {
  */
 exports.checkRateLimit = async (email) => {
   try {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    
-    const count = await PasswordReset.countDocuments({
-      email,
-      createdAt: { $gte: oneHourAgo },
-      isUsed: false,
-    });
+    const windowDurationMs =
+      process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
+        ? 60 * 1000
+        : 60 * 60 * 1000;
+    const windowStart = new Date(Date.now() - windowDurationMs);
+    const MAX_REQUESTS =
+      process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test" ? 5 : 3;
 
-    if (count >= 3) {
+    const recentRecords = await PasswordReset.find({
+      email,
+      createdAt: { $gte: windowStart },
+    })
+      .sort({ createdAt: 1 })
+      .select("createdAt")
+      .lean();
+
+    const count = recentRecords.length;
+    const remaining = Math.max(0, MAX_REQUESTS - count);
+
+    if (count >= MAX_REQUESTS) {
+      const oldestRecord = recentRecords[0];
+      const expiryTime = new Date(oldestRecord.createdAt).getTime() + windowDurationMs;
+      const retryAfter = Math.max(1, Math.ceil((expiryTime - Date.now()) / 1000));
+      const minutes = Math.max(1, Math.ceil(retryAfter / 60));
       return {
         allowed: false,
-        message: "Too many attempts. Please try again after 1 hour.",
+        message: `Too many password reset requests. Please wait ${minutes} minute${minutes > 1 ? "s" : ""} before trying again.`,
+        code: "RATE_LIMIT_EXCEEDED",
+        attemptsRemaining: 0,
+        retryAfter,
       };
     }
 
     return {
       allowed: true,
       message: "OK",
+      attemptsRemaining: remaining,
     };
   } catch (error) {
     console.error("Rate Limit Error:", error);
