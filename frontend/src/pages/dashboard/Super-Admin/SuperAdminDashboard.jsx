@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../../../api/axios";
@@ -40,6 +40,17 @@ import {
 // Constants
 const INITIAL_COLLEGES_DISPLAY = 3;
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -48,19 +59,8 @@ export default function SuperAdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  const AUTH_ERROR_CODES = new Set([
-    "TOKEN_MISSING",
-    "TOKEN_EXPIRED",
-    "INVALID_TOKEN",
-    "TOKEN_BLACKLISTED",
-    "TOKEN_INVALIDATED",
-    "USER_NOT_FOUND",
-    "ACCOUNT_DEACTIVATED",
-    "UNAUTHORIZED",
-  ]);
-
   /* ================= FETCH DASHBOARD DATA ================= */
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -91,11 +91,11 @@ export default function SuperAdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
@@ -119,14 +119,7 @@ export default function SuperAdminDashboard() {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [navigate]);
-
-  /* ================= HELPER FUNCTIONS ================= */
-  const safeDivide = (numerator, denominator) => {
-    if (!denominator || denominator === 0) return "N/A";
-    const result = numerator / denominator;
-    return Number.isInteger(result) ? result : result.toFixed(1);
-  };
+  }, [navigate, fetchDashboardData]);
 
   /* ================= CALCULATED METRICS ================= */
   const stats = useMemo(
@@ -424,60 +417,104 @@ export default function SuperAdminDashboard() {
         aria-label="Dashboard statistics"
       >
         {/* TOTAL COLLEGES */}
-        <div className="stat-card stat-card-colleges">
-          <div className="stat-header">
-            <div
-              className="stat-icon-wrapper stat-icon-colleges"
-              aria-hidden="true"
-            >
-              <FaUniversity className="stat-icon" />
+        <div
+          className="stat-card stat-card-colleges"
+          onClick={() => navigate("/super-admin/colleges-list")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/super-admin/colleges-list");
+            }
+          }}
+          aria-label="View all colleges"
+        >
+          <div className="stat-card-inner">
+            <div className="stat-icon-row">
+              <div
+                className="stat-icon-wrapper stat-icon-colleges"
+                aria-hidden="true"
+              >
+                <FaUniversity className="stat-icon" />
+              </div>
+              <FaChevronRight className="stat-arrow" aria-hidden="true" />
             </div>
-            <div className="stat-title">Total Colleges</div>
+            <div className="stat-value">
+              {stats.totalColleges?.toLocaleString() || "0"}
+            </div>
+            <div className="stat-label">Total Colleges</div>
+            <div className="stat-description">Registered institutions</div>
           </div>
-          <div className="stat-value">
-            {stats.totalColleges?.toLocaleString() || "0"}
-          </div>
-          <div className="stat-description">Registered institutions</div>
         </div>
 
         {/* TOTAL STUDENTS */}
-        <div className="stat-card stat-card-students">
-          <div className="stat-header">
-            <div
-              className="stat-icon-wrapper stat-icon-students"
-              aria-hidden="true"
-            >
-              <FaUsers className="stat-icon" />
+        <div
+          className="stat-card stat-card-students"
+          onClick={() => navigate("/super-admin/reports")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/super-admin/reports");
+            }
+          }}
+          aria-label="View student reports"
+        >
+          <div className="stat-card-inner">
+            <div className="stat-icon-row">
+              <div
+                className="stat-icon-wrapper stat-icon-students"
+                aria-hidden="true"
+              >
+                <FaUsers className="stat-icon" />
+              </div>
+              <FaChevronRight className="stat-arrow" aria-hidden="true" />
             </div>
-            <div className="stat-title">Total Students</div>
+            <div className="stat-value">
+              {stats.totalStudents?.toLocaleString() || "0"}
+            </div>
+            <div className="stat-label">Total Students</div>
+            <div className="stat-description">Across all colleges</div>
           </div>
-          <div className="stat-value">
-            {stats.totalStudents?.toLocaleString() || "0"}
-          </div>
-          <div className="stat-description">Across all colleges</div>
         </div>
 
         {/* TOTAL TEACHERS */}
-        <div className="stat-card stat-card-teachers">
-          <div className="stat-header">
-            <div
-              className="stat-icon-wrapper stat-icon-teachers"
-              aria-hidden="true"
-            >
-              <FaUserGraduate className="stat-icon" />
+        <div
+          className="stat-card stat-card-teachers"
+          onClick={() => navigate("/super-admin/colleges-list")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate("/super-admin/colleges-list");
+            }
+          }}
+          aria-label="View colleges to manage teachers"
+        >
+          <div className="stat-card-inner">
+            <div className="stat-icon-row">
+              <div
+                className="stat-icon-wrapper stat-icon-teachers"
+                aria-hidden="true"
+              >
+                <FaUserGraduate className="stat-icon" />
+              </div>
+              <FaChevronRight className="stat-arrow" aria-hidden="true" />
             </div>
-            <div className="stat-title">Total Teachers</div>
+            <div className="stat-value">
+              {stats.totalTeachers?.toLocaleString() || "0"}
+            </div>
+            <div className="stat-label">Total Teachers</div>
+            <div className="stat-description">Faculty members</div>
           </div>
-          <div className="stat-value">
-            {stats.totalTeachers?.toLocaleString() || "0"}
-          </div>
-          <div className="stat-description">Faculty members</div>
         </div>
 
         {/* COLLEGE ENQUIRIES */}
         <div
           className="stat-card stat-card-inquiries"
-          style={{ cursor: "pointer" }}
           onClick={() => navigate("/super-admin/enquiries")}
           role="button"
           tabIndex={0}
@@ -487,30 +524,27 @@ export default function SuperAdminDashboard() {
               navigate("/super-admin/enquiries");
             }
           }}
+          aria-label="View all enquiries"
         >
-          <div className="stat-card-header">
-            <div
-              className="stat-icon-wrapper stat-icon-inquiries"
-              style={{ backgroundColor: "#eff6ff", color: "#2563eb" }}
-              aria-hidden="true"
-            >
-              <FaEnvelopeOpenText className="stat-icon" />
+          <div className="stat-card-inner">
+            <div className="stat-icon-row">
+              <div
+                className="stat-icon-wrapper stat-icon-inquiries"
+                aria-hidden="true"
+              >
+                <FaEnvelopeOpenText className="stat-icon" />
+              </div>
+              <FaChevronRight className="stat-arrow" aria-hidden="true" />
             </div>
-            <div className="stat-title">College Enquiries</div>
-          </div>
-          <div className="stat-card-body">
             <div className="stat-value">
               {stats.totalInquiries?.toLocaleString() || "0"}
             </div>
-          </div>
-          <div className="stat-card-footer">
-            <div className="stat-trend">
+            <div className="stat-label">College Enquiries</div>
+            <div className="stat-description">
               {stats.newInquiries > 0 ? (
-                <span className="badge bg-primary text-white" style={{ fontSize: "0.75rem", padding: "4px 8px", borderRadius: "12px" }}>
-                  {stats.newInquiries} New
-                </span>
+                <span className="stat-badge-new">{stats.newInquiries} New</span>
               ) : (
-                <span className="text-muted" style={{ fontSize: "0.8rem" }}>Landing Page Enquiries</span>
+                "Landing Page Enquiries"
               )}
             </div>
           </div>
@@ -1064,7 +1098,7 @@ export default function SuperAdminDashboard() {
           display: flex;
           align-items: center;
           gap: var(--spacing-lg);
-          margin-bottom: var(--spacing-xl);
+          margin-bottom: 15px;
           box-shadow: var(--shadow-md);
           flex-wrap: wrap;
           border: 1px solid var(--border-light);
@@ -1236,7 +1270,7 @@ export default function SuperAdminDashboard() {
         /* ================= KPI STATISTICS SECTION ================= */
         .kpi-section.stats-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: var(--spacing-md);
           margin-bottom: 1.1rem;
           width: 100%;
@@ -1247,38 +1281,74 @@ export default function SuperAdminDashboard() {
           background: #FFFFFF;
           border-radius: 14px;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-          border: 1px solid #E2EAF0;
-          display: flex;
-          flex-direction: column;
+          border: 1px solid #DCE6EF;
           animation: fadeIn 0.5s ease forwards;
           position: relative;
           width: 100%;
-          min-height: 150px;
-          padding: 1.125rem 1.25rem;
-          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+          min-height: 140px;
+          padding: 1rem 1.25rem;
+          transition: border-color 150ms ease, background-color 150ms ease;
+          cursor: pointer;
         }
 
-        .kpi-section .stat-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-          border-color: #D0DBE5;
+        .kpi-section .stat-card:focus-visible {
+          outline: 2px solid #19A9DC;
+          outline-offset: 2px;
+        }
+
+        .kpi-section .stat-card.stat-card-colleges:focus-visible {
+          outline-color: #19A9DC;
+        }
+        .kpi-section .stat-card.stat-card-students:focus-visible {
+          outline-color: #8964E8;
+        }
+        .kpi-section .stat-card.stat-card-teachers:focus-visible {
+          outline-color: #16A879;
+        }
+        .kpi-section .stat-card.stat-card-inquiries:focus-visible {
+          outline-color: #2563EB;
+        }
+
+        .kpi-section .stat-card.stat-card-colleges:hover {
+          border-color: #19A9DC;
+          background-color: rgba(25, 169, 220, 0.02);
+        }
+        .kpi-section .stat-card.stat-card-students:hover {
+          border-color: #8964E8;
+          background-color: rgba(137, 100, 232, 0.02);
+        }
+        .kpi-section .stat-card.stat-card-teachers:hover {
+          border-color: #16A879;
+          background-color: rgba(22, 168, 121, 0.02);
+        }
+        .kpi-section .stat-card.stat-card-inquiries:hover {
+          border-color: #2563EB;
+          background-color: rgba(37, 99, 235, 0.02);
         }
 
         .kpi-section .stat-card:nth-child(1) { animation-delay: 0.1s; }
         .kpi-section .stat-card:nth-child(2) { animation-delay: 0.15s; }
         .kpi-section .stat-card:nth-child(3) { animation-delay: 0.2s; }
+        .kpi-section .stat-card:nth-child(4) { animation-delay: 0.25s; }
 
-        .kpi-section .stat-header {
+        .kpi-section .stat-card-inner {
           display: flex;
-          align-items: center;
-          gap: 0.75rem;
+          flex-direction: column;
+          height: 100%;
+          justify-content: space-between;
+        }
+
+        .kpi-section .stat-icon-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
           margin-bottom: 0.75rem;
         }
 
         .kpi-section .stat-icon-wrapper {
-          width: 34px;
-          height: 34px;
-          border-radius: 8px;
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1301,33 +1371,57 @@ export default function SuperAdminDashboard() {
           color: #16A879;
         }
 
+        .kpi-section .stat-icon-wrapper.stat-icon-inquiries {
+          background: rgba(37, 99, 235, 0.12);
+          color: #2563EB;
+        }
+
         .kpi-section .stat-icon {
           font-size: 1.1rem;
         }
 
-        .kpi-section .stat-title {
-          font-weight: 500;
-          color: #4A5A6A;
-          font-size: 0.75rem;
-          letter-spacing: 0.01em;
-          text-transform: uppercase;
-          line-height: 1.3;
+        .kpi-section .stat-arrow {
+          font-size: 0.85rem;
+          color: #A0ADBA;
+          flex-shrink: 0;
+          margin-top: 2px;
         }
 
         .kpi-section .stat-value {
-          font-size: 2rem;
-          font-weight: 600;
+          font-size: 30px;
+          font-weight: 700;
           color: #0E3746;
           line-height: 1.1;
           letter-spacing: -0.02em;
+          margin-bottom: 0.25rem;
+        }
+
+        .kpi-section .stat-label {
+          font-size: 13px;
+          font-weight: 500;
+          color: #4A5A6A;
+          letter-spacing: 0.01em;
+          text-transform: uppercase;
+          line-height: 1.3;
           margin-bottom: 0.375rem;
         }
 
         .kpi-section .stat-description {
-          font-size: 0.7rem;
+          font-size: 13px;
           font-weight: 400;
           color: #8493A5;
           line-height: 1.4;
+        }
+
+        .kpi-section .stat-badge-new {
+          display: inline-block;
+          background: #EFF6FF;
+          color: #2563EB;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 3px 8px;
+          border-radius: 10px;
+          line-height: 1;
         }
 
         /* Tablet: 2 columns */
@@ -1338,18 +1432,17 @@ export default function SuperAdminDashboard() {
           }
 
           .kpi-section .stat-card {
-            min-height: 140px;
-            padding: 1rem 1rem;
+            min-height: 135px;
+            padding: 0.875rem 1rem;
           }
 
-          .kpi-section .stat-header {
-            gap: 0.625rem;
+          .kpi-section .stat-icon-row {
             margin-bottom: 0.625rem;
           }
 
           .kpi-section .stat-icon-wrapper {
-            width: 32px;
-            height: 32px;
+            width: 38px;
+            height: 38px;
             font-size: 0.95rem;
           }
 
@@ -1357,16 +1450,25 @@ export default function SuperAdminDashboard() {
             font-size: 1.05rem;
           }
 
-          .kpi-section .stat-title {
-            font-size: 0.7rem;
+          .kpi-section .stat-arrow {
+            font-size: 0.8rem;
           }
 
           .kpi-section .stat-value {
-            font-size: 1.875rem;
+            font-size: 28px;
+          }
+
+          .kpi-section .stat-label {
+            font-size: 12px;
           }
 
           .kpi-section .stat-description {
-            font-size: 0.65rem;
+            font-size: 12px;
+          }
+
+          .kpi-section .stat-badge-new {
+            font-size: 10px;
+            padding: 2px 7px;
           }
         }
 
@@ -1378,18 +1480,17 @@ export default function SuperAdminDashboard() {
           }
 
           .kpi-section .stat-card {
-            min-height: 135px;
-            padding: 1rem 1rem;
+            min-height: 130px;
+            padding: 0.875rem 1rem;
           }
 
-          .kpi-section .stat-header {
-            gap: 0.625rem;
+          .kpi-section .stat-icon-row {
             margin-bottom: 0.5rem;
           }
 
           .kpi-section .stat-icon-wrapper {
-            width: 30px;
-            height: 30px;
+            width: 36px;
+            height: 36px;
             font-size: 0.9rem;
           }
 
@@ -1397,59 +1498,25 @@ export default function SuperAdminDashboard() {
             font-size: 1rem;
           }
 
-          .kpi-section .stat-title {
-            font-size: 0.68rem;
+          .kpi-section .stat-arrow {
+            font-size: 0.75rem;
           }
 
           .kpi-section .stat-value {
-            font-size: 1.75rem;
+            font-size: 28px;
+          }
+
+          .kpi-section .stat-label {
+            font-size: 12px;
           }
 
           .kpi-section .stat-description {
-            font-size: 0.65rem;
-          }
-        }
-            font-size: 0.8rem;
+            font-size: 12px;
           }
 
-          .kpi-section .stat-description {
-            font-size: 0.68rem;
-          }
-        }
-
-        /* Mobile: 1 column */
-        @media (max-width: 767.98px) {
-          .kpi-section.stats-grid {
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-          }
-
-          .kpi-section .stat-card {
-            min-height: 150px;
-            padding: 1rem 0.875rem;
-          }
-
-          .kpi-section .stat-icon-wrapper {
-            width: 38px;
-            height: 38px;
-            font-size: 1rem;
-            margin-bottom: 0.625rem;
-          }
-
-          .kpi-section .stat-icon {
-            font-size: 1.1rem;
-          }
-
-          .kpi-section .stat-value {
-            font-size: 2rem;
-          }
-
-          .kpi-section .stat-title {
-            font-size: 0.78rem;
-          }
-
-          .kpi-section .stat-description {
-            font-size: 0.65rem;
+          .kpi-section .stat-badge-new {
+            font-size: 10px;
+            padding: 2px 7px;
           }
         }
 
