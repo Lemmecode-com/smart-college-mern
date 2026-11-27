@@ -4,7 +4,10 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
+import PageHeader from "../../../components/PageHeader";
+import Pagination from "../../../components/Pagination";
 import { logger } from "../../../utils/logger";
 import {
   FaShieldAlt,
@@ -82,6 +85,13 @@ export default function SecurityAudit() {
     endDate: "",
     collegeId: "",
   });
+  const [appliedFilters, setAppliedFilters] = useState({
+    eventType: "",
+    severity: "",
+    startDate: "",
+    endDate: "",
+    collegeId: "",
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [colleges, setColleges] = useState([]);
@@ -108,7 +118,7 @@ export default function SecurityAudit() {
     fetchLogs();
     // Don't refetch colleges and stats on filter change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, currentPage]);
+  }, [appliedFilters, currentPage]);
 
   useEffect(() => {
     const interval = setInterval(fetchLogs, 60000); // Auto-refresh logs every 60s for real-time monitoring
@@ -121,7 +131,7 @@ export default function SecurityAudit() {
       setLoading(true);
       setError(null);
       const params = new URLSearchParams({
-        ...filters,
+        ...appliedFilters,
         page: currentPage,
         limit: 10,
       });
@@ -199,6 +209,10 @@ export default function SecurityAudit() {
     }
 
     setFilters(next);
+  };
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(filters);
     setCurrentPage(1);
   };
 
@@ -293,24 +307,20 @@ if (loading && !logs.length) {
   return (
     <>
       <div className="security-audit-page">
-        {/* Page Header */}
-        <div className="page-header">
-          <div className="header-content">
-            <div className="header-icon">
-              <FaShieldAlt />
-            </div>
-            <div className="header-text">
-              <h1 className="page-title">Security Audit Dashboard</h1>
-              <p className="page-subtitle">
-                Monitor and analyze security events across all colleges
-              </p>
-              <p className="page-meta">
-                <FaClock className="meta-icon" />
-                Real-time security monitoring
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Breadcrumb */}
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/super-admin/dashboard" },
+            { label: "Security Audit" },
+          ]}
+        />
+
+        {/* HEADER */}
+        <PageHeader
+          icon={FaShieldAlt}
+          title="Security Audit Dashboard"
+          subtitle="Monitor and analyze security events across all colleges • Real-time security monitoring"
+        />
 
         {/* Statistics Cards */}
         {stats && (
@@ -392,10 +402,13 @@ if (loading && !logs.length) {
         {/* Filters Section */}
         <div className="filter-section">
           <div className="filter-header">
-            <h3 className="filter-title">
-              <FaFilter className="filter-icon" />
-              Filters
-            </h3>
+            <div className="filter-header-content">
+              <FaFilter className="filter-header-icon" />
+              <div className="filter-header-text">
+                <h3 className="filter-title">Filters</h3>
+                <p className="filter-subtitle">Find specific security events</p>
+              </div>
+            </div>
           </div>
           <div className="filter-grid">
             <div className="filter-item">
@@ -487,10 +500,27 @@ if (loading && !logs.length) {
             </div>
 
             <div className="filter-item filter-actions">
-              <button className="btn-apply" onClick={() => setCurrentPage(1)}>
-                <FaSearch className="btn-icon" />
-                Apply Filters
-              </button>
+              <div className="filter-action-group">
+                <button
+                  type="button"
+                  className="btn-clear"
+                  onClick={() => {
+                    setFilters({
+                      eventType: "",
+                      severity: "",
+                      startDate: "",
+                      endDate: "",
+                      collegeId: "",
+                    });
+                  }}
+                >
+                  Clear All
+                </button>
+                <button className="btn-apply" onClick={handleApplyFilters}>
+                  <FaSearch className="btn-icon" />
+                  Apply Filters
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -503,10 +533,10 @@ if (loading && !logs.length) {
               Security Events Log
             </h3>
             {pagination && (
-              <span className="table-info">
-                {pagination.page} of {pagination.pages} pages •{" "}
-                {pagination.totalDocs} events
-              </span>
+              <div className="table-summary">
+                {/* <span className="total-events-badge">{pagination.total} EVENTS</span> */}
+                <span className="total-events-badge">Page {pagination.page} of {pagination.pages}</span>
+              </div>
             )}
           </div>
 
@@ -633,53 +663,11 @@ if (loading && !logs.length) {
 
           {/* Pagination */}
           {pagination && pagination.pages > 1 && (
-            <div className="pagination-section">
-              <nav className="pagination-nav">
-                <ul className="pagination-list">
-                  <li
-                    className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() => setCurrentPage((prev) => prev - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </button>
-                  </li>
-                </ul>
-                <div className="pagination-pages-wrapper">
-                  <ul className="pagination-list">
-                    {[...Array(pagination.pages)].map((_, i) => (
-                      <li
-                        key={i}
-                        className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
-                      >
-                        <button
-                          className="page-link"
-                          onClick={() => setCurrentPage(i + 1)}
-                        >
-                          {i + 1}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <ul className="pagination-list">
-                  <li
-                    className={`page-item ${currentPage === pagination.pages ? "disabled" : ""}`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() => setCurrentPage((prev) => prev + 1)}
-                      disabled={currentPage === pagination.pages}
-                    >
-                      Next
-                    </button>
-                  </li>
-                </ul>
-              </nav>
-            </div>
+            <Pagination
+              page={currentPage}
+              totalPages={pagination.pages}
+              setPage={setCurrentPage}
+            />
           )}
         </div>
       </div>
@@ -745,11 +733,12 @@ if (loading && !logs.length) {
           gap: 0.5rem;
           color: #94a3b8;
           font-size: 0.85rem;
-          margin: 0.5rem 0 0;
+          // margin: 0.5rem 0 0;
         }
 
         .meta-icon {
           font-size: 0.75rem;
+          
         }
 
         /* Stats Grid */
@@ -846,98 +835,161 @@ if (loading && !logs.length) {
 
         /* Filter Section */
         .filter-section {
-          background: white;
-          border-radius: 12px;
-          padding: 1.25rem;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          padding: 0.75rem 1rem;
+          margin-bottom: 1rem;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
         }
 
         .filter-header {
-          margin-bottom: 1rem;
+          margin-bottom: 0.625rem;
         }
 
-        .filter-title {
+        .filter-header-content {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 1rem;
+        }
+
+        .filter-header-icon {
+          color: #22B8E6;
+          font-size: 1.1rem;
+          flex-shrink: 0;
+        }
+
+        .filter-header-text {
+          min-width: 0;
+        }
+
+        .filter-title {
+          font-size: 0.9rem;
           font-weight: 700;
           color: #1a4b6d;
           margin: 0;
+          line-height: 1.2;
         }
 
-        .filter-icon {
-          color: #3db5e6;
+        .filter-subtitle {
+          font-size: 0.72rem;
+          color: #64748b;
+          margin: 0.0625rem 0 0;
+          line-height: 1.3;
         }
 
         .filter-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 1rem;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          gap: 0.625rem;
         }
 
         .filter-item {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.3rem;
+          min-width: 0;
+          flex: 1 1 180px;
+        }
+
+        .filter-item.filter-actions {
+          flex: 0 0 auto;
+          margin-left: auto;
         }
 
         .filter-label {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          font-size: 0.85rem;
+          gap: 0.3rem;
+          font-size: 0.7rem;
           font-weight: 600;
           color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
         }
 
         .label-icon {
-          font-size: 0.75rem;
+          font-size: 0.65rem;
           color: #3db5e6;
         }
 
         .filter-select,
         .filter-input {
-          padding: 0.625rem 0.875rem;
+          height: 38px;
+          padding: 0 0.625rem;
           border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 0.9rem;
-          background: white;
+          border-radius: 6px;
+          font-size: 0.825rem;
+          background: #fafbfc;
           color: #1a4b6d;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
+        }
+
+        .filter-select:hover,
+        .filter-input:hover {
+          border-color: #cbd5e1;
         }
 
         .filter-select:focus,
         .filter-input:focus {
           outline: none;
           border-color: #1a4b6d;
-          box-shadow: 0 0 0 3px rgba(26, 75, 109, 0.1);
+          background: #ffffff;
+          box-shadow: 0 0 0 2px rgba(26, 75, 109, 0.08);
         }
 
-        .filter-actions {
-          justify-content: flex-end;
-        }
-
-        .btn-apply {
+        .filter-action-group {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.625rem 1.25rem;
+        }
+
+        .btn-clear {
+          height: 38px;
+          padding: 0 0.875rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          background: #ffffff;
+          color: #64748b;
+          font-size: 0.775rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+        }
+
+        .btn-clear:hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+          color: #1a4b6d;
+        }
+
+        .btn-apply {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.4rem;
+          height: 38px;
+          padding: 0 0.875rem;
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           color: white;
           border: none;
-          border-radius: 8px;
+          border-radius: 6px;
           font-weight: 600;
-          font-size: 0.9rem;
+          font-size: 0.775rem;
           cursor: pointer;
           transition: all 0.2s ease;
-          align-self: flex-end;
+          white-space: nowrap;
         }
 
         .btn-apply:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(26, 75, 109, 0.3);
+          transform: translateY(-1px);
+          box-shadow: 0 3px 10px rgba(26, 75, 109, 0.25);
+        }
+
+        .btn-icon {
+          font-size: 0.7rem;
         }
 
         /* Table Section */
@@ -975,6 +1027,31 @@ if (loading && !logs.length) {
           color: #94a3b8;
         }
 
+        .table-summary {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .total-events-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.1875rem 0.5rem;
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: #3db5e6;
+          background: rgba(61, 181, 230, 0.1);
+          border-radius: 9999px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .page-info {
+          font-size: 0.8rem;
+          color: #64748b;
+          font-weight: 500;
+        }
+
         .table-loading {
           padding: 3rem;
           display: flex;
@@ -988,6 +1065,7 @@ if (loading && !logs.length) {
         .data-table {
           width: 100%;
           border-collapse: collapse;
+          font-size: 0.85rem;
         }
 
         .data-table thead {
@@ -996,9 +1074,9 @@ if (loading && !logs.length) {
         }
 
         .data-table thead th {
-          padding: 1rem 0.875rem;
+          padding: 0.625rem 0.75rem;
           font-weight: 600;
-          font-size: 0.85rem;
+          font-size: 0.75rem;
           text-transform: uppercase;
           letter-spacing: 0.5px;
           text-align: left;
@@ -1007,20 +1085,20 @@ if (loading && !logs.length) {
 
         .data-table tbody tr {
           border-bottom: 1px solid #e2e8f0;
-          transition: all 0.2s ease;
+          transition: background-color 0.15s ease;
         }
 
         .data-table tbody tr:hover {
-          background: linear-gradient(90deg, rgba(61, 181, 230, 0.05), transparent);
+          background-color: rgba(61, 181, 230, 0.04);
         }
 
         .data-table tbody tr.row-pending {
-          background: rgba(255, 193, 7, 0.03);
+          background-color: rgba(255, 193, 7, 0.03);
         }
 
         .data-table tbody td {
-          padding: 1rem 0.875rem;
-          font-size: 0.9rem;
+          padding: 0.625rem 0.75rem;
+          font-size: 0.825rem;
           color: #334155;
           vertical-align: middle;
         }
@@ -1032,29 +1110,31 @@ if (loading && !logs.length) {
         .timestamp-date {
           font-weight: 600;
           color: #1a4b6d;
+          font-size: 0.825rem;
         }
 
         .timestamp-time {
-          font-size: 0.8rem;
+          font-size: 0.725rem;
           color: #94a3b8;
         }
 
         .event-cell {
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.375rem;
         }
 
         .event-icon {
-          font-size: 1rem;
+          font-size: 0.85rem;
         }
 
         .category-badge {
-          padding: 0.25rem 0.625rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
+          padding: 0.15rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.7rem;
           font-weight: 600;
           text-transform: uppercase;
+          white-space: nowrap;
         }
 
         .category-auth {
@@ -1080,35 +1160,42 @@ if (loading && !logs.length) {
         .user-cell {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.15rem;
         }
 
         .user-name {
-          font-weight: 700;
+          font-weight: 600;
           color: #0f172a;
-          font-size: 0.9rem;
+          font-size: 0.825rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 180px;
         }
 
         .user-role {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           color: #94a3b8;
+          white-space: nowrap;
         }
 
         .ip-address {
-          background: rgba(26, 75, 109, 0.05);
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-size: 0.85rem;
+          font-family: 'Consolas', 'Monaco', monospace;
+          font-size: 0.775rem;
           color: #1a4b6d;
+          white-space: nowrap;
         }
 
         .severity-badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
-          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          padding: 0.175rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.7rem;
+          font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.3px;
+          white-space: nowrap;
         }
 
         .severity-critical {
@@ -1131,24 +1218,19 @@ if (loading && !logs.length) {
           color: white;
         }
 
-        .endpoint-cell {
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-size: 0.8rem;
-          color: #64748b;
-        }
-
         .status-badge {
           display: inline-flex;
           align-items: center;
-          gap: 0.375rem;
-          padding: 0.25rem 0.75rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
+          gap: 0.3rem;
+          padding: 0.175rem 0.5rem;
+          border-radius: 4px;
+          font-size: 0.7rem;
           font-weight: 600;
+          white-space: nowrap;
         }
 
         .status-icon {
-          font-size: 0.65rem;
+          font-size: 0.6rem;
         }
 
         .status-reviewed {
@@ -1162,127 +1244,51 @@ if (loading && !logs.length) {
         }
 
         .btn-review {
-          padding: 0.375rem 0.75rem;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.3rem 0.6rem;
           background: linear-gradient(135deg, #28a745, #218838);
           color: white;
           border: none;
-          border-radius: 6px;
-          font-size: 0.8rem;
+          border-radius: 4px;
+          font-size: 0.725rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.15s ease;
+          white-space: nowrap;
+          height: 34px;
         }
 
         .btn-review:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(40, 167, 69, 0.25);
         }
 
         .cell-empty {
-          padding: 3rem !important;
+          padding: 2rem !important;
         }
 
         .empty-state {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
           color: #94a3b8;
         }
 
         .empty-icon {
-          font-size: 3rem;
+          font-size: 2.5rem;
           opacity: 0.3;
         }
 
         .empty-text {
           margin: 0;
-          font-size: 1rem;
+          font-size: 0.9rem;
         }
 
         .text-muted {
           color: #94a3b8 !important;
-        }
-
-        /* Pagination */
-        .pagination-section {
-          padding: 1rem 1.25rem;
-          border-top: 1px solid #e2e8f0;
-          background: #f8fafc;
-        }
-
-        .pagination-nav {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 0.5rem;
-          flex-wrap: nowrap;
-        }
-
-        .pagination-pages-wrapper {
-          display: flex;
-          overflow-x: auto;
-          gap: 0.5rem;
-          padding: 0.25rem 0.5rem;
-          max-width: 100%;
-          scroll-behavior: smooth;
-          align-items: center;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: thin;
-          scrollbar-color: #1a4b6d #f1f5f9;
-        }
-
-        .pagination-pages-wrapper::-webkit-scrollbar {
-          height: 6px;
-        }
-
-        .pagination-pages-wrapper::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 3px;
-        }
-
-        .pagination-pages-wrapper::-webkit-scrollbar-thumb {
-          background: #1a4b6d;
-          border-radius: 3px;
-        }
-
-        .pagination-list {
-          display: flex;
-          list-style: none;
-          gap: 0.5rem;
-          padding: 0;
-          margin: 0;
-          flex-shrink: 0;
-        }
-
-        .page-item button {
-          padding: 0.5rem 0.875rem;
-          border: 1px solid #e2e8f0;
-          background: white;
-          color: #1a4b6d;
-          border-radius: 6px;
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .page-item button:hover:not(:disabled) {
-          background: linear-gradient(135deg, #1a4b6d, #0f3a4a);
-          color: white;
-          border-color: #1a4b6d;
-        }
-
-        .page-item.active button {
-          background: linear-gradient(135deg, #1a4b6d, #0f3a4a);
-          color: white;
-          border-color: #1a4b6d;
-        }
-
-        .page-item.disabled button,
-        .page-item button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
         }
 
  /* =========================================================
@@ -1386,58 +1392,72 @@ if (loading && !logs.length) {
     line-height: 1.35;
   }
 
-  /* =========================
-     FILTERS
-     ========================= */
+/* =========================
+      FILTERS
+      ========================= */
 
   .filter-section {
-    padding: 1.15rem;
-    margin-bottom: 1.25rem;
+    padding: 0.875rem 1rem;
+    margin-bottom: 1rem;
   }
 
   .filter-header {
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .filter-header-content {
+    gap: 0.625rem;
+  }
+
+  .filter-header-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
   }
 
   .filter-title {
-    font-size: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .filter-subtitle {
+    font-size: 0.72rem;
   }
 
   .filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.9rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.625rem;
   }
 
   .filter-item {
     min-width: 0;
-    gap: 0.45rem;
+    gap: 0.3rem;
   }
 
   .filter-label {
-    font-size: 0.82rem;
+    font-size: 0.7rem;
   }
 
   .filter-select,
   .filter-input {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
-
-    padding: 0.65rem 0.8rem;
-    font-size: 0.88rem;
+    height: 38px;
+    padding: 0 0.625rem;
+    font-size: 0.8rem;
   }
 
-  .filter-actions {
-    justify-content: flex-end;
-    align-items: flex-end;
+  .filter-action-group {
+    gap: 0.375rem;
+  }
+
+  .btn-clear {
+    height: 38px;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
   }
 
   .btn-apply {
-    width: auto;
-    min-height: 42px;
-    padding: 0.65rem 1rem;
-    font-size: 0.85rem;
+    height: 38px;
+    padding: 0 0.875rem;
+    font-size: 0.75rem;
   }
 
   /* =========================
@@ -1471,31 +1491,44 @@ if (loading && !logs.length) {
   }
 
   .data-table thead th {
-    padding: 0.8rem 0.7rem;
-    font-size: 0.78rem;
+    padding: 0.625rem 0.625rem;
+    font-size: 0.725rem;
   }
 
   .data-table tbody td {
-    padding: 0.8rem 0.7rem;
-    font-size: 0.82rem;
+    padding: 0.625rem 0.625rem;
+    font-size: 0.775rem;
+  }
+
+  .user-name {
+    max-width: 150px;
+  }
+
+  .btn-review {
+    height: 32px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .category-badge {
+    font-size: 0.65rem;
+    padding: 0.125rem 0.4rem;
+  }
+
+  .severity-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .status-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
   }
 
   /* =========================
      PAGINATION
      ========================= */
 
-  .pagination-section {
-    padding: 0.85rem 1rem;
-  }
-
-  .pagination-nav {
-    gap: 0.35rem;
-  }
-
-  .page-item button {
-    padding: 0.45rem 0.7rem;
-    font-size: 0.82rem;
-  }
 }
 
 
@@ -1617,47 +1650,60 @@ if (loading && !logs.length) {
     flex-wrap: wrap;
   }
 
-  /* =========================
-     FILTER SECTION
-     ========================= */
+/* =========================
+      FILTER SECTION
+      ========================= */
 
   .filter-section {
     width: 100%;
     box-sizing: border-box;
 
-    padding: 1rem;
+    padding: 0.875rem;
     margin-bottom: 1rem;
-    border-radius: 14px;
+    border-radius: 12px;
   }
 
   .filter-header {
-    margin-bottom: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .filter-header-content {
+    gap: 0.625rem;
+  }
+
+  .filter-header-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
   }
 
   .filter-title {
-    font-size: 1.05rem;
+    font-size: 0.9rem;
+  }
+
+  .filter-subtitle {
+    font-size: 0.72rem;
   }
 
   .filter-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0.8rem;
+    gap: 0.625rem;
     width: 100%;
   }
 
   .filter-item {
     width: 100%;
     min-width: 0;
-    gap: 0.4rem;
+    gap: 0.3rem;
   }
 
   .filter-label {
-    font-size: 0.84rem;
-    line-height: 1.3;
+    font-size: 0.72rem;
   }
 
   .label-icon {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
   }
 
   /*
@@ -1675,11 +1721,11 @@ if (loading && !logs.length) {
     max-width: 100%;
     box-sizing: border-box;
 
-    height: 44px;
-    padding: 0.6rem 0.75rem;
+    height: 40px;
+    padding: 0 0.75rem;
 
-    font-size: 0.88rem;
-    border-radius: 9px;
+    font-size: 0.85rem;
+    border-radius: 8px;
   }
 
   .filter-select {
@@ -1695,21 +1741,30 @@ if (loading && !logs.length) {
 
   .filter-actions {
     width: 100%;
-    align-items: center;
-    justify-content: center;
-    margin-top: 0.25rem;
+    justify-content: flex-end;
+  }
+
+  .filter-action-group {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .btn-clear {
+    height: 40px;
+    padding: 0 1rem;
+    font-size: 0.8rem;
   }
 
   .btn-apply {
-    width: 100%;
-    max-width: 210px;
-    min-height: 44px;
-
+    width: auto;
+    max-width: 200px;
+    min-height: 40px;
     justify-content: center;
     align-self: center;
-
-    padding: 0.65rem 1rem;
-    font-size: 0.88rem;
+    padding: 0 1rem;
+    font-size: 0.8rem;
   }
 
   /* =========================
@@ -1788,10 +1843,10 @@ if (loading && !logs.length) {
     width: 100%;
     box-sizing: border-box;
 
-    gap: 0.75rem;
+    gap: 0.625rem;
 
-    padding: 0.55rem 0;
-    font-size: 0.8rem;
+    padding: 0.5rem 0;
+    font-size: 0.775rem;
 
     border-bottom: 1px solid #f1f5f9;
   }
@@ -1806,7 +1861,7 @@ if (loading && !logs.length) {
     flex: 0 0 38%;
 
     font-weight: 600;
-    font-size: 0.76rem;
+    font-size: 0.72rem;
     line-height: 1.35;
     color: #1a4b6d;
   }
@@ -1819,7 +1874,7 @@ if (loading && !logs.length) {
   .event-cell {
     justify-content: flex-end;
     flex-wrap: wrap;
-    gap: 0.3rem;
+    gap: 0.25rem;
   }
 
   .category-badge,
@@ -1840,15 +1895,31 @@ if (loading && !logs.length) {
   }
 
   .btn-review {
-    padding: 0.4rem 0.65rem;
-    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.7rem;
+    height: 32px;
+  }
+
+  .category-badge {
+    font-size: 0.65rem;
+    padding: 0.125rem 0.4rem;
+  }
+
+  .severity-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .status-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
   }
 
   /* Empty state */
 
   .cell-empty {
     display: block !important;
-    padding: 2rem 1rem !important;
+    padding: 1.5rem 1rem !important;
   }
 
   .cell-empty::before {
@@ -1856,39 +1927,19 @@ if (loading && !logs.length) {
   }
 
   .empty-text {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     line-height: 1.45;
     text-align: center;
   }
 
   .empty-icon {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
   }
 
   /* =========================
      PAGINATION
      ========================= */
 
-  .pagination-section {
-    padding: 0.75rem;
-  }
-
-  .pagination-nav {
-    width: 100%;
-    justify-content: center;
-    gap: 0.3rem;
-  }
-
-  .pagination-pages-wrapper {
-    max-width: calc(100vw - 150px);
-    overflow-x: auto;
-  }
-
-  .page-item button {
-    padding: 0.4rem 0.6rem;
-    font-size: 0.76rem;
-    white-space: nowrap;
-  }
 }
 
 
@@ -1967,32 +2018,56 @@ if (loading && !logs.length) {
   /* Filters */
 
   .filter-section {
-    padding: 0.85rem;
+    padding: 0.75rem;
+  }
+
+  .filter-header-content {
+    gap: 0.5rem;
+  }
+
+  .filter-header-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
   }
 
   .filter-title {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+  }
+
+  .filter-subtitle {
+    font-size: 0.68rem;
   }
 
   .filter-grid {
-    gap: 0.7rem;
+    gap: 0.5rem;
   }
 
   .filter-label {
-    font-size: 0.78rem;
+    font-size: 0.68rem;
   }
 
   .filter-select,
   .filter-input {
-    height: 42px;
-    padding: 0.55rem 0.7rem;
-    font-size: 0.82rem;
+    height: 38px;
+    padding: 0 0.625rem;
+    font-size: 0.8rem;
+  }
+
+  .filter-action-group {
+    gap: 0.375rem;
+  }
+
+  .btn-clear {
+    height: 38px;
+    padding: 0 0.75rem;
+    font-size: 0.72rem;
   }
 
   .btn-apply {
-    max-width: 190px;
-    min-height: 42px;
-    font-size: 0.82rem;
+    max-width: 180px;
+    min-height: 38px;
+    font-size: 0.72rem;
   }
 
   /* Table */
@@ -2040,22 +2115,10 @@ if (loading && !logs.length) {
   .btn-review {
     padding: 0.3rem 0.45rem;
     font-size: 0.68rem;
+    height: 30px;
   }
 
   /* Pagination */
-
-  .pagination-section {
-    padding: 0.6rem;
-  }
-
-  .pagination-pages-wrapper {
-    max-width: calc(100vw - 135px);
-  }
-
-  .page-item button {
-    padding: 0.35rem 0.5rem;
-    font-size: 0.7rem;
-  }
 }
 
 
