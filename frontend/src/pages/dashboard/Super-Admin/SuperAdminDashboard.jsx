@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../../../api/axios";
-import Breadcrumb from "../../../components/Breadcrumb";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -35,6 +34,7 @@ import {
   FaTimes,
   FaEnvelopeOpenText,
   FaInbox,
+  FaBolt,
 } from "react-icons/fa";
 
 // Constants
@@ -190,34 +190,26 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
-      {/* BREADCRUMBS */}
-      <Breadcrumb items={[{ label: "Dashboard" }]} />
-
+    <div className="erp-page erp-viewport-min-100 sa-dash" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* HEADER */}
       <div className="erp-page-header">
-        {/* Top row: icon on left, title and description beside it; last-refreshed time below description */}
-        <div className="erp-header-top">
-          <div className="erp-header-icon" aria-hidden="true">
-            <FaUniversity />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Super Admin Dashboard</h1>
-            <p className="erp-page-subtitle">
-              Centralized management portal for all registered colleges
-            </p>
-            <div className="erp-page-meta">
-              <FaClock className="meta-icon" aria-hidden="true" />
-              <span>Last refreshed: {lastRefresh.toLocaleTimeString()}</span>
+        {/* Top row: left = icon + title block, right = action buttons */}
+        <div className="erp-header-content">
+          <div className="erp-header-left">
+            <div className="erp-header-icon" aria-hidden="true">
+              <FaUniversity />
+            </div>
+            <div className="erp-header-text">
+              <h1 className="erp-page-title">Super Admin Dashboard</h1>
+              <p className="erp-page-subtitle">
+                Centralized management portal for all registered colleges
+              </p>
+              <div className="erp-page-meta">
+                <FaClock className="meta-icon" aria-hidden="true" />
+                <span>Last refreshed: {lastRefresh.toLocaleTimeString()}</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Subtle horizontal divider */}
-        <div className="erp-header-divider" aria-hidden="true" />
-
-        {/* Bottom row: Refresh and Add College buttons aligned right */}
-        <div className="erp-header-bottom">
           <div className="erp-header-actions">
             <button
               className="erp-btn erp-btn-secondary"
@@ -238,6 +230,18 @@ export default function SuperAdminDashboard() {
               <span>Add College</span>
             </button>
           </div>
+        </div>
+
+        {/* Subtle horizontal divider */}
+        <div className="erp-header-divider" aria-hidden="true" />
+
+        {/* Bottom row: quick access text + System Owner badge */}
+        <div className="erp-header-bottom">
+          <div className="erp-header-quick-access">
+            <FaBolt className="quick-access-icon" aria-hidden="true" />
+            <span>Quick access to system management</span>
+          </div>
+          <span className="erp-system-badge">System Owner</span>
         </div>
       </div>
 
@@ -833,19 +837,27 @@ export default function SuperAdminDashboard() {
           --transition-slow: 0.35s ease;
         }
 
+        /* Page spacing: matches College Admin dashboard (desktop only) */
+        @media (min-width: 992px) {
+          .erp-page.sa-dash {
+            padding-top: 24px;
+            padding-left: 24px;
+            padding-right: 24px;
+            padding-bottom: 15px;
+          }
+        }
+
         /* ================= PAGE HEADER ================= */
         .erp-page-header {
-          background: linear-gradient(135deg, #0E3746 0%, #164E63 100%);
+          background: #0E3746;
           padding: 24px 28px;
-          border-radius: 14px;
+          border-radius: 15px;
           margin-bottom: 1.25rem;
-          border: 1px solid rgba(34, 184, 230, 0.22);
           box-shadow: 0 8px 24px -4px rgba(14, 55, 70, 0.4), 0 2px 6px -1px rgba(14, 55, 70, 0.2);
           color: #ffffff;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
-          min-height: 175px;
+          gap: 16px;
           box-sizing: border-box;
           animation: slideDown 0.5s ease;
           position: relative;
@@ -864,63 +876,70 @@ export default function SuperAdminDashboard() {
           pointer-events: none;
         }
 
-        /* Top row: icon on left, title & description beside it, last-refreshed below */
-        .erp-header-top,
+        /* Top row: left = icon + title block, right = action buttons */
         .erp-header-content {
           display: flex;
-          align-items: flex-start;
-          gap: 20px;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
           position: relative;
           z-index: 1;
           width: 100%;
           min-width: 0;
+          flex-wrap: wrap;
+        }
+
+        .erp-header-left {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          min-width: 0;
+          flex: 1;
         }
 
         .erp-header-icon {
-          width: 58px;
-          height: 58px;
-          min-width: 58px;
-          min-height: 58px;
+          width: 52px;
+          height: 52px;
+          min-width: 52px;
+          min-height: 52px;
           background: rgba(34, 184, 230, 0.15);
           border: 1px solid rgba(34, 184, 230, 0.35);
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 26px;
+          font-size: 24px;
           color: #22B8E6;
           box-shadow: 0 4px 14px rgba(34, 184, 230, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
           flex-shrink: 0;
-          margin-top: 2px;
         }
 
         .erp-header-text {
           display: flex;
           flex-direction: column;
           min-width: 0;
-          flex: 1;
         }
 
         .erp-page-title {
           margin: 0;
-          font-size: 28px;
+          font-size: 26px;
           font-weight: 700;
           letter-spacing: -0.02em;
-          line-height: 1.15;
+          line-height: 1.2;
           color: #ffffff;
         }
 
         .erp-page-subtitle {
           margin: 3px 0 0 0;
           color: rgba(230, 242, 245, 0.88);
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 400;
-          line-height: 1.25;
+          line-height: 1.3;
         }
 
         .erp-page-meta {
           margin-top: 6px;
-          font-size: 14px;
+          font-size: 13px;
           color: rgba(230, 242, 245, 0.78);
           display: inline-flex;
           align-items: center;
@@ -929,7 +948,7 @@ export default function SuperAdminDashboard() {
         }
 
         .meta-icon {
-          font-size: 14px;
+          font-size: 13px;
           color: #22B8E6;
           flex-shrink: 0;
         }
@@ -937,54 +956,56 @@ export default function SuperAdminDashboard() {
         /* Subtle Horizontal Divider */
         .erp-header-divider {
           width: 100%;
-          height: 2px;
+          height: 1px;
           background: linear-gradient(90deg, rgba(34, 184, 230, 0.25) 0%, rgba(34, 184, 230, 0.08) 70%, transparent 100%);
-          margin: 6px 0 8px 0;
+          margin: 4px 0;
           position: relative;
           z-index: 1;
         }
 
-        /* Bottom Row: buttons aligned right */
+        /* Bottom Row: quick access text + System Owner badge */
         .erp-header-bottom {
           display: flex;
-          justify-content: flex-end;
           align-items: center;
+          justify-content: space-between;
           width: 100%;
           position: relative;
           z-index: 1;
           gap: 16px;
-          height: 1.3rem;
         }
 
-        .erp-header-shortcut {
-          display: inline-flex;
+        .erp-header-quick-access {
+          display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 10px;
+          color: rgba(230, 242, 245, 0.85);
           font-size: 13.5px;
-          color: rgba(230, 242, 245, 0.78);
           font-weight: 500;
         }
 
-        .meta-kbd {
-          font-family: inherit;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 2px 7px;
-          background: rgba(34, 184, 230, 0.12);
-          border: 1px solid rgba(34, 184, 230, 0.28);
-          border-radius: 4px;
-          color: #ffffff;
-          line-height: 1.2;
+        .quick-access-icon {
+          color: #22B8E6;
+          font-size: 16px;
+          flex-shrink: 0;
         }
 
-        .shortcut-label {
+        .erp-system-badge {
+          background: transparent;
           color: rgba(230, 242, 245, 0.75);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
 
         .erp-header-actions {
           display: inline-flex;
           align-items: center;
           gap: 12px;
+          flex-shrink: 0;
         }
 
         .erp-btn {
@@ -1006,18 +1027,18 @@ export default function SuperAdminDashboard() {
         }
 
         .erp-btn-secondary {
-          background: rgba(22, 78, 99, 0.65);
+          background: transparent;
           color: #ffffff;
-          border: 1px solid rgba(34, 184, 230, 0.35);
-          box-shadow: 0 2px 6px rgba(14, 55, 70, 0.25);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: none;
         }
 
         .erp-btn-secondary:hover {
-          background: #164E63;
-          border-color: #22B8E6;
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(34, 184, 230, 0.6);
           color: #ffffff;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(14, 55, 70, 0.35), 0 0 0 1px rgba(34, 184, 230, 0.3);
+          transform: none;
+          box-shadow: 0 2px 8px rgba(14, 55, 70, 0.2);
         }
 
         .erp-btn-secondary:hover .erp-btn-icon {
@@ -1025,18 +1046,28 @@ export default function SuperAdminDashboard() {
         }
 
         .erp-btn-primary {
-          background: #22B8E6;
+          background: #FFFFFF;
           color: #0E3746;
-          font-weight: 700;
-          border: 1px solid rgba(255, 255, 255, 0.25);
-          box-shadow: 0 3px 12px rgba(34, 184, 230, 0.35);
+          font-weight: 600;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
         }
 
         .erp-btn-primary:hover {
-          background: #38c5f0;
+          background: #f1f6fa;
           color: #0E3746;
           transform: translateY(-1px);
-          box-shadow: 0 5px 16px rgba(34, 184, 230, 0.48);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+        }
+
+        .erp-btn-primary:active {
+          transform: translateY(0);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+
+        .erp-btn-primary:focus-visible {
+          outline: 2px solid #7cc4ee;
+          outline-offset: 2px;
         }
 
         .erp-btn-primary .erp-btn-icon {
@@ -1046,6 +1077,36 @@ export default function SuperAdminDashboard() {
         .erp-btn-icon {
           font-size: 15px;
           transition: transform 0.4s ease;
+        }
+
+        /* Responsive: stack buttons below title on narrow screens */
+        @media (max-width: 767px) {
+          .erp-header-content {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+          }
+
+          .erp-header-left {
+            justify-content: center;
+            text-align: center;
+          }
+
+          .erp-header-actions {
+            justify-content: center;
+            width: 100%;
+          }
+
+          .erp-header-bottom {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 12px;
+          }
+
+          .erp-header-quick-access {
+            justify-content: center;
+          }
         }
 
         /* ================= INFO BANNER ================= */
