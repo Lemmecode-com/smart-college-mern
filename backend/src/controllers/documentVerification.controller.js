@@ -77,7 +77,7 @@ const resolveStudentAndDocument = async (req, res, next) => {
  */
 exports.verifyStudentDocument = async (req, res, next) => {
   try {
-    const { document } = await resolveStudentAndDocument(req, res, next);
+    const { student, document } = await resolveStudentAndDocument(req, res, next);
 
     if (document.verificationStatus === "VERIFIED") {
       return ApiResponse.success(
@@ -156,7 +156,7 @@ exports.rejectStudentDocument = async (req, res, next) => {
       );
     }
 
-    const { document } = await resolveStudentAndDocument(req, res, next);
+    const { student, document } = await resolveStudentAndDocument(req, res, next);
 
     if (document.verificationStatus === "REJECTED") {
       return ApiResponse.success(
