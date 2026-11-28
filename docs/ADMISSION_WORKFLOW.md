@@ -324,11 +324,12 @@ A rigorous comparison between earlier draft assumptions and the actual codebase 
 | Failure Mode / Guard | HTTP Code & Error Code | Triggering Condition | Enforced In File & Line | System Response & User Remediation |
 | :--- | :--- | :--- | :--- | :--- |
 | **Prerequisites Missing at Publish** | `400 SETUP_INCOMPLETE` | College Admin attempts setup completion when departments, courses, fee structures, or SMTP are 0 | `master.controller.js:650` | Blocks completion; returns list of specific missing items to complete. |
-| **Duplicate Student Email** | `409 DUPLICATE_EMAIL` | Student registers with an email already present in `User` or `Student` collection | `student.controller.js:338` | Blocks registration with `"Student already registered with this email"`. |
+| **Unpublished College Registration** | `400 COLLEGE_SETUP_INCOMPLETE` | Student attempts public registration before college setup wizard is completed (`setupCompleted === false`) | `student.controller.js:305` | Blocks registration with `"College admissions are not open yet. Setup is still in progress."`. |
+| **Duplicate Student Email** | `409 DUPLICATE_EMAIL` | Student registers with an email already present in `User` or `Student` collection | `student.controller.js:347` | Blocks registration with `"Student already registered with this email"`. |
 | **Unverified Documents at Approval** | `400 DOCUMENTS_NOT_VERIFIED` | Admin/Officer approves student before all mandatory documents in `DocumentConfig` are verified | `studentApproval.controller.js:126` | Blocks approval; requires verifying all required marksheets in review screen first. |
-| **Missing Fee Structure at Approval** | `404 FEE_STRUCTURE_NOT_FOUND` | Student approved, but no fee structure exists for their course and category | `studentApproval.controller.js:155` | Blocks approval; directs admin to create Fee Structure for course & category. |
+| **Missing Fee Structure at Approval** | `404 FEE_STRUCTURE_NOT_FOUND` | Student approved, but no fee structure exists for their course, category, and academic year | `studentApproval.controller.js:195` | Blocks approval; directs admin to create Fee Structure for course & category. |
 | **Intake Capacity Exceeded** | `409 CAPACITY_REACHED` | Active students (`APPROVED`, `ENROLLED`, etc.) reach `Course.maxStudents` | `studentApproval.controller.js:112` | Blocks approval with `"Admission capacity reached for this course"`. |
-| **Missing Division at Enrollment** | `400 DIVISION_NOT_ASSIGNED` | Admin confirms enrollment for student whose `division` field is null/empty | `studentApproval.controller.js:747` | Blocks enrollment with `"Student must have a division assigned before enrollment"`. |
+| **Missing Division at Enrollment** | `400 DIVISION_NOT_ASSIGNED` | Admin confirms enrollment for student whose `division` field is null/empty | `studentApproval.controller.js:770` | Blocks enrollment with `"Student must have a division assigned before enrollment"`. |
 | **Cross-College Access Attempt** | `404 STUDENT_NOT_FOUND` | Admin of College A attempts to view, verify, or approve student of College B | `documentVerification.controller.js:39`, `studentApproval.controller.js:29` | Rejects with 404; query is strictly scoped by `req.college_id` via middleware. |
 | **Pending Student Portal Login** | `403 ACCOUNT_PENDING_APPROVAL` | Student attempts to log in to `/login` before approval | `auth.controller.js:279` | Blocks login; informs student to wait for approval confirmation email. |
 
@@ -336,52 +337,66 @@ A rigorous comparison between earlier draft assumptions and the actual codebase 
 
 ## 8. Test Execution Results (Part D)
 
-All 8 requested integration scenarios were executed against an in-memory replica set test environment (`backend/tests/admission/admission-workflow-manager-audit.test.js`) and passed with 100% success:
+All 12 integration scenarios were executed against an in-memory replica set test environment (`backend/tests/admission/admission-workflow-manager-audit.test.js`) and passed with **100% success (12/12 Passed)**:
 
 | # | Test Scenario | Expected Code / Behavior | Status | Execution Time | Verified Evidence |
 | :---: | :--- | :--- | :---: | :---: | :--- |
-| **1** | Setup-complete fails when prerequisite missing | `400 SETUP_INCOMPLETE` | **PASS** | 1324 ms | API blocked with message: `Cannot finish setup. Please complete: at least one department, at least one course...` |
-| **2** | Duplicate email registration rejected | `409 DUPLICATE_EMAIL` | **PASS** | 728 ms | First registration succeeded (201); second registration with same email rejected with `DUPLICATE_EMAIL`. |
-| **3** | Approve without verified documents fails | `400 DOCUMENTS_NOT_VERIFIED` | **PASS** | 520 ms | Mandatory document `10th_marksheet` was unverified; approve API returned 400. |
-| **4** | Approve without fee structure fails | `404 FEE_STRUCTURE_NOT_FOUND` | **PASS** | 404 ms | Course had no fee structure; approve API rejected with prompt to configure fee structure. |
-| **5** | Approve when course full fails | `409 CAPACITY_REACHED` | **PASS** | 373 ms | Course capacity set to 1; first student approved; second student approval rejected with `CAPACITY_REACHED`. |
-| **6** | Confirm enrollment without division fails | `400 DIVISION_NOT_ASSIGNED` | **PASS** | 277 ms | Approved student had `division: null`; confirm enrollment rejected with `DIVISION_NOT_ASSIGNED`. |
-| **7** | Tenant isolation blocks cross-college access | `404 STUDENT_NOT_FOUND` | **PASS** | 263 ms | College A admin attempted approval of College B student; blocked with 404. |
-| **8** | Full Happy Path end-to-end | Complete lifecycle | **PASS** | 640 ms | Registered student $\rightarrow$ verified marksheet $\rightarrow$ approved (enrollment no generated) $\rightarrow$ assigned division 'A' $\rightarrow$ confirmed enrollment $\rightarrow$ parent user & guardian link created. |
+| **1** | Setup-complete fails when prerequisite missing | `400 SETUP_INCOMPLETE` | **PASS** | 1716 ms | API blocked with message: `Cannot finish setup. Please complete: at least one department, at least one course...` |
+| **2** | Duplicate email registration rejected | `409 DUPLICATE_EMAIL` | **PASS** | 504 ms | First registration succeeded (201); second registration with same email rejected with `DUPLICATE_EMAIL`. |
+| **3** | Approve without verified documents fails | `400 DOCUMENTS_NOT_VERIFIED` | **PASS** | 757 ms | Mandatory document `10th_marksheet` was unverified; approve API returned 400. |
+| **4** | Approve without fee structure fails | `404 FEE_STRUCTURE_NOT_FOUND` | **PASS** | 665 ms | Course had no fee structure; approve API rejected with prompt to configure fee structure. |
+| **5** | Approve when course full fails | `409 CAPACITY_REACHED` | **PASS** | 636 ms | Course capacity set to 1; first student approved; second student approval rejected with `CAPACITY_REACHED`. |
+| **6** | Confirm enrollment without division fails | `400 DIVISION_NOT_ASSIGNED` | **PASS** | 491 ms | Approved student had `division: null`; confirm enrollment rejected with `DIVISION_NOT_ASSIGNED`. |
+| **7** | Tenant isolation blocks cross-college access | `404 STUDENT_NOT_FOUND` | **PASS** | 501 ms | College A admin attempted approval of College B student; blocked with 404. |
+| **8** | Full Happy Path end-to-end | Complete lifecycle | **PASS** | 1071 ms | Registered student $\rightarrow$ verified marksheet $\rightarrow$ approved (enrollment no generated) $\rightarrow$ assigned division 'A' $\rightarrow$ confirmed enrollment $\rightarrow$ parent user & guardian link created. |
+| **9** | Block registration before setup completed | `400 COLLEGE_SETUP_INCOMPLETE` | **PASS** | 433 ms | Registration attempt on college with `setupCompleted: false` was rejected with `COLLEGE_SETUP_INCOMPLETE` (Issue #589). |
+| **10** | Missing parent email warning feedback | Warning in response payload | **PASS** | 404 ms | Enrolling student with no parent emails returned warning: `"Parent email was not provided; parent accounts skipped."` (Issue #591). |
+| **11** | Fee structure lookup matches admission year | Correct year amount assigned | **PASS** | 727 ms | Admitted 2026 student matched 2026-2027 fee (₹75,000) instead of older 2024-2025 fee (₹40,000) (Issue #588). |
+| **12** | Registration accepts EWS category | Category persisted as EWS | **PASS** | 493 ms | Student registered with category `EWS` was validated and created successfully with category `EWS` (Issue #590). |
 
-*Additional Test Evidence*:
-- `tests/document/document-verification.test.js`: **16/16 Passed**
+*Additional Suite Results*:
 - `tests/student/approve-student.test.js`: **3/3 Passed**
+- `tests/document/document-verification.test.js`: **16/16 Passed**
 
 ---
 
-## 9. Issues and Gaps Found in Codebase
+## 9. Issues and Gaps Found & Resolved in Codebase
 
-During this in-depth code audit, several issues and functional gaps were discovered:
+During this in-depth code audit and remediation, the identified gaps were formally raised as GitHub issues and resolved with complete test coverage:
 
-### 1. [HIGH] Document Rejection ReferenceError (FIXED during audit)
+### 1. [HIGH] Document Rejection ReferenceError (FIXED)
 * **File**: `backend/src/controllers/documentVerification.controller.js:80,159`
 * **Details**: In `rejectStudentDocument`, the code called `resolveStudentAndDocument` but only destructured `{ document }` instead of `{ student, document }`. Later at line 200, it referenced `if (student.email)`, causing an unhandled `ReferenceError: student is not defined` and returning a 500 server crash whenever an admin rejected a document.
-* **Status**: **Fixed** during this audit by properly destructuring `{ student, document }`.
+* **Status**: **RESOLVED & VERIFIED**. Properly destructured `{ student, document }`.
 
-### 2. [MEDIUM] Missing `FRONTEND_URL` in `.env.test` (FIXED during audit)
+### 2. [MEDIUM] Missing `FRONTEND_URL` in `.env.test` (FIXED)
 * **File**: `backend/.env.test`
 * **Details**: `FRONTEND_URL` was present in `.env` but missing from `.env.test`. When background emails or re-upload links were generated via `buildFrontendUrl()`, tests threw runtime errors.
-* **Status**: **Fixed** by adding `FRONTEND_URL` and `CLIENT_URL` to `.env.test`.
+* **Status**: **RESOLVED & VERIFIED**. Added `FRONTEND_URL` and `CLIENT_URL` to `.env.test`.
 
-### 3. [MEDIUM] Fee Structure Query Ignores `academicYear`
-* **File**: `backend/src/controllers/studentApproval.controller.js:148-152`
-* **Details**: When a student is approved, the system queries:
-  `FeeStructure.findOne({ college_id, course_id, category })`.
-  It does not include `academicYear` in the filter. If a college maintains fee structures for multiple academic years (e.g. 2025-26 vs 2026-27), the query arbitrarily selects whichever record matches first, potentially assigning outdated fee amounts to new students.
+### 3. [MEDIUM] Fee Structure Query Ignores `academicYear` (GitHub Issue #588 - FIXED)
+* **File**: `backend/src/controllers/studentApproval.controller.js:148-180, 470-500`
+* **Details**: When a student was approved, the system previously queried `FeeStructure.findOne({ college_id, course_id, category })` without checking `academicYear`. When multiple years existed, older year fees could be applied.
+* **Fix**: Implemented priority matching: student's `admissionYear` first (`YYYY-YYYY`), then `currentAcademicYear`, followed by fallback to fee structures without academic year, and latest active.
+* **Status**: **RESOLVED & VERIFIED** (Test 11 Passed).
 
-### 4. [MEDIUM] `setupCompleted` Not Enforced at Registration
-* **File**: `backend/src/controllers/student.controller.js:100-330`
-* **Details**: A college can accept registrations before completing onboarding setup (`setupCompleted` is never checked). While not inherently fatal if courses exist, it allows student registrations before official fees or email settings are finalized.
+### 4. [MEDIUM] Student Registration Allowed Before Setup Complete (GitHub Issue #589 - FIXED)
+* **Files**: `backend/src/controllers/student.controller.js:304-311`, `backend/src/routes/public.department.course.routes.js:28-33`, `frontend/src/pages/auth/StudentRegister.jsx`
+* **Details**: Public registration allowed registrations before college admin finalized setup.
+* **Fix**: Backend rejects registrations with 400 `COLLEGE_SETUP_INCOMPLETE` if `college.setupCompleted !== true`. Public department API exposes `setupCompleted`, and frontend displays warning alert banner and prevents registration submission when admissions are closed.
+* **Status**: **RESOLVED & VERIFIED** (Test 9 Passed).
 
-### 5. [LOW] Category Enum Discrepancy (`OTHER` vs `EWS`)
-* **File**: `backend/src/models/feeStructure.model.js:30`, `backend/src/utils/constants.js:74-80`
-* **Details**: Registration accepts `OTHER`, which falls back to `GEN` in fees. Meanwhile, `FeeStructure` supports `EWS`, but students have no way to select `EWS` during registration.
+### 5. [LOW] Category Enum Discrepancy: `OTHER` vs `EWS` (GitHub Issue #590 - FIXED)
+* **Files**: `backend/src/utils/constants.js:75`, `backend/src/middlewares/validators/student.validator.js:160,277`, `frontend/src/pages/auth/StudentRegister.jsx`
+* **Details**: `FeeStructure` model supported `EWS`, but `CATEGORY` constant, student registration validator, and frontend registration dropdown omitted `EWS`.
+* **Fix**: Added `EWS: "EWS"` to `CATEGORY` constant, added `'EWS'` to express-validator checks, and added `Economically Weaker Section (EWS)` option to the frontend registration form.
+* **Status**: **RESOLVED & VERIFIED** (Test 12 Passed).
+
+### 6. [LOW] Parent Account Creation Silent Skipping Without Feedback (GitHub Issue #591 - FIXED)
+* **Files**: `backend/src/services/parentCreation.service.js:270-285`, `backend/src/controllers/studentApproval.controller.js:872-876`, `frontend/src/pages/auth/StudentRegister.jsx`, `frontend/src/pages/dashboard/College-Admin/ApproveStudents.jsx`
+* **Details**: When parent emails were omitted during registration, parent accounts were skipped silently without admin warning or user guidance.
+* **Fix**: Parent creation service returns a warning message when emails are missing; `confirmEnrollment` exposes this warning in the response; `ApproveStudents.jsx` displays an informative toast notification; and `StudentRegister.jsx` includes helper hints explaining email requirement for portal login.
+* **Status**: **RESOLVED & VERIFIED** (Test 10 Passed).
 
 ---
 

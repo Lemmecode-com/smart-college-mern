@@ -13,6 +13,7 @@ const CollegeEmailConfig = require("../../src/models/collegeEmailConfig.model");
 const Student = require("../../src/models/student.model");
 const User = require("../../src/models/user.model");
 const ParentGuardian = require("../../src/models/parentGuardian.model");
+const StudentFee = require("../../src/models/studentFee.model");
 
 describe("ADMISSION WORKFLOW — Manager Verification Test Suite", () => {
   beforeAll(async () => {
@@ -50,7 +51,7 @@ describe("ADMISSION WORKFLOW — Manager Verification Test Suite", () => {
 
   // ── 2. Duplicate email registration gives DUPLICATE_EMAIL ──
   it("2. Duplicate email registration gives DUPLICATE_EMAIL", async () => {
-    const college = await createCollege({ code: "dupcol", name: "Duplicate Test College" });
+    const college = await createCollege({ code: "dupcol", name: "Duplicate Test College", setupCompleted: true });
     const admin = await createUser({
       email: "admin@dup.test.com",
       password: "Test@123",
@@ -490,7 +491,7 @@ describe("ADMISSION WORKFLOW — Manager Verification Test Suite", () => {
 
   // ── 8. Happy path: register, verify docs, approve, assign division, enroll, parent account created ──
   it("8. Happy path: register, verify docs, approve, assign division, enroll, parent account created", async () => {
-    const college = await createCollege({ code: "hpcol", email: "hpcol@test.com", name: "Happy Path College" });
+    const college = await createCollege({ code: "hpcol", email: "hpcol@test.com", name: "Happy Path College", setupCompleted: true });
     const admin = await createUser({
       email: "admin@hp.test.com",
       password: "Test@123",
@@ -622,5 +623,283 @@ describe("ADMISSION WORKFLOW — Manager Verification Test Suite", () => {
     expect(parentGuardian).toBeDefined();
     expect(parentGuardian.student_ids.map(id => id.toString())).toContain(createdStudent._id.toString());
     expect(parentGuardian.relation).toBe("father");
+  });
+
+  // ── 9. Registration blocked with COLLEGE_SETUP_INCOMPLETE if college setup is not completed ──
+  it("9. Registration blocked with COLLEGE_SETUP_INCOMPLETE if college setup is not completed", async () => {
+    const college = await createCollege({ code: "setupcol", email: "setupcol@test.com", name: "Setup Test College", setupCompleted: false });
+    const admin = await createUser({
+      email: "admin@setup.test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+    const dept = await Department.create({
+      college_id: college._id,
+      name: "Civil Engineering",
+      code: "CIVIL",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+    const course = await Course.create({
+      college_id: college._id,
+      department_id: dept._id,
+      name: "B.Tech Civil",
+      code: "BTCIVIL",
+      type: "THEORY",
+      status: "ACTIVE",
+      programLevel: "UG",
+      durationSemesters: 8,
+      durationYears: 4,
+      credits: 160,
+      maxStudents: 60,
+      yearLabels: ["Year 1"],
+      createdBy: admin._id,
+    });
+
+    const res = await request(app)
+      .post(`/api/students/register/${college.code}`)
+      .field("fullName", "Blocked Student")
+      .field("email", "blocked.student@test.com")
+      .field("password", "Pass@123456")
+      .field("mobileNumber", "9876543299")
+      .field("gender", "Male")
+      .field("dateOfBirth", "2005-01-01")
+      .field("addressLine", "123 Main St")
+      .field("city", "Mumbai")
+      .field("state", "Maharashtra")
+      .field("pincode", "400001")
+      .field("department_id", dept._id.toString())
+      .field("course_id", course._id.toString())
+      .field("admissionYear", 2026)
+      .field("currentSemester", 1)
+      .field("category", "GEN")
+      .expect(400);
+
+    expect(res.body.error.code).toBe("COLLEGE_SETUP_INCOMPLETE");
+  });
+
+  // ── 10. Warning returned when parent email is missing during confirm enrollment ──
+  it("10. Warning returned when parent email is missing during confirm enrollment", async () => {
+    const college = await createCollege({ code: "pwcol", email: "pwcol@test.com", name: "Parent Warn College", setupCompleted: true });
+    const admin = await createUser({
+      email: "admin@pw.test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+    const dept = await Department.create({
+      college_id: college._id,
+      name: "Electrical",
+      code: "EE",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+    const course = await Course.create({
+      college_id: college._id,
+      department_id: dept._id,
+      name: "B.Tech EE",
+      code: "BTEE",
+      type: "THEORY",
+      status: "ACTIVE",
+      programLevel: "UG",
+      durationSemesters: 8,
+      durationYears: 4,
+      credits: 160,
+      maxStudents: 60,
+      yearLabels: ["Year 1"],
+      createdBy: admin._id,
+    });
+    await FeeStructure.create({
+      college_id: college._id,
+      course_id: course._id,
+      category: "GEN",
+      academicYear: "2026-2027",
+      totalFee: 50000,
+      feeComponents: [{ name: "Tuition", amount: 50000 }],
+      createdBy: admin._id,
+    });
+
+    const student = await createStudent({
+      college_id: college._id,
+      department_id: dept._id,
+      course_id: course._id,
+      email: "noparent@test.com",
+      status: "APPROVED",
+      category: "GEN",
+      admissionYear: 2026,
+      fatherEmail: "",
+      motherEmail: "",
+      division: "A",
+    });
+
+    const agent = request.agent(app);
+    await agent.post("/api/auth/login").send({ email: admin.email, password: "Test@123" }).expect(200);
+
+    const res = await agent
+      .put(`/api/students/${student._id}/confirm-enrollment`)
+      .expect(200);
+
+    expect(res.body.parentAccounts).toBeDefined();
+    expect(res.body.parentAccounts.created).toBe(0);
+    expect(res.body.parentAccounts.warning).toContain("Parent email was not provided; parent accounts skipped.");
+  });
+
+  // ── 11. Approval correctly matches FeeStructure by academicYear ──
+  it("11. Approval correctly matches FeeStructure by academicYear", async () => {
+    const college = await createCollege({ code: "feecol", email: "feecol@test.com", name: "Fee Match College", setupCompleted: true });
+    const admin = await createUser({
+      email: "admin@fee.test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+    const dept = await Department.create({
+      college_id: college._id,
+      name: "Mechanical",
+      code: "MECH",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+    const course = await Course.create({
+      college_id: college._id,
+      department_id: dept._id,
+      name: "B.Tech Mech",
+      code: "BTME",
+      type: "THEORY",
+      status: "ACTIVE",
+      programLevel: "UG",
+      durationSemesters: 8,
+      durationYears: 4,
+      credits: 160,
+      maxStudents: 60,
+      yearLabels: ["Year 1"],
+      createdBy: admin._id,
+    });
+
+    // Older fee structure (2024-2025: 40000)
+    await FeeStructure.create({
+      college_id: college._id,
+      course_id: course._id,
+      category: "GEN",
+      academicYear: "2024-2025",
+      totalFee: 40000,
+      feeComponents: [{ name: "Tuition", amount: 40000 }],
+      createdBy: admin._id,
+    });
+
+    // Current fee structure (2026-2027: 75000)
+    await FeeStructure.create({
+      college_id: college._id,
+      course_id: course._id,
+      category: "GEN",
+      academicYear: "2026-2027",
+      totalFee: 75000,
+      feeComponents: [{ name: "Tuition", amount: 75000 }],
+      createdBy: admin._id,
+    });
+
+    const student = await createStudent({
+      college_id: college._id,
+      department_id: dept._id,
+      course_id: course._id,
+      email: "yearmatch@test.com",
+      status: "PENDING",
+      category: "GEN",
+      admissionYear: 2026,
+    });
+
+    const agent = request.agent(app);
+    await agent.post("/api/auth/login").send({ email: admin.email, password: "Test@123" }).expect(200);
+
+    const approveRes = await agent
+      .put(`/api/students/${student._id}/approve`)
+      .expect(200);
+
+    expect(approveRes.body.student.status).toBe("APPROVED");
+    const feeRecord = await StudentFee.findOne({ student_id: student._id });
+    expect(feeRecord).toBeDefined();
+    expect(feeRecord.totalFee).toBe(75000);
+    expect(feeRecord.academicYear).toBe("2026-2027");
+  });
+
+  // ── 12. Student registration accepts EWS category successfully ──
+  it("12. Student registration accepts EWS category successfully", async () => {
+    const college = await createCollege({ code: "ewscol", email: "ewscol@test.com", name: "EWS Test College", setupCompleted: true });
+    const admin = await createUser({
+      email: "admin@ews.test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+    const dept = await Department.create({
+      college_id: college._id,
+      name: "Computer Science",
+      code: "CSEWS",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+    const course = await Course.create({
+      college_id: college._id,
+      department_id: dept._id,
+      name: "B.Tech CS EWS",
+      code: "BTCSEWS",
+      type: "THEORY",
+      status: "ACTIVE",
+      programLevel: "UG",
+      durationSemesters: 8,
+      durationYears: 4,
+      credits: 160,
+      maxStudents: 60,
+      yearLabels: ["Year 1"],
+      createdBy: admin._id,
+    });
+
+    await request(app)
+      .post(`/api/students/register/${college.code}`)
+      .field("fullName", "EWS Student")
+      .field("email", "ews.candidate@test.com")
+      .field("password", "Pass@123456")
+      .field("mobileNumber", "9876543201")
+      .field("gender", "Male")
+      .field("dateOfBirth", "2005-01-01")
+      .field("addressLine", "123 Main St")
+      .field("city", "Mumbai")
+      .field("state", "Maharashtra")
+      .field("pincode", "400001")
+      .field("department_id", dept._id.toString())
+      .field("course_id", course._id.toString())
+      .field("admissionYear", 2026)
+      .field("currentSemester", 1)
+      .field("category", "EWS")
+      .expect(201);
+
+    const created = await Student.findOne({ email: "ews.candidate@test.com" });
+    expect(created).toBeDefined();
+    expect(created.category).toBe("EWS");
   });
 });

@@ -72,6 +72,7 @@ export default function StudentRegister() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [errors, setErrors] = useState({});
+  const [setupIncomplete, setSetupIncomplete] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -119,6 +120,9 @@ export default function StudentRegister() {
     cachedGet(`/public/departments/${collegeCode}`, `college-${collegeCode}`)
       .then((res) => {
         if (res?.collegeName) setCollegeName(res.collegeName);
+        if (res && res.setupCompleted === false) {
+          setSetupIncomplete(true);
+        }
       })
       .catch(() => {});
   }, [collegeCode]);
@@ -484,6 +488,10 @@ export default function StudentRegister() {
   };
 
   const handleRegisterClick = () => {
+    if (setupIncomplete) {
+      setError("College admissions are not open yet. Setup is still in progress.");
+      return;
+    }
     const steps = getStepNumbers();
     const allStepNums = [
       steps.personal,
@@ -819,6 +827,7 @@ export default function StudentRegister() {
             <option value="OBC">Other Backward Classes (OBC)</option>
             <option value="SC">Scheduled Caste (SC)</option>
             <option value="ST">Scheduled Tribe (ST)</option>
+            <option value="EWS">Economically Weaker Section (EWS)</option>
             <option value="OTHER">Other</option>
           </select>
           {errors.category && <div className="sr-field-error">{errors.category}</div>}
@@ -1017,6 +1026,9 @@ export default function StudentRegister() {
             onChange={handleChange}
           />
           {errors.fatherEmail && <div className="sr-field-error">{errors.fatherEmail}</div>}
+          <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px", display: "block" }}>
+            Optional, but required to automatically create a father portal account.
+          </span>
         </div>
         <div className="sr-field">
           <label className="sr-label">
@@ -1060,6 +1072,9 @@ export default function StudentRegister() {
             onChange={handleChange}
           />
           {errors.motherEmail && <div className="sr-field-error">{errors.motherEmail}</div>}
+          <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "4px", display: "block" }}>
+            Optional, but required to automatically create a mother portal account.
+          </span>
         </div>
       </div>
     </div>
@@ -1714,6 +1729,22 @@ export default function StudentRegister() {
           </div>
 
           {/* Alerts */}
+          {setupIncomplete && (
+            <div
+              className="sr-alert sr-alert--error"
+              style={{
+                background: "rgba(245, 158, 11, 0.12)",
+                border: "1px solid rgba(245, 158, 11, 0.35)",
+                color: "#b45309",
+                marginBottom: "1rem",
+              }}
+            >
+              <FaExclamationCircle className="sr-alert__icon" />
+              <span>
+                <strong>Admissions Not Open Yet:</strong> This college has not finalized its setup. Student registrations are currently closed.
+              </span>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {error && (
               <motion.div

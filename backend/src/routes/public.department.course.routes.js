@@ -28,7 +28,8 @@ router.get("/departments/:collegeCode", normalizeCollegeCode, async (req, res) =
     res.json({
       departments: departments,
       collegeName: college.name,
-      collegeCode: college.code
+      collegeCode: college.code,
+      setupCompleted: college.setupCompleted ?? false,
     });
   } catch (error) {
     console.error(error);

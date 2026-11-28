@@ -301,6 +301,15 @@ exports.registerStudent = async (req, res, next) => {
     // 1️⃣ Resolve college (using service)
     const college = await collegeService.findCollegeByCode(collegeCode);
 
+    // Ensure college setup is completed before allowing public registration
+    if (!college.setupCompleted) {
+      throw new AppError(
+        "College admissions are not open yet. Setup is still in progress.",
+        400,
+        "COLLEGE_SETUP_INCOMPLETE"
+      );
+    }
+
     // 2️⃣ Validate department & course (same as before)
 
     // Validate Department

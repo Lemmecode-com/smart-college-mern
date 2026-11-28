@@ -157,7 +157,7 @@ exports.validateStudentRegistration = [
 
   body('category')
     .notEmpty().withMessage('Category is required')
-    .isIn(['GEN', 'OBC', 'SC', 'ST', 'OTHER']).withMessage('Category must be GEN, OBC, SC, ST, or OTHER'),
+    .isIn(['GEN', 'OBC', 'SC', 'ST', 'EWS', 'OTHER']).withMessage('Category must be GEN, OBC, SC, ST, EWS, or OTHER'),
 
   // Optional fields with validation
   validateMobileCustom('alternateMobile', true),
@@ -274,7 +274,7 @@ exports.validateStudentUpdateByAdmin = [
 
   body('category')
     .optional()
-    .isIn(['GEN', 'OBC', 'SC', 'ST', 'OTHER']).withMessage('Category must be GEN, OBC, SC, ST, or OTHER'),
+    .isIn(['GEN', 'OBC', 'SC', 'ST', 'EWS', 'OTHER']).withMessage('Category must be GEN, OBC, SC, ST, EWS, or OTHER'),
 
   body('division')
     .optional({ checkFalsy: true })

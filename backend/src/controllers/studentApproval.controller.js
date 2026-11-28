@@ -145,11 +145,42 @@ exports.approveStudent = async (req, res, next) => {
         feeCategory = "GEN";
       }
 
-      const feeStructure = await FeeStructure.findOne({
-        college_id: student.college_id,
-        course_id: student.course_id,
-        category: feeCategory,
-      });
+      // Target academic year preference: student's admission year first, then currentAcademicYear
+      const targetYears = [];
+      if (student.admissionYear) {
+        targetYears.push(`${student.admissionYear}-${student.admissionYear + 1}`);
+      }
+      if (student.currentAcademicYear && !targetYears.includes(student.currentAcademicYear)) {
+        targetYears.push(student.currentAcademicYear);
+      }
+
+      let feeStructure = null;
+      for (const year of targetYears) {
+        feeStructure = await FeeStructure.findOne({
+          college_id: student.college_id,
+          course_id: student.course_id,
+          category: feeCategory,
+          academicYear: year,
+        });
+        if (feeStructure) break;
+      }
+
+      if (!feeStructure) {
+        feeStructure = await FeeStructure.findOne({
+          college_id: student.college_id,
+          course_id: student.course_id,
+          category: feeCategory,
+          $or: [{ academicYear: null }, { academicYear: { $exists: false } }],
+        });
+      }
+
+      if (!feeStructure) {
+        feeStructure = await FeeStructure.findOne({
+          college_id: student.college_id,
+          course_id: student.course_id,
+          category: feeCategory,
+        }).sort({ createdAt: -1 });
+      }
 
       if (!feeStructure) {
         throw new AppError(
@@ -435,11 +466,42 @@ exports.bulkApproveStudents = async (req, res, next) => {
           feeCategory = "GEN";
         }
 
-        const feeStructure = await FeeStructure.findOne({
-          college_id: student.college_id,
-          course_id: student.course_id,
-          category: feeCategory,
-        });
+        // Target academic year preference: student's admission year first, then currentAcademicYear
+        const targetYears = [];
+        if (student.admissionYear) {
+          targetYears.push(`${student.admissionYear}-${student.admissionYear + 1}`);
+        }
+        if (student.currentAcademicYear && !targetYears.includes(student.currentAcademicYear)) {
+          targetYears.push(student.currentAcademicYear);
+        }
+
+        let feeStructure = null;
+        for (const year of targetYears) {
+          feeStructure = await FeeStructure.findOne({
+            college_id: student.college_id,
+            course_id: student.course_id,
+            category: feeCategory,
+            academicYear: year,
+          });
+          if (feeStructure) break;
+        }
+
+        if (!feeStructure) {
+          feeStructure = await FeeStructure.findOne({
+            college_id: student.college_id,
+            course_id: student.course_id,
+            category: feeCategory,
+            $or: [{ academicYear: null }, { academicYear: { $exists: false } }],
+          });
+        }
+
+        if (!feeStructure) {
+          feeStructure = await FeeStructure.findOne({
+            college_id: student.college_id,
+            course_id: student.course_id,
+            category: feeCategory,
+          }).sort({ createdAt: -1 });
+        }
 
         if (!feeStructure) {
           results.failed.push({
@@ -467,7 +529,6 @@ exports.bulkApproveStudents = async (req, res, next) => {
         student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
 
         // ── 8. Create student fee (One fee per student per course - #565) ──
-        const admissionAcademicYear = student.currentAcademicYear || `${student.admissionYear}-${student.admissionYear + 1}`;
         const existingEnrollmentFee = await StudentFee.findOne({
           student_id: student._id,
           college_id: student.college_id,
@@ -852,6 +913,7 @@ exports.confirmEnrollment = async (req, res, next) => {
       parentAccounts: parentCreationResult ? {
         created: parentCreationResult.count,
         parents: parentCreationResult.parents,
+        warning: parentCreationResult.warning || null,
         error: parentCreationResult.error,
       } : null,
     });

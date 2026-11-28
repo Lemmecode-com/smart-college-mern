@@ -319,6 +319,11 @@ const executeToggleActive = async () => {
       });
       if (data?.parentAccounts?.parents?.length) {
         setParentCreds(data.parentAccounts.parents);
+      } else if (data?.parentAccounts?.warning) {
+        toast.info(data.parentAccounts.warning, {
+          position: "top-right",
+          autoClose: 6000,
+        });
       }
       fetchApprovedStudents();
     } catch (e) {

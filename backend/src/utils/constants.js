@@ -76,6 +76,7 @@ exports.CATEGORY = {
   OBC: "OBC",
   SC: "SC",
   ST: "ST",
+  EWS: "EWS",
   OTHER: "OTHER",
 };
 

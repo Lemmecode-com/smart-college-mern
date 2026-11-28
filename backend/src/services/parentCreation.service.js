@@ -268,6 +268,14 @@ class ParentCreationService {
         totalParentsProcessed: parentUsers.length
       });
 
+      const hasParentEmail = Boolean(
+        (student.fatherEmail && student.fatherEmail.trim()) ||
+        (student.motherEmail && student.motherEmail.trim())
+      );
+      const warning = !hasParentEmail
+        ? "Parent email was not provided; parent accounts skipped."
+        : null;
+
       return {
         count: createdCount,
         parents: parentUsers.map(parent => ({
@@ -276,7 +284,8 @@ class ParentCreationService {
           relation: parent.relation,
           tempPassword: parent.tempPassword,
           userId: parent.user._id
-        }))
+        })),
+        warning
       };
 
     } catch (error) {
